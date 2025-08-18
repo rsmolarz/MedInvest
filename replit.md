@@ -1,6 +1,6 @@
 # Overview
 
-MedLearn Invest is a comprehensive educational platform designed specifically for medical professionals to learn investment strategies and financial management. The application combines structured learning modules, community forums, portfolio simulation, and professional verification to create a tailored investment education experience for doctors and healthcare professionals.
+MedInvest is a Facebook-like social media platform designed specifically for medical professionals to learn investment strategies and share financial knowledge. The application combines social networking features with investment education content, allowing doctors to connect, share insights, ask questions, and learn from each other's investment experiences through posts, comments, likes, and professional networking.
 
 The platform features two main architectures: a primary Flask-based web application for the educational content and user interface, and a FastAPI scaffold for potential future investment deal management and financial integrations.
 
@@ -25,10 +25,11 @@ Preferred communication style: Simple, everyday language.
 
 ## Data Models
 - **User Management**: Professional verification system with medical license tracking
-- **Learning System**: Modular content delivery with progress tracking
-- **Community Features**: Forum topics and posts with categorization
-- **Portfolio Simulation**: Virtual transaction tracking for investment practice
-- **Resource Management**: Educational materials and documentation
+- **Social Media System**: Posts, likes, comments, and following relationships for professional networking
+- **Content Sharing**: Post types including general updates, questions, insights, and achievements
+- **Community Features**: Forum topics and posts with categorization (legacy)
+- **Portfolio Simulation**: Virtual transaction tracking for investment practice (legacy)
+- **Notification System**: Real-time notifications for social interactions
 
 ## Database Design
 - **Primary Database**: SQLite for development with PostgreSQL support via environment configuration
