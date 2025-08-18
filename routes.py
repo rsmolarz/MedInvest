@@ -58,14 +58,13 @@ def register():
             return render_template('register.html')
         
         # Create new user
-        user = User(
-            email=email,
-            first_name=first_name,
-            last_name=last_name,
-            medical_license=medical_license,
-            specialty=specialty,
-            hospital_affiliation=hospital_affiliation
-        )
+        user = User()
+        user.email = email
+        user.first_name = first_name
+        user.last_name = last_name
+        user.medical_license = medical_license
+        user.specialty = specialty
+        user.hospital_affiliation = hospital_affiliation
         user.set_password(password)
         
         try:
