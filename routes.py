@@ -109,23 +109,20 @@ def logout():
 @login_required
 def dashboard():
     """Social media feed for medical professionals learning investing"""
-    # Get posts from followed users and own posts
-    feed_posts = current_user.get_feed_posts().limit(20).all()
+    # Get all posts ordered by creation time (for now)
+    feed_posts = Post.query.order_by(Post.created_at.desc()).limit(20).all()
     
-    # Get suggested users to follow
-    followed_user_ids = [f.following_id for f in current_user.following.all()]
-    followed_user_ids.append(current_user.id)  # Exclude self
-    
+    # Get suggested users to follow (verified medical professionals)
     suggested_users = User.query.filter(
-        ~User.id.in_(followed_user_ids),
+        User.id != current_user.id,
         User.is_verified == True
     ).limit(5).all()
     
     # Get user stats
     stats = {
-        'posts_count': current_user.posts.count(),
-        'followers_count': current_user.followers_count(),
-        'following_count': current_user.following_count()
+        'posts_count': Post.query.filter_by(author_id=current_user.id).count(),
+        'followers_count': 0,  # Will implement follow system later
+        'following_count': 0   # Will implement follow system later
     }
     
     return render_template('dashboard.html', 
@@ -408,21 +405,19 @@ def create_sample_data():
     if User.query.count() > 0:
         sample_user = User.query.first()
         
-        # Create sample social media posts
-        sample_social_post = Post(
-            author_id=sample_user.id,
-            content="Just completed the 'Understanding Stock Market Basics' module! The section on healthcare sector investing was particularly insightful. As medical professionals, we have unique insights into which companies are truly innovative. What healthcare stocks are you watching?",
-            post_type="achievement",
-            tags="learning, healthcare-stocks, medical-professional"
-        )
+        # Create sample social media posts  
+        sample_social_post = Post()
+        sample_social_post.author_id = sample_user.id
+        sample_social_post.content = "Just completed the 'Understanding Stock Market Basics' module! The section on healthcare sector investing was particularly insightful. As medical professionals, we have unique insights into which companies are truly innovative. What healthcare stocks are you watching?"
+        sample_social_post.post_type = "achievement"
+        sample_social_post.tags = "learning, healthcare-stocks, medical-professional"
         db.session.add(sample_social_post)
         
-        sample_question_post = Post(
-            author_id=sample_user.id,
-            content="Question for fellow docs: How do you balance investing in individual healthcare stocks vs. broad market ETFs? I'm torn between leveraging our industry knowledge and maintaining diversification.",
-            post_type="question",
-            tags="investment-strategy, healthcare, diversification"
-        )
+        sample_question_post = Post()
+        sample_question_post.author_id = sample_user.id
+        sample_question_post.content = "Question for fellow docs: How do you balance investing in individual healthcare stocks vs. broad market ETFs? I'm torn between leveraging our industry knowledge and maintaining diversification."
+        sample_question_post.post_type = "question"
+        sample_question_post.tags = "investment-strategy, healthcare, diversification"
         db.session.add(sample_question_post)
     
     db.session.commit()
@@ -446,12 +441,11 @@ def create_post():
         flash('Post content cannot be empty.', 'error')
         return redirect(url_for('dashboard'))
     
-    post = Post(
-        author_id=current_user.id,
-        content=content,
-        post_type=post_type,
-        tags=tags
-    )
+    post = Post()
+    post.author_id = current_user.id
+    post.content = content
+    post.post_type = post_type
+    post.tags = tags
     
     try:
         db.session.add(post)
@@ -478,7 +472,9 @@ def like_post(post_id):
         action = 'unliked'
     else:
         # Like the post
-        like = Like(user_id=current_user.id, post_id=post_id)
+        like = Like()
+        like.user_id = current_user.id
+        like.post_id = post_id
         db.session.add(like)
         action = 'liked'
         
