@@ -2,7 +2,7 @@ from flask import render_template, request, redirect, url_for, flash, session, j
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash
 from app import app, db
-from models import User, Module, UserProgress, ForumTopic, ForumPost, PortfolioTransaction, Resource
+from models import User, Module, UserProgress, ForumTopic, ForumPost, PortfolioTransaction, Resource, Post, Comment, Like, Follow, Notification
 from datetime import datetime
 import logging
 from markupsafe import Markup
@@ -108,21 +108,30 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    # Get user's progress
-    completed_modules = UserProgress.query.filter_by(user_id=current_user.id, completed=True).count()
-    total_modules = Module.query.filter_by(is_published=True).count()
+    """Social media feed for medical professionals learning investing"""
+    # Get posts from followed users and own posts
+    feed_posts = current_user.get_feed_posts().limit(20).all()
     
-    # Get recent modules
-    recent_modules = Module.query.filter_by(is_published=True).order_by(Module.created_at.desc()).limit(3).all()
+    # Get suggested users to follow
+    followed_user_ids = [f.following_id for f in current_user.following.all()]
+    followed_user_ids.append(current_user.id)  # Exclude self
     
-    # Get recent forum activity
-    recent_posts = ForumPost.query.join(ForumTopic).order_by(ForumPost.created_at.desc()).limit(5).all()
+    suggested_users = User.query.filter(
+        ~User.id.in_(followed_user_ids),
+        User.is_verified == True
+    ).limit(5).all()
+    
+    # Get user stats
+    stats = {
+        'posts_count': current_user.posts.count(),
+        'followers_count': current_user.followers_count(),
+        'following_count': current_user.following_count()
+    }
     
     return render_template('dashboard.html', 
-                         completed_modules=completed_modules,
-                         total_modules=total_modules,
-                         recent_modules=recent_modules,
-                         recent_posts=recent_posts)
+                         posts=feed_posts,
+                         suggested_users=suggested_users,
+                         stats=stats)
 
 @app.route('/modules')
 @login_required
@@ -395,9 +404,249 @@ def create_sample_data():
         resource = Resource(**resource_data)
         db.session.add(resource)
     
+    # Create sample social media posts after user creation
+    if User.query.count() > 0:
+        sample_user = User.query.first()
+        
+        # Create sample social media posts
+        sample_social_post = Post(
+            author_id=sample_user.id,
+            content="Just completed the 'Understanding Stock Market Basics' module! The section on healthcare sector investing was particularly insightful. As medical professionals, we have unique insights into which companies are truly innovative. What healthcare stocks are you watching?",
+            post_type="achievement",
+            tags="learning, healthcare-stocks, medical-professional"
+        )
+        db.session.add(sample_social_post)
+        
+        sample_question_post = Post(
+            author_id=sample_user.id,
+            content="Question for fellow docs: How do you balance investing in individual healthcare stocks vs. broad market ETFs? I'm torn between leveraging our industry knowledge and maintaining diversification.",
+            post_type="question",
+            tags="investment-strategy, healthcare, diversification"
+        )
+        db.session.add(sample_question_post)
+    
     db.session.commit()
     logging.info("Sample data created successfully")
 
 # Create sample data when the application starts
 with app.app_context():
     create_sample_data()
+
+
+# Social Media Routes
+@app.route('/create_post', methods=['POST'])
+@login_required
+def create_post():
+    """Create a new social media post"""
+    content = request.form.get('content', '').strip()
+    post_type = request.form.get('post_type', 'general')
+    tags = request.form.get('tags', '')
+    
+    if not content:
+        flash('Post content cannot be empty.', 'error')
+        return redirect(url_for('dashboard'))
+    
+    post = Post(
+        author_id=current_user.id,
+        content=content,
+        post_type=post_type,
+        tags=tags
+    )
+    
+    try:
+        db.session.add(post)
+        db.session.commit()
+        flash('Post created successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error creating post: {e}")
+        flash('Error creating post. Please try again.', 'error')
+    
+    return redirect(url_for('dashboard'))
+
+
+@app.route('/like_post/<int:post_id>', methods=['POST'])
+@login_required
+def like_post(post_id):
+    """Like or unlike a post"""
+    post = Post.query.get_or_404(post_id)
+    existing_like = Like.query.filter_by(user_id=current_user.id, post_id=post_id).first()
+    
+    if existing_like:
+        # Unlike the post
+        db.session.delete(existing_like)
+        action = 'unliked'
+    else:
+        # Like the post
+        like = Like(user_id=current_user.id, post_id=post_id)
+        db.session.add(like)
+        action = 'liked'
+        
+        # Create notification if it's not the user's own post
+        if post.author_id != current_user.id:
+            notification = Notification(
+                recipient_id=post.author_id,
+                sender_id=current_user.id,
+                notification_type='like',
+                message=f'{current_user.full_name} liked your post',
+                related_post_id=post_id
+            )
+            db.session.add(notification)
+    
+    try:
+        db.session.commit()
+        return jsonify({
+            'success': True, 
+            'action': action,
+            'likes_count': post.likes_count()
+        })
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error liking post: {e}")
+        return jsonify({'success': False, 'error': 'Database error'}), 500
+
+
+@app.route('/comment_post/<int:post_id>', methods=['POST'])
+@login_required
+def comment_post(post_id):
+    """Add a comment to a post"""
+    post = Post.query.get_or_404(post_id)
+    content = request.form.get('content', '').strip()
+    
+    if not content:
+        flash('Comment cannot be empty.', 'error')
+        return redirect(url_for('dashboard'))
+    
+    comment = Comment(
+        post_id=post_id,
+        author_id=current_user.id,
+        content=content
+    )
+    
+    # Create notification if it's not the user's own post
+    if post.author_id != current_user.id:
+        notification = Notification(
+            recipient_id=post.author_id,
+            sender_id=current_user.id,
+            notification_type='comment',
+            message=f'{current_user.full_name} commented on your post',
+            related_post_id=post_id
+        )
+        db.session.add(notification)
+    
+    try:
+        db.session.add(comment)
+        db.session.commit()
+        flash('Comment added successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error adding comment: {e}")
+        flash('Error adding comment. Please try again.', 'error')
+    
+    return redirect(url_for('dashboard'))
+
+
+@app.route('/follow_user/<int:user_id>', methods=['POST'])
+@login_required
+def follow_user(user_id):
+    """Follow or unfollow a user"""
+    if user_id == current_user.id:
+        return jsonify({'success': False, 'error': 'Cannot follow yourself'}), 400
+    
+    user = User.query.get_or_404(user_id)
+    
+    if current_user.is_following(user):
+        # Unfollow
+        current_user.unfollow(user)
+        action = 'unfollowed'
+    else:
+        # Follow
+        current_user.follow(user)
+        action = 'followed'
+        
+        # Create notification
+        notification = Notification(
+            recipient_id=user_id,
+            sender_id=current_user.id,
+            notification_type='follow',
+            message=f'{current_user.full_name} started following you'
+        )
+        db.session.add(notification)
+    
+    try:
+        db.session.commit()
+        return jsonify({
+            'success': True, 
+            'action': action,
+            'followers_count': user.followers_count()
+        })
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error following user: {e}")
+        return jsonify({'success': False, 'error': 'Database error'}), 500
+
+
+@app.route('/profile/<int:user_id>')
+@login_required
+def user_profile(user_id):
+    """View user profile"""
+    user = User.query.get_or_404(user_id)
+    posts = user.posts.order_by(Post.created_at.desc()).limit(20).all()
+    
+    # Get user stats
+    stats = {
+        'posts_count': user.posts.count(),
+        'followers_count': user.followers_count(),
+        'following_count': user.following_count(),
+        'is_following': current_user.is_following(user) if user != current_user else False
+    }
+    
+    return render_template('profile.html', user=user, posts=posts, stats=stats)
+
+
+@app.route('/edit_profile', methods=['GET', 'POST'])
+@login_required
+def edit_profile():
+    """Edit user profile"""
+    if request.method == 'POST':
+        current_user.bio = request.form.get('bio', '')
+        current_user.location = request.form.get('location', '')
+        current_user.years_of_experience = request.form.get('years_of_experience', type=int)
+        current_user.investment_interests = request.form.get('investment_interests', '')
+        current_user.hospital_affiliation = request.form.get('hospital_affiliation', '')
+        
+        try:
+            db.session.commit()
+            flash('Profile updated successfully!', 'success')
+            return redirect(url_for('user_profile', user_id=current_user.id))
+        except Exception as e:
+            db.session.rollback()
+            logging.error(f"Error updating profile: {e}")
+            flash('Error updating profile. Please try again.', 'error')
+    
+    return render_template('edit_profile.html', user=current_user)
+
+
+@app.route('/notifications')
+@login_required
+def notifications():
+    """View user notifications"""
+    notifications = Notification.query.filter_by(
+        recipient_id=current_user.id
+    ).order_by(Notification.created_at.desc()).limit(50).all()
+    
+    # Mark notifications as read
+    unread_notifications = Notification.query.filter_by(
+        recipient_id=current_user.id, 
+        is_read=False
+    ).all()
+    
+    for notification in unread_notifications:
+        notification.is_read = True
+    
+    try:
+        db.session.commit()
+    except Exception as e:
+        logging.error(f"Error marking notifications as read: {e}")
+    
+    return render_template('notifications.html', notifications=notifications)

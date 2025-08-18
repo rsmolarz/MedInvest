@@ -15,7 +15,14 @@ class User(UserMixin, db.Model):
     medical_license = db.Column(db.String(50), unique=True, nullable=False)
     specialty = db.Column(db.String(100), nullable=False)
     hospital_affiliation = db.Column(db.String(200))
+    bio = db.Column(db.Text)
+    profile_image_url = db.Column(db.String(500))
+    location = db.Column(db.String(100))
+    years_of_experience = db.Column(db.Integer)
+    investment_interests = db.Column(db.Text)
     is_verified = db.Column(db.Boolean, default=False)
+    is_active = db.Column(db.Boolean, default=True)
+    last_seen = db.Column(db.DateTime, default=datetime.utcnow)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -23,6 +30,22 @@ class User(UserMixin, db.Model):
     progress = db.relationship('UserProgress', back_populates='user', lazy='dynamic')
     forum_posts = db.relationship('ForumPost', back_populates='author', lazy='dynamic')
     transactions = db.relationship('PortfolioTransaction', back_populates='user', lazy='dynamic')
+    posts = db.relationship('Post', back_populates='author', lazy='dynamic')
+    comments = db.relationship('Comment', back_populates='author', lazy='dynamic')
+    likes = db.relationship('Like', back_populates='user', lazy='dynamic')
+    
+    # Following relationships
+    following = db.relationship('Follow', 
+                               foreign_keys='Follow.follower_id',
+                               backref=db.backref('follower', lazy='joined'),
+                               lazy='dynamic',
+                               cascade='all, delete-orphan')
+    
+    followers = db.relationship('Follow',
+                               foreign_keys='Follow.following_id', 
+                               backref=db.backref('following', lazy='joined'),
+                               lazy='dynamic',
+                               cascade='all, delete-orphan')
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -33,6 +56,31 @@ class User(UserMixin, db.Model):
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
+    
+    def follow(self, user):
+        if not self.is_following(user):
+            follow = Follow(follower_id=self.id, following_id=user.id)
+            db.session.add(follow)
+    
+    def unfollow(self, user):
+        follow = self.following.filter_by(following_id=user.id).first()
+        if follow:
+            db.session.delete(follow)
+    
+    def is_following(self, user):
+        return self.following.filter_by(following_id=user.id).first() is not None
+    
+    def followers_count(self):
+        return self.followers.count()
+    
+    def following_count(self):
+        return self.following.count()
+    
+    def get_feed_posts(self):
+        # Get posts from followed users
+        following_ids = [f.following_id for f in self.following.all()]
+        following_ids.append(self.id)  # Include own posts
+        return Post.query.filter(Post.author_id.in_(following_ids)).order_by(Post.created_at.desc())
 
 
 class Module(db.Model):
@@ -132,3 +180,95 @@ class Resource(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# Social Media Models
+class Post(db.Model):
+    __tablename__ = 'posts'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    image_url = db.Column(db.String(500))
+    post_type = db.Column(db.String(20), default='general')  # general, question, insight, achievement
+    tags = db.Column(db.String(500))  # Comma-separated tags
+    is_published = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    author = db.relationship('User', back_populates='posts')
+    comments = db.relationship('Comment', back_populates='post', lazy='dynamic', cascade='all, delete-orphan')
+    likes = db.relationship('Like', back_populates='post', lazy='dynamic', cascade='all, delete-orphan')
+    
+    def likes_count(self):
+        return self.likes.count()
+    
+    def comments_count(self):
+        return self.comments.count()
+    
+    def is_liked_by(self, user):
+        return self.likes.filter_by(user_id=user.id).first() is not None
+
+
+class Comment(db.Model):
+    __tablename__ = 'comments'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'), nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    parent_id = db.Column(db.Integer, db.ForeignKey('comments.id'))
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    post = db.relationship('Post', back_populates='comments')
+    author = db.relationship('User', back_populates='comments')
+    replies = db.relationship('Comment', backref='parent', remote_side=[id])
+
+
+class Like(db.Model):
+    __tablename__ = 'likes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', back_populates='likes')
+    post = db.relationship('Post', back_populates='likes')
+    
+    # Ensure a user can only like a post once
+    __table_args__ = (db.UniqueConstraint('user_id', 'post_id', name='unique_user_post_like'),)
+
+
+class Follow(db.Model):
+    __tablename__ = 'follows'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    follower_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    following_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Ensure a user can't follow the same person twice
+    __table_args__ = (db.UniqueConstraint('follower_id', 'following_id', name='unique_follow_relationship'),)
+
+
+class Notification(db.Model):
+    __tablename__ = 'notifications'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    recipient_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    sender_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    notification_type = db.Column(db.String(50), nullable=False)  # like, comment, follow, mention
+    message = db.Column(db.String(500), nullable=False)
+    related_post_id = db.Column(db.Integer, db.ForeignKey('posts.id'))
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    recipient = db.relationship('User', foreign_keys=[recipient_id])
+    sender = db.relationship('User', foreign_keys=[sender_id])
+    related_post = db.relationship('Post')
