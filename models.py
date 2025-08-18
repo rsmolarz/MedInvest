@@ -21,7 +21,7 @@ class User(UserMixin, db.Model):
     years_of_experience = db.Column(db.Integer)
     investment_interests = db.Column(db.Text)
     is_verified = db.Column(db.Boolean, default=False)
-    is_active = db.Column(db.Boolean, default=True)
+    account_active = db.Column(db.Boolean, default=True)
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -59,7 +59,9 @@ class User(UserMixin, db.Model):
     
     def follow(self, user):
         if not self.is_following(user):
-            follow = Follow(follower_id=self.id, following_id=user.id)
+            follow = Follow()
+            follow.follower_id = self.id
+            follow.following_id = user.id
             db.session.add(follow)
     
     def unfollow(self, user):

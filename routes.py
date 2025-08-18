@@ -109,12 +109,8 @@ def logout():
 @login_required
 def dashboard():
     """Social media feed for medical professionals learning investing"""
-    # Get all posts ordered by creation time with related data
-    feed_posts = Post.query.options(
-        db.joinedload(Post.author),
-        db.joinedload(Post.likes),
-        db.joinedload(Post.comments).joinedload(Comment.author)
-    ).order_by(Post.created_at.desc()).limit(20).all()
+    # Get all posts ordered by creation time
+    feed_posts = Post.query.order_by(Post.created_at.desc()).limit(20).all()
     
     # Get suggested users to follow (verified medical professionals)
     suggested_users = User.query.filter(
