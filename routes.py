@@ -109,8 +109,12 @@ def logout():
 @login_required
 def dashboard():
     """Social media feed for medical professionals learning investing"""
-    # Get all posts ordered by creation time (for now)
-    feed_posts = Post.query.order_by(Post.created_at.desc()).limit(20).all()
+    # Get all posts ordered by creation time with related data
+    feed_posts = Post.query.options(
+        db.joinedload(Post.author),
+        db.joinedload(Post.likes),
+        db.joinedload(Post.comments).joinedload(Comment.author)
+    ).order_by(Post.created_at.desc()).limit(20).all()
     
     # Get suggested users to follow (verified medical professionals)
     suggested_users = User.query.filter(
@@ -121,8 +125,8 @@ def dashboard():
     # Get user stats
     stats = {
         'posts_count': Post.query.filter_by(author_id=current_user.id).count(),
-        'followers_count': 0,  # Will implement follow system later
-        'following_count': 0   # Will implement follow system later
+        'followers_count': Follow.query.filter_by(following_id=current_user.id).count(),
+        'following_count': Follow.query.filter_by(follower_id=current_user.id).count()
     }
     
     return render_template('dashboard.html', 

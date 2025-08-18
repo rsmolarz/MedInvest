@@ -238,7 +238,7 @@
                             </form>
                             
                             <!-- Existing Comments -->
-                            {% for comment in post.comments.order_by(Comment.created_at.desc()).limit(5) %}
+                            {% for comment in post.comments[:5] %}
                             <div class="d-flex mb-2">
                                 <div class="me-2">
                                     {% if comment.author.profile_image_url %}
