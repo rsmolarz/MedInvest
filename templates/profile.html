@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - MedLearn Invest{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-6 fw-bold text-primary mb-2">Professional Profile</h1>
+            <p class="lead text-muted">Your learning progress and professional information</p>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Profile Information -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0"><i class="fas fa-user-md me-2"></i>Professional Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="fas fa-user-md text-white fa-2x"></i>
+                        </div>
+                        <h4 class="mb-1">{{ current_user.full_name }}</h4>
+                        {% if current_user.is_verified %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-check-circle me-1"></i>Verified Professional
+                            </span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">
+                                <i class="fas fa-clock me-1"></i>Verification Pending
+                            </span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="profile-details">
+                        <div class="mb-3">
+                            <strong>Email:</strong><br>
+                            <span class="text-muted">{{ current_user.email }}</span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <strong>Specialty:</strong><br>
+                            <span class="text-muted">{{ current_user.specialty }}</span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <strong>Medical License:</strong><br>
+                            <span class="text-muted">{{ current_user.medical_license }}</span>
+                        </div>
+                        
+                        {% if current_user.hospital_affiliation %}
+                        <div class="mb-3">
+                            <strong>Hospital/Practice:</strong><br>
+                            <span class="text-muted">{{ current_user.hospital_affiliation }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="mb-0">
+                            <strong>Member Since:</strong><br>
+                            <span class="text-muted">{{ current_user.created_at.strftime('%B %Y') }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Learning Statistics -->
+        <div class="col-lg-8">
+            <div class="row mb-4">
+                <div class="col-md-4 mb-3">
+                    <div class="card bg-primary text-white text-center">
+                        <div class="card-body">
+                            <i class="fas fa-graduation-cap fa-2x mb-3"></i>
+                            <h3 class="card-title">{{ completed_modules }}</h3>
+                            <p class="card-text">Modules Completed</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <div class="card bg-info text-white text-center">
+                        <div class="card-body">
+                            <i class="fas fa-clock fa-2x mb-3"></i>
+                            <h3 class="card-title">{{ total_time_spent }}</h3>
+                            <p class="card-text">Minutes Studied</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <div class="card bg-success text-white text-center">
+                        <div class="card-body">
+                            <i class="fas fa-comments fa-2x mb-3"></i>
+                            <h3 class="card-title">{{ forum_posts_count }}</h3>
+                            <p class="card-text">Forum Posts</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Learning Progress -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-chart-line me-2"></i>Learning Progress</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-6">
+                            <h4 class="text-primary">{{ completed_modules }}</h4>
+                            <p class="text-muted">Modules Completed</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h4 class="text-info">{{ (total_time_spent / 60)|round(1) }}</h4>
+                            <p class="text-muted">Hours of Learning</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Overall Progress</span>
+                            <span class="text-muted">{{ completed_modules }} modules</span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar" role="progressbar" style="width: {{ (completed_modules * 20)|min(100) }}%"></div>
+                        </div>
+                        <small class="text-muted">Keep learning to unlock more advanced modules!</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Learning Achievements -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-trophy me-2"></i>Learning Achievements</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if completed_modules >= 1 %}
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-success rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                                    <i class="fas fa-star text-white"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">First Steps</h6>
+                                    <small class="text-muted">Completed your first module</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if forum_posts_count >= 1 %}
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-info rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                                    <i class="fas fa-comment text-white"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Community Member</h6>
+                                    <small class="text-muted">Made your first forum post</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if completed_modules >= 3 %}
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-warning rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                                    <i class="fas fa-medal text-white"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Dedicated Learner</h6>
+                                    <small class="text-muted">Completed 3 modules</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if total_time_spent >= 300 %}
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                                    <i class="fas fa-clock text-white"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Time Invested</h6>
+                                    <small class="text-muted">5+ hours of learning</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if completed_modules == 0 and forum_posts_count == 0 %}
+                        <div class="col-12 text-center py-4">
+                            <i class="fas fa-trophy fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Start Learning to Earn Achievements</h5>
+                            <p class="text-muted">Complete modules and participate in discussions to unlock achievements!</p>
+                            <a href="{{ url_for('modules') }}" class="btn btn-primary">Start Learning</a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

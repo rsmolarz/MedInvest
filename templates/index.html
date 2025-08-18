@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="bg-primary text-white py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold mb-4">Investment Education for Medical Professionals</h1>
+                <p class="lead mb-4">Join thousands of doctors who are taking control of their financial future through comprehensive investment education tailored specifically for healthcare professionals.</p>
+                <div class="d-flex gap-3">
+                    <a href="{{ url_for('register') }}" class="btn btn-light btn-lg">Start Learning Today</a>
+                    <a href="#features" class="btn btn-outline-light btn-lg">Learn More</a>
+                </div>
+            </div>
+            <div class="col-lg-6 text-center">
+                <i class="fas fa-chart-line" style="font-size: 12rem; opacity: 0.7;"></i>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section id="features" class="py-5">
+    <div class="container">
+        <div class="row text-center mb-5">
+            <div class="col-12">
+                <h2 class="display-5 fw-bold text-primary mb-3">Why Choose MedLearn Invest?</h2>
+                <p class="lead text-muted">Designed by financial experts who understand the unique needs of medical professionals</p>
+            </div>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                            <i class="fas fa-graduation-cap text-white fs-4"></i>
+                        </div>
+                        <h4 class="card-title text-primary">Structured Learning</h4>
+                        <p class="card-text">Progressive modules designed to take you from investment basics to advanced strategies, all tailored for medical professionals.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                            <i class="fas fa-users text-white fs-4"></i>
+                        </div>
+                        <h4 class="card-title text-primary">Peer Community</h4>
+                        <p class="card-text">Connect with fellow medical professionals, share experiences, and learn from others facing similar financial challenges.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                            <i class="fas fa-tools text-white fs-4"></i>
+                        </div>
+                        <h4 class="card-title text-primary">Practical Tools</h4>
+                        <p class="card-text">Access calculators, simulators, and planning tools designed specifically for high-earning medical professionals.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Statistics Section -->
+<section class="bg-light py-5">
+    <div class="container">
+        <div class="row text-center">
+            <div class="col-md-3 mb-4">
+                <div class="display-6 fw-bold text-primary">2,500+</div>
+                <p class="text-muted">Medical Professionals</p>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="display-6 fw-bold text-primary">50+</div>
+                <p class="text-muted">Learning Modules</p>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="display-6 fw-bold text-primary">15,000+</div>
+                <p class="text-muted">Hours of Learning</p>
+            </div>
+            <div class="col-md-3 mb-4">
+                <div class="display-6 fw-bold text-primary">98%</div>
+                <p class="text-muted">Satisfaction Rate</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Learning Modules Preview -->
+<section class="py-5">
+    <div class="container">
+        <div class="row text-center mb-5">
+            <div class="col-12">
+                <h2 class="display-5 fw-bold text-primary mb-3">Featured Learning Modules</h2>
+                <p class="lead text-muted">Comprehensive curriculum covering all aspects of investment for medical professionals</p>
+            </div>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <span class="badge bg-success">Beginner</span>
+                            <small class="text-muted">30 min</small>
+                        </div>
+                        <h5 class="card-title">Investment Fundamentals</h5>
+                        <p class="card-text">Learn the basics of investing, risk assessment, and asset allocation specifically for healthcare professionals.</p>
+                        <div class="mt-auto">
+                            <span class="text-primary"><i class="fas fa-chart-pie me-2"></i>Portfolio Basics</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <span class="badge bg-warning text-dark">Intermediate</span>
+                            <small class="text-muted">45 min</small>
+                        </div>
+                        <h5 class="card-title">Retirement Planning</h5>
+                        <p class="card-text">Comprehensive retirement strategies addressing the unique challenges faced by medical professionals.</p>
+                        <div class="mt-auto">
+                            <span class="text-primary"><i class="fas fa-piggy-bank me-2"></i>Retirement Strategy</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <span class="badge bg-danger">Advanced</span>
+                            <small class="text-muted">60 min</small>
+                        </div>
+                        <h5 class="card-title">Tax Optimization</h5>
+                        <p class="card-text">Advanced tax strategies for high-earning professionals to maximize investment returns and minimize tax burden.</p>
+                        <div class="mt-auto">
+                            <span class="text-primary"><i class="fas fa-calculator me-2"></i>Tax Planning</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="bg-primary text-white py-5">
+    <div class="container text-center">
+        <h2 class="display-5 fw-bold mb-4">Ready to Take Control of Your Financial Future?</h2>
+        <p class="lead mb-4">Join thousands of medical professionals who are building wealth through smart investing.</p>
+        <a href="{{ url_for('register') }}" class="btn btn-light btn-lg">Start Your Journey Today</a>
+    </div>
+</section>
+{% endblock %}

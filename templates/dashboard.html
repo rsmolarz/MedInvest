@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - MedLearn Invest{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Welcome Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="bg-primary text-white rounded p-4">
+                <h1 class="display-6 fw-bold mb-2">Welcome back, {{ current_user.full_name }}!</h1>
+                <p class="lead mb-0">Continue your investment education journey</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Progress Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-graduation-cap fa-2x mb-3"></i>
+                    <h3 class="card-title">{{ completed_modules }}</h3>
+                    <p class="card-text">Modules Completed</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-book fa-2x mb-3"></i>
+                    <h3 class="card-title">{{ total_modules }}</h3>
+                    <p class="card-text">Total Modules</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-pie fa-2x mb-3"></i>
+                    <h3 class="card-title">{{ ((completed_modules / total_modules * 100) if total_modules > 0 else 0)|round(1) }}%</h3>
+                    <p class="card-text">Progress</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-secondary text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-comments fa-2x mb-3"></i>
+                    <h3 class="card-title">{{ recent_posts|length }}</h3>
+                    <p class="card-text">Recent Discussions</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content Row -->
+    <div class="row">
+        <!-- Recent Modules -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0"><i class="fas fa-book-open me-2"></i>Continue Learning</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_modules %}
+                        <div class="row">
+                            {% for module in recent_modules %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card border">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <span class="badge bg-{{ 'success' if module.difficulty_level == 'Beginner' else 'warning' if module.difficulty_level == 'Intermediate' else 'danger' }}">
+                                                {{ module.difficulty_level }}
+                                            </span>
+                                            <small class="text-muted">{{ module.estimated_duration }} min</small>
+                                        </div>
+                                        <h6 class="card-title">{{ module.title }}</h6>
+                                        <p class="card-text small text-muted">{{ module.description[:100] }}...</p>
+                                        <a href="{{ url_for('module_detail', module_id=module.id) }}" class="btn btn-primary btn-sm">Start Module</a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="text-center mt-3">
+                            <a href="{{ url_for('modules') }}" class="btn btn-outline-primary">View All Modules</a>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-book fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No modules available</h5>
+                            <p class="text-muted">Check back later for new learning content.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Forum Activity -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0"><i class="fas fa-comments me-2"></i>Recent Discussions</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_posts %}
+                        {% for post in recent_posts %}
+                        <div class="border-bottom py-2 {% if not loop.last %}mb-2{% endif %}">
+                            <h6 class="mb-1">
+                                <a href="{{ url_for('forum_detail', topic_id=post.topic.id) }}" class="text-decoration-none">
+                                    {{ post.topic.title }}
+                                </a>
+                            </h6>
+                            <small class="text-muted">
+                                by {{ post.author.full_name }} • {{ post.created_at.strftime('%b %d') }}
+                            </small>
+                        </div>
+                        {% endfor %}
+                        <div class="text-center mt-3">
+                            <a href="{{ url_for('forums') }}" class="btn btn-outline-info btn-sm">View All Forums</a>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-comments fa-2x text-muted mb-2"></i>
+                            <p class="text-muted small">No recent discussions</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-rocket me-2"></i>Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('modules') }}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="fas fa-graduation-cap fa-2x mb-2"></i><br>
+                                Browse Modules
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('forums') }}" class="btn btn-outline-info w-100 py-3">
+                                <i class="fas fa-comments fa-2x mb-2"></i><br>
+                                Join Discussion
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('portfolio') }}" class="btn btn-outline-success w-100 py-3">
+                                <i class="fas fa-chart-line fa-2x mb-2"></i><br>
+                                Portfolio Simulator
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('profile') }}" class="btn btn-outline-secondary w-100 py-3">
+                                <i class="fas fa-user fa-2x mb-2"></i><br>
+                                View Profile
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
