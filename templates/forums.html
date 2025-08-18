@@ -58,7 +58,7 @@
                             </div>
                             <div class="col-md-4 text-md-end">
                                 <div class="text-muted small">
-                                    <div><i class="fas fa-comments me-1"></i>{{ topic.posts|length }} posts</div>
+                                    <div><i class="fas fa-comments me-1"></i>{{ topic.posts.count() }} posts</div>
                                     <div><i class="fas fa-calendar me-1"></i>{{ topic.created_at.strftime('%b %d, %Y') }}</div>
                                     {% if topic.posts %}
                                         {% set latest_post = topic.posts|sort(attribute='created_at')|last %}

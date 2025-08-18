@@ -282,7 +282,17 @@ def profile():
     total_time_spent = db.session.query(db.func.sum(UserProgress.time_spent)).filter_by(user_id=current_user.id).scalar() or 0
     forum_posts_count = ForumPost.query.filter_by(user_id=current_user.id).count()
     
+    # Social media stats
+    stats = {
+        'posts_count': Post.query.filter_by(author_id=current_user.id).count(),
+        'followers_count': Follow.query.filter_by(following_id=current_user.id).count(),
+        'following_count': Follow.query.filter_by(follower_id=current_user.id).count(),
+        'likes_received': db.session.query(db.func.count(Like.id)).join(Post).filter(Post.author_id == current_user.id).scalar() or 0
+    }
+    
     return render_template('profile.html', 
+                         user=current_user,
+                         stats=stats,
                          completed_modules=completed_modules,
                          total_time_spent=total_time_spent,
                          forum_posts_count=forum_posts_count)
