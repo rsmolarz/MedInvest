@@ -188,19 +188,26 @@ def complete_module(module_id):
 def forums():
     category = request.args.get('category', 'all')
     
-    query = ForumTopic.query.filter_by(is_active=True)
-    
-    if category != 'all':
-        query = query.filter_by(category=category)
-    
-    topics = query.order_by(ForumTopic.created_at.desc()).all()
-    
-    categories = db.session.query(ForumTopic.category).distinct().all()
-    categories = [cat[0] for cat in categories]
+    # Get topics or return empty list if none exist
+    try:
+        query = ForumTopic.query.filter_by(is_active=True)
+        
+        if category != 'all':
+            query = query.filter_by(category=category)
+        
+        topics = query.order_by(ForumTopic.created_at.desc()).all()
+        
+        # Get categories safely
+        categories = ['Investment Basics', 'Portfolio Management', 'Healthcare Stocks', 'Market Analysis']
+        
+    except Exception as e:
+        logging.error(f"Error in forums route: {e}")
+        topics = []
+        categories = ['Investment Basics', 'Portfolio Management', 'Healthcare Stocks']
     
     return render_template('forums.html', topics=topics, categories=categories, selected_category=category)
 
-@app.route('/forum/<int:topic_id>')
+@app.route('/forum_detail/<int:topic_id>')
 @login_required
 def forum_detail(topic_id):
     topic = ForumTopic.query.get_or_404(topic_id)
