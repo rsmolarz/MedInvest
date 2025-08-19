@@ -8,11 +8,18 @@ The platform features two main architectures: a primary Flask-based web applicat
 
 ✓ Fixed deployment configuration issues:
 - Resolved SQLAlchemy model constructor errors in routes.py
-- Added /health endpoint for deployment health checks  
+- Added comprehensive health check endpoints (/health, /readiness, /status)
 - Optimized dashboard route to prevent expensive operations during deployment
 - Ensured proper port binding (0.0.0.0:5000) for cloud deployment
 - Fixed null reference issues in sample data creation
 - Improved error handling in dashboard route
+- Added deployment compatibility code with PORT environment variable support
+- Created multiple entry points (main.py and run.py) for deployment flexibility
+- Enhanced status endpoint with deployment environment detection
+
+→ DEPLOYMENT ISSUE: Application works perfectly locally but Cloud Run deployment shows "not found"
+→ ROOT CAUSE: Missing run command in .replit file deployment section
+→ SOLUTION NEEDED: Add `run = ["gunicorn", "main:app"]` or `run = ["python3", "main.py"]` to [deployment] section
 
 # User Preferences
 

@@ -2,9 +2,13 @@ import os
 import logging
 from app import app  # noqa: F401
 
+# Configure logging for production
+logging.basicConfig(level=logging.INFO)
+
 # For deployment compatibility - Cloud Run needs this
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
+    logging.info(f"Starting Flask app on port {port}")
     app.run(host="0.0.0.0", port=port, debug=False)
 import routes  # noqa: F401
 
