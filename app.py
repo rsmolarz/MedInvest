@@ -21,14 +21,24 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 # Configure the database
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///medlearn.db")
 
-# Deployment environment detection
-if os.environ.get("REPLIT_DEPLOYMENT"):
-    app.config["DEBUG"] = False
-    app.config["TESTING"] = False
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+# Configure database options
+engine_options = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
 }
+
+# Deployment environment detection and optimization
+if os.environ.get("REPLIT_DEPLOYMENT") or os.environ.get("GOOGLE_CLOUD_PROJECT"):
+    app.config["DEBUG"] = False
+    app.config["TESTING"] = False
+    # Optimize for deployment
+    engine_options.update({
+        "pool_size": 5,
+        "max_overflow": 10,
+        "pool_timeout": 30
+    })
+
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = engine_options
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Initialize the app with the extension
