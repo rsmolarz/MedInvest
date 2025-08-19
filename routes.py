@@ -31,13 +31,43 @@ def load_user(user_id):
 @app.route('/health')
 def health_check():
     """Health check endpoint for deployment"""
-    return {'status': 'healthy', 'timestamp': datetime.utcnow().isoformat()}, 200
+    try:
+        # Test database connection
+        db.session.execute(db.text('SELECT 1'))
+        return {'status': 'healthy', 'timestamp': datetime.utcnow().isoformat(), 'database': 'connected'}, 200
+    except Exception as e:
+        logging.error(f"Health check failed: {e}")
+        return {'status': 'unhealthy', 'error': str(e), 'timestamp': datetime.utcnow().isoformat()}, 503
+
+@app.route('/readiness')
+def readiness_check():
+    """Readiness check for deployment"""
+    return {'status': 'ready', 'app': 'medinvest', 'version': '1.0'}, 200
+
+@app.route('/status')
+def status_check():
+    """Detailed status for deployment debugging"""
+    import sys
+    import platform
+    return {
+        'status': 'running',
+        'python_version': sys.version,
+        'platform': platform.platform(),
+        'app_name': 'MedInvest',
+        'routes': [rule.rule for rule in app.url_map.iter_rules()],
+        'timestamp': datetime.utcnow().isoformat()
+    }, 200
 
 @app.route('/')
 def index():
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-    return render_template('index.html')
+    """Main landing page"""
+    try:
+        if current_user.is_authenticated:
+            return redirect(url_for('dashboard'))
+        return render_template('index.html')
+    except Exception as e:
+        logging.error(f"Index route error: {e}")
+        return f"Application is running. Error: {str(e)}", 500
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
