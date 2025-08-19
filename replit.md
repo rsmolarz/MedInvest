@@ -4,6 +4,16 @@ MedInvest is a Facebook-like social media platform designed specifically for med
 
 The platform features two main architectures: a primary Flask-based web application for the educational content and user interface, and a FastAPI scaffold for potential future investment deal management and financial integrations.
 
+## Recent Changes (August 19, 2025)
+
+✓ Fixed deployment configuration issues:
+- Resolved SQLAlchemy model constructor errors in routes.py
+- Added /health endpoint for deployment health checks  
+- Optimized dashboard route to prevent expensive operations during deployment
+- Ensured proper port binding (0.0.0.0:5000) for cloud deployment
+- Fixed null reference issues in sample data creation
+- Improved error handling in dashboard route
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.

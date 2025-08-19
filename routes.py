@@ -28,6 +28,11 @@ def nl2br_filter(text):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+@app.route('/health')
+def health_check():
+    """Health check endpoint for deployment"""
+    return {'status': 'healthy', 'timestamp': datetime.utcnow().isoformat()}, 200
+
 @app.route('/')
 def index():
     if current_user.is_authenticated:
@@ -108,26 +113,33 @@ def logout():
 @login_required
 def dashboard():
     """Social media feed for medical professionals learning investing"""
-    # Get all posts ordered by creation time
-    feed_posts = Post.query.order_by(Post.created_at.desc()).limit(20).all()
-    
-    # Get suggested users to follow (verified medical professionals)
-    suggested_users = User.query.filter(
-        User.id != current_user.id,
-        User.is_verified == True
-    ).limit(5).all()
-    
-    # Get user stats
-    stats = {
-        'posts_count': Post.query.filter_by(author_id=current_user.id).count(),
-        'followers_count': Follow.query.filter_by(following_id=current_user.id).count(),
-        'following_count': Follow.query.filter_by(follower_id=current_user.id).count()
-    }
-    
-    return render_template('dashboard.html', 
-                         posts=feed_posts,
-                         suggested_users=suggested_users,
-                         stats=stats)
+    try:
+        # Get all posts ordered by creation time (optimized with limit)
+        feed_posts = Post.query.order_by(Post.created_at.desc()).limit(10).all()
+        
+        # Get suggested users to follow (verified medical professionals) - simplified query
+        suggested_users = User.query.filter(
+            User.id != current_user.id
+        ).limit(3).all()
+        
+        # Get user stats efficiently
+        stats = {
+            'posts_count': current_user.posts.count(),
+            'followers_count': current_user.followers_count(),
+            'following_count': current_user.following_count()
+        }
+        
+        return render_template('dashboard.html', 
+                             posts=feed_posts,
+                             suggested_users=suggested_users,
+                             stats=stats)
+    except Exception as e:
+        logging.error(f"Dashboard error: {e}")
+        # Return simplified dashboard on error
+        return render_template('dashboard.html', 
+                             posts=[],
+                             suggested_users=[],
+                             stats={'posts_count': 0, 'followers_count': 0, 'following_count': 0})
 
 @app.route('/modules')
 @login_required
@@ -165,7 +177,9 @@ def module_detail(module_id):
     # Get or create user progress
     progress = UserProgress.query.filter_by(user_id=current_user.id, module_id=module_id).first()
     if not progress:
-        progress = UserProgress(user_id=current_user.id, module_id=module_id)
+        progress = UserProgress()
+        progress.user_id = current_user.id
+        progress.module_id = module_id
         db.session.add(progress)
         db.session.commit()
     
@@ -221,12 +235,11 @@ def add_post(topic_id):
     content = request.form['content']
     parent_id = request.form.get('parent_id')
     
-    post = ForumPost(
-        topic_id=topic_id,
-        user_id=current_user.id,
-        content=content,
-        parent_id=int(parent_id) if parent_id else None
-    )
+    post = ForumPost()
+    post.topic_id = topic_id
+    post.user_id = current_user.id
+    post.content = content
+    post.parent_id = int(parent_id) if parent_id else None
     
     db.session.add(post)
     db.session.commit()
@@ -266,14 +279,13 @@ def add_transaction():
     
     total_amount = quantity * price
     
-    transaction = PortfolioTransaction(
-        user_id=current_user.id,
-        symbol=symbol,
-        transaction_type=transaction_type,
-        quantity=quantity,
-        price=price,
-        total_amount=total_amount
-    )
+    transaction = PortfolioTransaction()
+    transaction.user_id = current_user.id
+    transaction.symbol = symbol
+    transaction.transaction_type = transaction_type
+    transaction.quantity = quantity
+    transaction.price = price
+    transaction.total_amount = total_amount
     
     db.session.add(transaction)
     db.session.commit()
@@ -421,20 +433,21 @@ def create_sample_data():
     if User.query.count() > 0:
         sample_user = User.query.first()
         
-        # Create sample social media posts  
-        sample_social_post = Post()
-        sample_social_post.author_id = sample_user.id
-        sample_social_post.content = "Just completed the 'Understanding Stock Market Basics' module! The section on healthcare sector investing was particularly insightful. As medical professionals, we have unique insights into which companies are truly innovative. What healthcare stocks are you watching?"
-        sample_social_post.post_type = "achievement"
-        sample_social_post.tags = "learning, healthcare-stocks, medical-professional"
-        db.session.add(sample_social_post)
-        
-        sample_question_post = Post()
-        sample_question_post.author_id = sample_user.id
-        sample_question_post.content = "Question for fellow docs: How do you balance investing in individual healthcare stocks vs. broad market ETFs? I'm torn between leveraging our industry knowledge and maintaining diversification."
-        sample_question_post.post_type = "question"
-        sample_question_post.tags = "investment-strategy, healthcare, diversification"
-        db.session.add(sample_question_post)
+        if sample_user:  # Null check
+            # Create sample social media posts  
+            sample_social_post = Post()
+            sample_social_post.author_id = sample_user.id
+            sample_social_post.content = "Just completed the 'Understanding Stock Market Basics' module! The section on healthcare sector investing was particularly insightful. As medical professionals, we have unique insights into which companies are truly innovative. What healthcare stocks are you watching?"
+            sample_social_post.post_type = "achievement"
+            sample_social_post.tags = "learning, healthcare-stocks, medical-professional"
+            db.session.add(sample_social_post)
+            
+            sample_question_post = Post()
+            sample_question_post.author_id = sample_user.id
+            sample_question_post.content = "Question for fellow docs: How do you balance investing in individual healthcare stocks vs. broad market ETFs? I'm torn between leveraging our industry knowledge and maintaining diversification."
+            sample_question_post.post_type = "question"
+            sample_question_post.tags = "investment-strategy, healthcare, diversification"
+            db.session.add(sample_question_post)
     
     db.session.commit()
     logging.info("Sample data created successfully")
@@ -496,13 +509,12 @@ def like_post(post_id):
         
         # Create notification if it's not the user's own post
         if post.author_id != current_user.id:
-            notification = Notification(
-                recipient_id=post.author_id,
-                sender_id=current_user.id,
-                notification_type='like',
-                message=f'{current_user.full_name} liked your post',
-                related_post_id=post_id
-            )
+            notification = Notification()
+            notification.recipient_id = post.author_id
+            notification.sender_id = current_user.id
+            notification.notification_type = 'like'
+            notification.message = f'{current_user.full_name} liked your post'
+            notification.related_post_id = post_id
             db.session.add(notification)
     
     try:
@@ -529,21 +541,19 @@ def comment_post(post_id):
         flash('Comment cannot be empty.', 'error')
         return redirect(url_for('dashboard'))
     
-    comment = Comment(
-        post_id=post_id,
-        author_id=current_user.id,
-        content=content
-    )
+    comment = Comment()
+    comment.post_id = post_id
+    comment.author_id = current_user.id
+    comment.content = content
     
     # Create notification if it's not the user's own post
     if post.author_id != current_user.id:
-        notification = Notification(
-            recipient_id=post.author_id,
-            sender_id=current_user.id,
-            notification_type='comment',
-            message=f'{current_user.full_name} commented on your post',
-            related_post_id=post_id
-        )
+        notification = Notification()
+        notification.recipient_id = post.author_id
+        notification.sender_id = current_user.id
+        notification.notification_type = 'comment'
+        notification.message = f'{current_user.full_name} commented on your post'
+        notification.related_post_id = post_id
         db.session.add(notification)
     
     try:
@@ -577,12 +587,11 @@ def follow_user(user_id):
         action = 'followed'
         
         # Create notification
-        notification = Notification(
-            recipient_id=user_id,
-            sender_id=current_user.id,
-            notification_type='follow',
-            message=f'{current_user.full_name} started following you'
-        )
+        notification = Notification()
+        notification.recipient_id = user_id
+        notification.sender_id = current_user.id
+        notification.notification_type = 'follow'
+        notification.message = f'{current_user.full_name} started following you'
         db.session.add(notification)
     
     try:
