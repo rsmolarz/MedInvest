@@ -5,6 +5,7 @@ from app import app, db
 from models import User, Module, UserProgress, ForumTopic, ForumPost, PortfolioTransaction, Resource, Post, Comment, Like, Follow, Notification
 from datetime import datetime
 import logging
+import os
 from markupsafe import Markup
 import re
 
@@ -54,7 +55,9 @@ def status_check():
         'python_version': sys.version,
         'platform': platform.platform(),
         'app_name': 'MedInvest',
-        'routes': [rule.rule for rule in app.url_map.iter_rules()],
+        'deployment': os.environ.get('REPLIT_DEPLOYMENT', 'development'),
+        'port': os.environ.get('PORT', '5000'),
+        'routes_count': len([rule.rule for rule in app.url_map.iter_rules()]),
         'timestamp': datetime.utcnow().isoformat()
     }, 200
 

@@ -20,6 +20,11 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # Configure the database
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///medlearn.db")
+
+# Deployment environment detection
+if os.environ.get("REPLIT_DEPLOYMENT"):
+    app.config["DEBUG"] = False
+    app.config["TESTING"] = False
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
