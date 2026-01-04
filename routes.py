@@ -8,6 +8,10 @@ import logging
 import os
 from markupsafe import Markup
 import re
+import pyotp
+import qrcode
+import io
+import base64
 
 # Initialize Flask-Login
 login_manager = LoginManager()
@@ -139,6 +143,10 @@ def login():
         user = User.query.filter_by(email=email).first()
         
         if user and user.check_password(password):
+            if user.is_2fa_enabled:
+                session['pending_2fa_user_id'] = user.id
+                session['next_page'] = request.args.get('next')
+                return redirect(url_for('verify_2fa'))
             login_user(user)
             next_page = request.args.get('next')
             flash(f'Welcome back, {user.full_name}!', 'success')
@@ -717,3 +725,166 @@ def notifications():
         logging.error(f"Error marking notifications as read: {e}")
     
     return render_template('notifications.html', notifications=notifications)
+
+
+# Two-Factor Authentication Routes
+@app.route('/verify-2fa', methods=['GET', 'POST'])
+def verify_2fa():
+    """Verify 2FA code during login"""
+    if 'pending_2fa_user_id' not in session:
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        code = request.form.get('code', '').strip()
+        user = User.query.get(session['pending_2fa_user_id'])
+        
+        if user and user.verify_totp(code):
+            login_user(user)
+            next_page = session.pop('next_page', None)
+            session.pop('pending_2fa_user_id', None)
+            flash(f'Welcome back, {user.full_name}!', 'success')
+            return redirect(next_page) if next_page else redirect(url_for('dashboard'))
+        else:
+            flash('Invalid verification code. Please try again.', 'error')
+    
+    return render_template('verify_2fa.html')
+
+
+@app.route('/setup-2fa', methods=['GET', 'POST'])
+@login_required
+def setup_2fa():
+    """Setup 2FA for the current user"""
+    if current_user.is_2fa_enabled:
+        flash('Two-factor authentication is already enabled.', 'info')
+        return redirect(url_for('security_settings'))
+    
+    if request.method == 'POST':
+        return redirect(url_for('confirm_2fa'))
+    
+    if not current_user.totp_secret:
+        current_user.generate_totp_secret()
+        db.session.commit()
+    
+    totp_uri = current_user.get_totp_uri()
+    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr.add_data(totp_uri)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    buffered = io.BytesIO()
+    img.save(buffered, format="PNG")
+    qr_code_base64 = base64.b64encode(buffered.getvalue()).decode()
+    
+    return render_template('setup_2fa.html', 
+                         qr_code=qr_code_base64, 
+                         secret=current_user.totp_secret)
+
+
+@app.route('/confirm-2fa', methods=['GET', 'POST'])
+@login_required
+def confirm_2fa():
+    """Confirm 2FA setup with a verification code"""
+    if current_user.is_2fa_enabled:
+        flash('Two-factor authentication is already enabled.', 'info')
+        return redirect(url_for('security_settings'))
+    
+    if not current_user.totp_secret:
+        return redirect(url_for('setup_2fa'))
+    
+    if request.method == 'POST':
+        code = request.form.get('code', '').strip()
+        
+        if current_user.verify_totp(code):
+            current_user.is_2fa_enabled = True
+            db.session.commit()
+            flash('Two-factor authentication has been enabled successfully!', 'success')
+            return redirect(url_for('security_settings'))
+        else:
+            flash('Invalid verification code. Please try again.', 'error')
+    
+    return render_template('confirm_2fa.html')
+
+
+@app.route('/disable-2fa', methods=['POST'])
+@login_required
+def disable_2fa():
+    """Disable 2FA for the current user"""
+    password = request.form.get('password', '')
+    
+    if not current_user.check_password(password):
+        flash('Invalid password. Please try again.', 'error')
+        return redirect(url_for('security_settings'))
+    
+    current_user.is_2fa_enabled = False
+    current_user.totp_secret = None
+    db.session.commit()
+    
+    flash('Two-factor authentication has been disabled.', 'success')
+    return redirect(url_for('security_settings'))
+
+
+@app.route('/security-settings')
+@login_required
+def security_settings():
+    """Security settings page"""
+    return render_template('security_settings.html')
+
+
+# Password Reset Routes
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """Request password reset"""
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        user = User.query.filter_by(email=email).first()
+        
+        if user:
+            token = user.generate_password_reset_token()
+            db.session.commit()
+            
+            logging.info(f"Password reset requested for {email}")
+            
+            flash('If an account with that email exists, you will receive password reset instructions. For now, please contact support to receive your reset link.', 'info')
+        else:
+            flash('If an account with that email exists, you will receive password reset instructions.', 'info')
+        
+        return redirect(url_for('login'))
+    
+    return render_template('forgot_password.html')
+
+
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    """Reset password with token"""
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    
+    user = User.query.filter_by(password_reset_token=token).first()
+    
+    if not user or not user.verify_reset_token(token):
+        flash('Invalid or expired reset link. Please request a new one.', 'error')
+        return redirect(url_for('forgot_password'))
+    
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+        
+        if len(password) < 8:
+            flash('Password must be at least 8 characters long.', 'error')
+            return render_template('reset_password.html', token=token)
+        
+        if password != confirm_password:
+            flash('Passwords do not match.', 'error')
+            return render_template('reset_password.html', token=token)
+        
+        user.set_password(password)
+        user.clear_reset_token()
+        db.session.commit()
+        
+        flash('Your password has been reset successfully. Please log in.', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('reset_password.html', token=token)

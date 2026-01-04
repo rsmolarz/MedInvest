@@ -1,7 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+import secrets
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
+import pyotp
 
 
 class User(UserMixin, db.Model):
@@ -25,6 +27,14 @@ class User(UserMixin, db.Model):
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Two-Factor Authentication fields
+    totp_secret = db.Column(db.String(32))
+    is_2fa_enabled = db.Column(db.Boolean, default=False)
+    
+    # Password reset fields
+    password_reset_token = db.Column(db.String(100))
+    password_reset_expires = db.Column(db.DateTime)
     
     # Relationships
     progress = db.relationship('UserProgress', back_populates='user', lazy='dynamic')
@@ -52,6 +62,40 @@ class User(UserMixin, db.Model):
     
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+    def generate_totp_secret(self):
+        self.totp_secret = pyotp.random_base32()
+        return self.totp_secret
+    
+    def get_totp_uri(self):
+        if not self.totp_secret:
+            return None
+        return pyotp.totp.TOTP(self.totp_secret).provisioning_uri(
+            name=self.email,
+            issuer_name="MedLearn Invest"
+        )
+    
+    def verify_totp(self, token):
+        if not self.totp_secret:
+            return False
+        totp = pyotp.TOTP(self.totp_secret)
+        return totp.verify(token)
+    
+    def generate_password_reset_token(self):
+        self.password_reset_token = secrets.token_urlsafe(32)
+        self.password_reset_expires = datetime.utcnow() + timedelta(hours=1)
+        return self.password_reset_token
+    
+    def verify_reset_token(self, token):
+        if not self.password_reset_token or not self.password_reset_expires:
+            return False
+        if datetime.utcnow() > self.password_reset_expires:
+            return False
+        return secrets.compare_digest(self.password_reset_token, token)
+    
+    def clear_reset_token(self):
+        self.password_reset_token = None
+        self.password_reset_expires = None
     
     @property
     def full_name(self):

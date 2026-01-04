@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Verify 2FA - MedLearn Invest{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <div class="mb-3">
+                            <i class="fas fa-shield-alt fa-3x text-primary"></i>
+                        </div>
+                        <h2 class="card-title text-primary fw-bold">Two-Factor Authentication</h2>
+                        <p class="text-muted">Enter the 6-digit code from your authenticator app</p>
+                    </div>
+                    
+                    <form method="POST">
+                        <div class="mb-4">
+                            <label for="code" class="form-label">Verification Code</label>
+                            <input type="text" class="form-control form-control-lg text-center" id="code" name="code" 
+                                   maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" 
+                                   placeholder="000000" required autofocus>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100 py-3 fw-bold">Verify</button>
+                    </form>
+                    
+                    <div class="text-center mt-4">
+                        <a href="{{ url_for('login') }}" class="text-decoration-none">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Login
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
