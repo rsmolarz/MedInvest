@@ -4,7 +4,24 @@ MedInvest is a Facebook-like social media platform designed specifically for med
 
 The platform features two main architectures: a primary Flask-based web application for the educational content and user interface, and a FastAPI scaffold for potential future investment deal management and financial integrations.
 
-## Recent Changes (August 19, 2025)
+## Recent Changes (January 4, 2026)
+
+✓ Added Two-Factor Authentication (2FA):
+- TOTP-based 2FA using pyotp and qrcode libraries
+- QR code generation for authenticator app setup
+- Security settings page to enable/disable 2FA
+- 2FA verification during login when enabled
+
+✓ Added Password Reset Functionality:
+- Forgot password link on login page
+- Secure token-based password reset flow
+- Password reset token expiration (1 hour)
+- Reset password confirmation page
+
+→ STATUS: Application now has enhanced security features
+→ NOTE: Email integration not configured - password reset links logged to server (for admin reference)
+
+## Previous Changes (August 19, 2025)
 
 ✓ Fixed deployment configuration issues:
 - Resolved SQLAlchemy model constructor errors in routes.py
