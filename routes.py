@@ -12,6 +12,83 @@ import pyotp
 import qrcode
 import io
 import base64
+import requests
+
+
+def get_sendgrid_credentials():
+    """Get SendGrid API key and from email from Replit connector"""
+    hostname = os.environ.get('REPLIT_CONNECTORS_HOSTNAME')
+    x_replit_token = None
+    
+    if os.environ.get('REPL_IDENTITY'):
+        x_replit_token = 'repl ' + os.environ.get('REPL_IDENTITY')
+    elif os.environ.get('WEB_REPL_RENEWAL'):
+        x_replit_token = 'depl ' + os.environ.get('WEB_REPL_RENEWAL')
+    
+    if not x_replit_token or not hostname:
+        return None, None
+    
+    try:
+        response = requests.get(
+            f'https://{hostname}/api/v2/connection?include_secrets=true&connector_names=sendgrid',
+            headers={
+                'Accept': 'application/json',
+                'X_REPLIT_TOKEN': x_replit_token
+            }
+        )
+        data = response.json()
+        connection = data.get('items', [None])[0]
+        
+        if connection and connection.get('settings'):
+            api_key = connection['settings'].get('api_key')
+            from_email = connection['settings'].get('from_email')
+            return api_key, from_email
+    except Exception as e:
+        logging.error(f"Failed to get SendGrid credentials: {e}")
+    
+    return None, None
+
+
+def send_password_reset_email(user, reset_url):
+    """Send password reset email via SendGrid"""
+    api_key, from_email = get_sendgrid_credentials()
+    
+    if not api_key or not from_email:
+        logging.warning("SendGrid not configured, logging reset URL instead")
+        logging.info(f"Password reset URL for {user.email}: {reset_url}")
+        return False
+    
+    try:
+        from sendgrid import SendGridAPIClient
+        from sendgrid.helpers.mail import Mail
+        
+        message = Mail(
+            from_email=from_email,
+            to_emails=user.email,
+            subject='Reset Your MedInvest Password',
+            html_content=f'''
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #2c5282;">Password Reset Request</h2>
+                <p>Hello {user.first_name or user.username},</p>
+                <p>We received a request to reset your password for your MedInvest account.</p>
+                <p>Click the button below to reset your password:</p>
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{reset_url}" style="background-color: #4299e1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
+                </p>
+                <p>If you didn't request this, you can safely ignore this email. The link will expire in 1 hour.</p>
+                <p>Best regards,<br>The MedInvest Team</p>
+            </div>
+            '''
+        )
+        
+        sg = SendGridAPIClient(api_key)
+        response = sg.send(message)
+        logging.info(f"Password reset email sent to {user.email}, status: {response.status_code}")
+        return response.status_code in [200, 201, 202]
+    except Exception as e:
+        logging.error(f"Failed to send password reset email: {e}")
+        logging.info(f"Password reset URL for {user.email}: {reset_url}")
+        return False
 
 # Initialize Flask-Login
 login_manager = LoginManager()
@@ -845,12 +922,12 @@ def forgot_password():
             token = user.generate_password_reset_token()
             db.session.commit()
             
-            logging.info(f"Password reset requested for {email}")
+            reset_url = url_for('reset_password', token=token, _external=True)
+            send_password_reset_email(user, reset_url)
             
-            flash('If an account with that email exists, you will receive password reset instructions. For now, please contact support to receive your reset link.', 'info')
-        else:
-            flash('If an account with that email exists, you will receive password reset instructions.', 'info')
+            logging.info(f"Password reset requested for {email}")
         
+        flash('If an account with that email exists, you will receive password reset instructions.', 'info')
         return redirect(url_for('login'))
     
     return render_template('forgot_password.html')
