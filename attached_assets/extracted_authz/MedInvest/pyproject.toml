@@ -20,6 +20,6 @@ dependencies = [
     "pyotp>=2.9.0",
     "qrcode>=8.2",
     "sendgrid>=6.12.5",
-    "alembic>=1.18.0",
-    "requests>=2.32.4",
+    "openai>=1.0.0",
+    "alembic>=1.13.0",
 ]

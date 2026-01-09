@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Register - MedLearn Invest{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <h2 class="card-title text-primary fw-bold">Join MedLearn Invest</h2>
+                        <p class="text-muted">Create your professional account</p>
+                    </div>
+                    
+                    <form method="POST" novalidate>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="first_name" class="form-label">First Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="first_name" name="first_name" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="last_name" class="form-label">Last Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="last_name" name="last_name" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                            <div class="form-text">Use your professional email address</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                            <div class="form-text">Minimum 8 characters with letters and numbers</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="medical_license" class="form-label">Medical License Number <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="medical_license" name="medical_license" required>
+                            <div class="form-text">Required for professional verification</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="specialty" class="form-label">Medical Specialty <span class="text-danger">*</span></label>
+                            <select class="form-select" id="specialty" name="specialty" required>
+                                <option value="">Select your specialty</option>
+                                <option value="Anesthesiology">Anesthesiology</option>
+                                <option value="Cardiology">Cardiology</option>
+                                <option value="Dermatology">Dermatology</option>
+                                <option value="Emergency Medicine">Emergency Medicine</option>
+                                <option value="Family Medicine">Family Medicine</option>
+                                <option value="Internal Medicine">Internal Medicine</option>
+                                <option value="Neurology">Neurology</option>
+                                <option value="Obstetrics and Gynecology">Obstetrics and Gynecology</option>
+                                <option value="Oncology">Oncology</option>
+                                <option value="Ophthalmology">Ophthalmology</option>
+                                <option value="Orthopedic Surgery">Orthopedic Surgery</option>
+                                <option value="Pediatrics">Pediatrics</option>
+                                <option value="Psychiatry">Psychiatry</option>
+                                <option value="Radiology">Radiology</option>
+                                <option value="Surgery">Surgery</option>
+                                <option value="Urology">Urology</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="hospital_affiliation" class="form-label">Hospital/Practice Affiliation</label>
+                            <input type="text" class="form-control" id="hospital_affiliation" name="hospital_affiliation">
+                            <div class="form-text">Optional - Your primary hospital or practice</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="terms" required>
+                                <label class="form-check-label" for="terms">
+                                    I agree to the <a href="#" class="text-decoration-none">Terms of Service</a> and <a href="#" class="text-decoration-none">Privacy Policy</a> <span class="text-danger">*</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100 py-3 fw-bold">Create Professional Account</button>
+                    </form>
+                    
+                    <div class="text-center mt-4">
+                        <p class="text-muted">Already have an account? <a href="{{ url_for('login') }}" class="text-decoration-none">Sign in here</a></p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-4">
+                <small class="text-muted">
+                    <i class="fas fa-shield-alt me-2"></i>
+                    Your information is secure and will be used only for professional verification
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    
+    form.addEventListener('submit', function(e) {
+        const password = document.getElementById('password').value;
+        const email = document.getElementById('email').value;
+        
+        // Basic validation
+        if (password.length < 8) {
+            e.preventDefault();
+            alert('Password must be at least 8 characters long');
+            return;
+        }
+        
+        if (!email.includes('@')) {
+            e.preventDefault();
+            alert('Please enter a valid email address');
+            return;
+        }
+    });
+});
+</script>
+{% endblock %}

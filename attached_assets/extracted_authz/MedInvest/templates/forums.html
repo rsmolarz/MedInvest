@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Discussion Forums - MedLearn Invest{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-6 fw-bold text-primary mb-2">Discussion Forums</h1>
+            <p class="lead text-muted">Connect with fellow medical professionals and share investment insights</p>
+        </div>
+    </div>
+    
+    <!-- Category Filter -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3 align-items-end">
+                        <div class="col-md-6">
+                            <label for="category" class="form-label">Filter by Category</label>
+                            <select class="form-select" id="category" name="category">
+                                <option value="all" {% if selected_category == 'all' %}selected{% endif %}>All Categories</option>
+                                {% for category in categories %}
+                                    <option value="{{ category }}" {% if selected_category == category %}selected{% endif %}>{{ category }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <button type="submit" class="btn btn-primary me-2">Filter</button>
+                            <a href="{{ url_for('forums') }}" class="btn btn-outline-secondary">Clear</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Forum Topics -->
+    <div class="row">
+        {% if topics %}
+            {% for topic in topics %}
+            <div class="col-12 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h5 class="card-title">
+                                    <a href="{{ url_for('forum_detail', topic_id=topic.id) }}" class="text-decoration-none">
+                                        {{ topic.title }}
+                                    </a>
+                                </h5>
+                                {% if topic.description %}
+                                    <p class="card-text text-muted">{{ topic.description }}</p>
+                                {% endif %}
+                                <span class="badge bg-primary">{{ topic.category }}</span>
+                            </div>
+                            <div class="col-md-4 text-md-end">
+                                <div class="text-muted small">
+                                    <div><i class="fas fa-comments me-1"></i>0 posts</div>
+                                    <div><i class="fas fa-calendar me-1"></i>{{ topic.created_at.strftime('%b %d, %Y') }}</div>
+                                    <div><i class="fas fa-clock me-1"></i>Started by {{ topic.created_by.full_name if topic.created_by else 'Unknown' }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No forum topics found</h4>
+                    <p class="text-muted">
+                        {% if selected_category != 'all' %}
+                            No discussions found in this category. Try selecting a different category.
+                        {% else %}
+                            Be the first to start a discussion!
+                        {% endif %}
+                    </p>
+                    {% if selected_category != 'all' %}
+                        <a href="{{ url_for('forums') }}" class="btn btn-primary">View All Topics</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+    
+    <!-- Forum Guidelines -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-lightbulb me-2"></i>Forum Guidelines</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li>Keep discussions professional and respectful</li>
+                        <li>Share experiences and insights, but avoid giving specific financial advice</li>
+                        <li>Protect patient privacy - never share patient information</li>
+                        <li>Use clear, descriptive titles for new topics</li>
+                        <li>Search existing topics before creating new ones</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
