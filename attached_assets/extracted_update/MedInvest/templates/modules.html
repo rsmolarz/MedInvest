@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Learning Modules - MedLearn Invest{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-6 fw-bold text-primary mb-2">Learning Modules</h1>
+            <p class="lead text-muted">Comprehensive investment education designed for medical professionals</p>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="category" class="form-label">Category</label>
+                            <select class="form-select" id="category" name="category">
+                                <option value="all" {% if selected_category == 'all' %}selected{% endif %}>All Categories</option>
+                                {% for category in categories %}
+                                    <option value="{{ category }}" {% if selected_category == category %}selected{% endif %}>{{ category }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="difficulty" class="form-label">Difficulty Level</label>
+                            <select class="form-select" id="difficulty" name="difficulty">
+                                <option value="all" {% if selected_difficulty == 'all' %}selected{% endif %}>All Levels</option>
+                                <option value="Beginner" {% if selected_difficulty == 'Beginner' %}selected{% endif %}>Beginner</option>
+                                <option value="Intermediate" {% if selected_difficulty == 'Intermediate' %}selected{% endif %}>Intermediate</option>
+                                <option value="Advanced" {% if selected_difficulty == 'Advanced' %}selected{% endif %}>Advanced</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">Filter</button>
+                            <a href="{{ url_for('modules') }}" class="btn btn-outline-secondary">Clear</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modules Grid -->
+    <div class="row">
+        {% if modules %}
+            {% for module in modules %}
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <span class="badge bg-{{ 'success' if module.difficulty_level == 'Beginner' else 'warning text-dark' if module.difficulty_level == 'Intermediate' else 'danger' }}">
+                                {{ module.difficulty_level }}
+                            </span>
+                            <small class="text-muted">{{ module.estimated_duration }} min</small>
+                        </div>
+                        
+                        <h5 class="card-title">{{ module.title }}</h5>
+                        <p class="card-text text-muted">{{ module.description }}</p>
+                        
+                        <div class="mb-3">
+                            <small class="text-primary">
+                                <i class="fas fa-tag me-1"></i>{{ module.category }}
+                            </small>
+                        </div>
+                        
+                        {% set progress = user_progress.get(module.id) %}
+                        {% if progress and progress.completed %}
+                            <div class="alert alert-success py-2 mb-3">
+                                <i class="fas fa-check-circle me-2"></i>Completed
+                                {% if progress.completion_date %}
+                                    on {{ progress.completion_date.strftime('%b %d, %Y') }}
+                                {% endif %}
+                            </div>
+                        {% elif progress %}
+                            <div class="alert alert-info py-2 mb-3">
+                                <i class="fas fa-play-circle me-2"></i>In Progress
+                            </div>
+                        {% endif %}
+                        
+                        <div class="mt-auto">
+                            <a href="{{ url_for('module_detail', module_id=module.id) }}" class="btn btn-primary w-100">
+                                {% if progress and progress.completed %}
+                                    Review Module
+                                {% elif progress %}
+                                    Continue Module
+                                {% else %}
+                                    Start Module
+                                {% endif %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No modules found</h4>
+                    <p class="text-muted">Try adjusting your filters or check back later for new content.</p>
+                    <a href="{{ url_for('modules') }}" class="btn btn-primary">Clear Filters</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
