@@ -2,7 +2,7 @@ from flask import render_template, request, redirect, url_for, flash, session, j
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash
 from app import app, db
-from models import User, Module, UserProgress, ForumTopic, ForumPost, PortfolioTransaction, Resource, Post, Comment, Like, Follow, Notification, Group, GroupMembership, Connection, DealDetails, DealAnalysis, AiJob, ReputationEvent, Invite, Digest, DigestItem, UserActivity, Alert
+from models import User, Module, UserProgress, ForumTopic, ForumPost, PortfolioTransaction, Resource, Post, Comment, Like, Follow, Notification, Group, GroupMembership, Connection, DealDetails, DealAnalysis, AiJob, ReputationEvent, Invite, Digest, DigestItem, UserActivity, Alert, ExpertAMA, AMAQuestion, AMARegistration, InvestmentDeal, DealInterest, Mentorship, MentorshipSession, Course, CourseModule, CourseEnrollment, Event, EventSession, EventRegistration, Referral, Subscription, Payment
 from datetime import datetime, timedelta
 import json
 import math
@@ -2138,3 +2138,349 @@ def api_admin_analytics_cohorts():
         'metric': metric,
         'results': results
     }), 200
+
+
+# ============================================================================
+# EXPERT AMAs
+# ============================================================================
+
+@app.route('/amas')
+@login_required
+def amas():
+    """List all upcoming and past AMAs."""
+    now = datetime.utcnow()
+    upcoming = ExpertAMA.query.filter(
+        ExpertAMA.status.in_(['scheduled', 'live']),
+        ExpertAMA.scheduled_for >= now
+    ).order_by(ExpertAMA.scheduled_for.asc()).all()
+    
+    past = ExpertAMA.query.filter(
+        ExpertAMA.status == 'ended'
+    ).order_by(ExpertAMA.scheduled_for.desc()).limit(10).all()
+    
+    return render_template('amas.html', upcoming=upcoming, past=past)
+
+
+@app.route('/amas/<int:ama_id>')
+@login_required
+def ama_detail(ama_id):
+    """View AMA details and questions."""
+    ama = ExpertAMA.query.get_or_404(ama_id)
+    
+    # Check registration
+    is_registered = AMARegistration.query.filter_by(
+        ama_id=ama_id, user_id=current_user.id
+    ).first() is not None
+    
+    # Get questions sorted by upvotes
+    questions = AMAQuestion.query.filter_by(ama_id=ama_id).order_by(
+        AMAQuestion.upvotes.desc(), AMAQuestion.asked_at.desc()
+    ).all()
+    
+    return render_template('ama_detail.html', ama=ama, questions=questions, is_registered=is_registered)
+
+
+@app.route('/amas/<int:ama_id>/register', methods=['POST'])
+@login_required
+def ama_register(ama_id):
+    """Register for an AMA."""
+    ama = ExpertAMA.query.get_or_404(ama_id)
+    
+    existing = AMARegistration.query.filter_by(ama_id=ama_id, user_id=current_user.id).first()
+    if existing:
+        flash('You are already registered for this AMA.', 'info')
+        return redirect(url_for('ama_detail', ama_id=ama_id))
+    
+    if ama.max_participants and ama.participant_count >= ama.max_participants:
+        flash('This AMA is full.', 'warning')
+        return redirect(url_for('ama_detail', ama_id=ama_id))
+    
+    reg = AMARegistration(ama_id=ama_id, user_id=current_user.id)
+    db.session.add(reg)
+    ama.participant_count = (ama.participant_count or 0) + 1
+    db.session.commit()
+    
+    flash('Successfully registered for the AMA!', 'success')
+    return redirect(url_for('ama_detail', ama_id=ama_id))
+
+
+@app.route('/amas/<int:ama_id>/question', methods=['POST'])
+@login_required
+def ama_ask_question(ama_id):
+    """Ask a question in an AMA."""
+    ama = ExpertAMA.query.get_or_404(ama_id)
+    
+    question_text = request.form.get('question', '').strip()
+    is_anonymous = request.form.get('is_anonymous') == 'on'
+    
+    if not question_text:
+        flash('Please enter a question.', 'warning')
+        return redirect(url_for('ama_detail', ama_id=ama_id))
+    
+    q = AMAQuestion(
+        ama_id=ama_id,
+        user_id=current_user.id,
+        question=question_text,
+        is_anonymous=is_anonymous
+    )
+    db.session.add(q)
+    ama.question_count = (ama.question_count or 0) + 1
+    db.session.commit()
+    
+    flash('Your question has been submitted!', 'success')
+    return redirect(url_for('ama_detail', ama_id=ama_id))
+
+
+@app.route('/amas/<int:ama_id>/question/<int:question_id>/upvote', methods=['POST'])
+@login_required
+def ama_upvote_question(ama_id, question_id):
+    """Upvote an AMA question."""
+    q = AMAQuestion.query.get_or_404(question_id)
+    q.upvotes = (q.upvotes or 0) + 1
+    db.session.commit()
+    return jsonify({'upvotes': q.upvotes})
+
+
+# ============================================================================
+# INVESTMENT DEAL MARKETPLACE
+# ============================================================================
+
+@app.route('/deals')
+@login_required
+def deals():
+    """Browse investment deals."""
+    deal_type = request.args.get('type')
+    
+    query = InvestmentDeal.query.filter_by(status='active')
+    if deal_type:
+        query = query.filter_by(deal_type=deal_type)
+    
+    featured = query.filter_by(is_featured=True).order_by(InvestmentDeal.created_at.desc()).limit(3).all()
+    all_deals = query.order_by(InvestmentDeal.created_at.desc()).all()
+    
+    deal_types = ['real_estate', 'fund', 'practice', 'syndicate']
+    
+    return render_template('deals.html', featured=featured, deals=all_deals, deal_types=deal_types, current_type=deal_type)
+
+
+@app.route('/deals/<int:deal_id>')
+@login_required
+def deal_detail(deal_id):
+    """View investment deal details."""
+    deal = InvestmentDeal.query.get_or_404(deal_id)
+    
+    # Increment view count
+    deal.view_count = (deal.view_count or 0) + 1
+    db.session.commit()
+    
+    # Check if user has expressed interest
+    user_interest = DealInterest.query.filter_by(deal_id=deal_id, user_id=current_user.id).first()
+    
+    return render_template('deal_detail.html', deal=deal, user_interest=user_interest)
+
+
+@app.route('/deals/<int:deal_id>/interest', methods=['POST'])
+@login_required
+def deal_express_interest(deal_id):
+    """Express interest in a deal."""
+    deal = InvestmentDeal.query.get_or_404(deal_id)
+    
+    existing = DealInterest.query.filter_by(deal_id=deal_id, user_id=current_user.id).first()
+    if existing:
+        flash('You have already expressed interest in this deal.', 'info')
+        return redirect(url_for('deal_detail', deal_id=deal_id))
+    
+    investment_amount = request.form.get('investment_amount', type=float)
+    message = request.form.get('message', '').strip()
+    
+    interest = DealInterest(
+        deal_id=deal_id,
+        user_id=current_user.id,
+        investment_amount=investment_amount,
+        message=message
+    )
+    db.session.add(interest)
+    deal.interest_count = (deal.interest_count or 0) + 1
+    db.session.commit()
+    
+    flash('Your interest has been recorded. The sponsor will contact you.', 'success')
+    return redirect(url_for('deal_detail', deal_id=deal_id))
+
+
+# ============================================================================
+# MENTORSHIP
+# ============================================================================
+
+@app.route('/mentorship')
+@login_required
+def mentorship():
+    """Mentorship program landing page."""
+    # Get available mentors (users with high reputation who opted in)
+    mentors = User.query.filter(
+        User.verification_status == 'verified',
+        User.reputation_score >= 100
+    ).order_by(User.reputation_score.desc()).limit(20).all()
+    
+    # User's mentorships
+    my_mentorships = Mentorship.query.filter(
+        (Mentorship.mentor_id == current_user.id) | (Mentorship.mentee_id == current_user.id)
+    ).order_by(Mentorship.created_at.desc()).all()
+    
+    return render_template('mentorship.html', mentors=mentors, my_mentorships=my_mentorships)
+
+
+@app.route('/mentorship/request/<int:mentor_id>', methods=['POST'])
+@login_required
+def request_mentorship(mentor_id):
+    """Request mentorship from a user."""
+    mentor = User.query.get_or_404(mentor_id)
+    
+    if mentor.id == current_user.id:
+        flash('You cannot mentor yourself.', 'warning')
+        return redirect(url_for('mentorship'))
+    
+    existing = Mentorship.query.filter_by(
+        mentor_id=mentor_id, mentee_id=current_user.id
+    ).filter(Mentorship.status.in_(['pending', 'active'])).first()
+    
+    if existing:
+        flash('You already have a mentorship request with this user.', 'info')
+        return redirect(url_for('mentorship'))
+    
+    focus_areas = request.form.get('focus_areas', '')
+    
+    m = Mentorship(
+        mentor_id=mentor_id,
+        mentee_id=current_user.id,
+        focus_areas=focus_areas,
+        status='pending'
+    )
+    db.session.add(m)
+    db.session.commit()
+    
+    flash('Mentorship request sent!', 'success')
+    return redirect(url_for('mentorship'))
+
+
+@app.route('/mentorship/<int:mentorship_id>/accept', methods=['POST'])
+@login_required
+def accept_mentorship(mentorship_id):
+    """Accept a mentorship request."""
+    m = Mentorship.query.get_or_404(mentorship_id)
+    
+    if m.mentor_id != current_user.id:
+        flash('You cannot accept this request.', 'danger')
+        return redirect(url_for('mentorship'))
+    
+    m.status = 'active'
+    m.start_date = datetime.utcnow()
+    m.end_date = datetime.utcnow() + timedelta(days=90)  # 3 months
+    db.session.commit()
+    
+    flash('Mentorship accepted!', 'success')
+    return redirect(url_for('mentorship'))
+
+
+# ============================================================================
+# COURSES
+# ============================================================================
+
+@app.route('/courses')
+@login_required
+def courses():
+    """Browse available courses."""
+    featured = Course.query.filter_by(is_published=True, is_featured=True).all()
+    all_courses = Course.query.filter_by(is_published=True).order_by(Course.created_at.desc()).all()
+    
+    # User's enrollments
+    enrolled_ids = [e.course_id for e in CourseEnrollment.query.filter_by(user_id=current_user.id).all()]
+    
+    return render_template('courses.html', featured=featured, courses=all_courses, enrolled_ids=enrolled_ids)
+
+
+@app.route('/courses/<int:course_id>')
+@login_required
+def course_detail(course_id):
+    """View course details."""
+    course = Course.query.get_or_404(course_id)
+    modules = CourseModule.query.filter_by(course_id=course_id).order_by(CourseModule.order_index).all()
+    
+    enrollment = CourseEnrollment.query.filter_by(course_id=course_id, user_id=current_user.id).first()
+    
+    return render_template('course_detail.html', course=course, modules=modules, enrollment=enrollment)
+
+
+# ============================================================================
+# EVENTS
+# ============================================================================
+
+@app.route('/events')
+@login_required
+def events():
+    """Browse upcoming events."""
+    now = datetime.utcnow()
+    
+    upcoming = Event.query.filter(
+        Event.is_published == True,
+        Event.start_date >= now
+    ).order_by(Event.start_date.asc()).all()
+    
+    past = Event.query.filter(
+        Event.is_published == True,
+        Event.end_date < now
+    ).order_by(Event.end_date.desc()).limit(5).all()
+    
+    return render_template('events.html', upcoming=upcoming, past=past)
+
+
+@app.route('/events/<int:event_id>')
+@login_required
+def event_detail(event_id):
+    """View event details."""
+    event = Event.query.get_or_404(event_id)
+    sessions = EventSession.query.filter_by(event_id=event_id).order_by(EventSession.start_time).all()
+    
+    registration = EventRegistration.query.filter_by(event_id=event_id, user_id=current_user.id).first()
+    
+    return render_template('event_detail.html', event=event, sessions=sessions, registration=registration)
+
+
+# ============================================================================
+# REFERRAL PROGRAM
+# ============================================================================
+
+@app.route('/referral')
+@login_required
+def referral():
+    """Referral program page."""
+    # Generate referral code if not exists
+    if not current_user.referral_code:
+        import random, string
+        code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+        current_user.referral_code = code
+        db.session.commit()
+    
+    # Get referral stats
+    referrals = Referral.query.filter_by(referrer_id=current_user.id).all()
+    completed_count = len([r for r in referrals if r.status == 'completed'])
+    
+    return render_template('referral.html', 
+        referral_code=current_user.referral_code,
+        referrals=referrals,
+        completed_count=completed_count
+    )
+
+
+# ============================================================================
+# PREMIUM SUBSCRIPTION
+# ============================================================================
+
+@app.route('/premium')
+@login_required
+def premium():
+    """Premium subscription page."""
+    current_sub = Subscription.query.filter_by(
+        user_id=current_user.id, status='active'
+    ).first()
+    
+    return render_template('premium.html', current_subscription=current_sub)

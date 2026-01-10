@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}{{ ama.title }} - Expert AMA{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('amas') }}">AMAs</a></li>
+            <li class="breadcrumb-item active">{{ ama.title[:50] }}...</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-start mb-3">
+                        {% if ama.expert_image_url %}
+                        <img src="{{ ama.expert_image_url }}" class="rounded-circle me-3" width="80" height="80" style="object-fit: cover;">
+                        {% else %}
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width: 80px; height: 80px;">
+                            <i class="fas fa-user-tie fa-2x"></i>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <h3 class="mb-1">{{ ama.title }}</h3>
+                            <p class="text-muted mb-0">
+                                with <strong>{{ ama.expert_name }}</strong>
+                                {% if ama.expert_title %} &bull; {{ ama.expert_title }}{% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <span class="badge bg-{{ 'success' if ama.status == 'live' else 'primary' if ama.status == 'scheduled' else 'secondary' }} me-2">
+                            <i class="fas fa-{{ 'broadcast-tower' if ama.status == 'live' else 'calendar' if ama.status == 'scheduled' else 'check' }} me-1"></i>
+                            {{ ama.status|capitalize }}
+                        </span>
+                        <span class="badge bg-light text-dark">
+                            <i class="fas fa-clock me-1"></i>{{ ama.scheduled_for.strftime('%B %d, %Y at %I:%M %p') }}
+                        </span>
+                        <span class="badge bg-light text-dark">
+                            <i class="fas fa-hourglass-half me-1"></i>{{ ama.duration_minutes }} minutes
+                        </span>
+                    </div>
+
+                    <p class="lead">{{ ama.description }}</p>
+
+                    {% if ama.expert_bio %}
+                    <hr>
+                    <h6>About the Expert</h6>
+                    <p class="text-muted">{{ ama.expert_bio }}</p>
+                    {% endif %}
+
+                    {% if ama.sponsor_name %}
+                    <hr>
+                    <div class="d-flex align-items-center">
+                        <small class="text-muted me-2">Sponsored by</small>
+                        {% if ama.sponsor_logo_url %}
+                        <img src="{{ ama.sponsor_logo_url }}" alt="{{ ama.sponsor_name }}" height="30">
+                        {% else %}
+                        <strong>{{ ama.sponsor_name }}</strong>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>Questions ({{ questions|length }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if is_registered or ama.status == 'live' %}
+                    <form action="{{ url_for('ama_ask_question', ama_id=ama.id) }}" method="POST" class="mb-4">
+                        <div class="mb-3">
+                            <textarea name="question" class="form-control" rows="3" placeholder="Ask your question..." required></textarea>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="is_anonymous" name="is_anonymous">
+                                <label class="form-check-label text-muted" for="is_anonymous">Ask anonymously</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-1"></i>Submit Question
+                            </button>
+                        </div>
+                    </form>
+                    {% endif %}
+
+                    {% if questions %}
+                    <div class="list-group list-group-flush">
+                        {% for q in questions %}
+                        <div class="list-group-item px-0">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <p class="mb-1">{{ q.question }}</p>
+                                    <small class="text-muted">
+                                        {% if q.is_anonymous %}
+                                        Anonymous
+                                        {% else %}
+                                        {{ q.user.first_name }} {{ q.user.last_name[:1] }}.
+                                        {% endif %}
+                                        &bull; {{ q.asked_at.strftime('%b %d, %I:%M %p') }}
+                                    </small>
+                                    {% if q.is_answered and q.answer %}
+                                    <div class="bg-light p-3 rounded mt-2">
+                                        <small class="text-success fw-bold"><i class="fas fa-check me-1"></i>Answered</small>
+                                        <p class="mb-0 mt-1">{{ q.answer }}</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="text-center ms-3">
+                                    <button class="btn btn-sm btn-outline-secondary upvote-btn" data-question-id="{{ q.id }}">
+                                        <i class="fas fa-arrow-up"></i>
+                                    </button>
+                                    <div class="small text-muted">{{ q.upvotes }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center py-3">No questions yet. Be the first to ask!</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body text-center">
+                    <h5 class="mb-3">Join This AMA</h5>
+                    <p class="text-muted">
+                        <i class="fas fa-users me-1"></i>{{ ama.participant_count or 0 }} registered
+                        {% if ama.max_participants %}/ {{ ama.max_participants }} max{% endif %}
+                    </p>
+                    {% if is_registered %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-1"></i>You're registered!
+                    </div>
+                    {% elif ama.status == 'scheduled' %}
+                    <form action="{{ url_for('ama_register', ama_id=ama.id) }}" method="POST">
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <i class="fas fa-calendar-plus me-1"></i>Register Now
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if ama.topic_tags %}
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6 class="mb-3">Topics</h6>
+                    {% for tag in ama.topic_tags.split(',') %}
+                    <span class="badge bg-light text-dark me-1 mb-1">{{ tag.strip() }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.upvote-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const questionId = this.dataset.questionId;
+        const response = await fetch(`/amas/{{ ama.id }}/question/${questionId}/upvote`, {method: 'POST'});
+        const data = await response.json();
+        this.nextElementSibling.textContent = data.upvotes;
+    });
+});
+</script>
+{% endblock %}

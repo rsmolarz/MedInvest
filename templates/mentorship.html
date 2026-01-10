@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Mentorship Program - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="text-center mb-5">
+        <h2><i class="fas fa-hands-helping me-2"></i>Physician Mentorship Program</h2>
+        <p class="lead text-muted">Connect with experienced investor-physicians for guidance</p>
+    </div>
+
+    {% if my_mentorships %}
+    <div class="mb-5">
+        <h4 class="mb-3"><i class="fas fa-user-friends me-2"></i>My Mentorships</h4>
+        <div class="row">
+            {% for m in my_mentorships %}
+            <div class="col-md-6 mb-3">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="rounded-circle bg-{{ 'primary' if m.mentor_id == current_user.id else 'success' }} text-white d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                                <i class="fas fa-{{ 'chalkboard-teacher' if m.mentor_id == current_user.id else 'user-graduate' }}"></i>
+                            </div>
+                            <div>
+                                {% if m.mentor_id == current_user.id %}
+                                <h6 class="mb-0">Mentoring: {{ m.mentee.first_name }} {{ m.mentee.last_name }}</h6>
+                                <small class="text-muted">{{ m.mentee.specialty }}</small>
+                                {% else %}
+                                <h6 class="mb-0">Mentor: {{ m.mentor.first_name }} {{ m.mentor.last_name }}</h6>
+                                <small class="text-muted">{{ m.mentor.specialty }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-{{ 'warning' if m.status == 'pending' else 'success' if m.status == 'active' else 'secondary' }}">
+                                {{ m.status|capitalize }}
+                            </span>
+                            {% if m.status == 'pending' and m.mentor_id == current_user.id %}
+                            <form action="{{ url_for('accept_mentorship', mentorship_id=m.id) }}" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-success btn-sm">Accept</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        {% if m.focus_areas %}
+                        <small class="text-muted d-block mt-2">Focus: {{ m.focus_areas }}</small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <h4 class="mb-3"><i class="fas fa-users me-2"></i>Available Mentors</h4>
+    {% if mentors %}
+    <div class="row">
+        {% for mentor in mentors %}
+        {% if mentor.id != current_user.id %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    {% if mentor.profile_image_url %}
+                    <img src="{{ mentor.profile_image_url }}" class="rounded-circle mb-3" width="80" height="80" style="object-fit: cover;">
+                    {% else %}
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
+                        <i class="fas fa-user-md fa-2x"></i>
+                    </div>
+                    {% endif %}
+                    <h5 class="card-title">{{ mentor.first_name }} {{ mentor.last_name }}</h5>
+                    <p class="text-muted mb-2">{{ mentor.specialty }}</p>
+                    {% if mentor.hospital_affiliation %}
+                    <small class="text-muted d-block mb-2">{{ mentor.hospital_affiliation }}</small>
+                    {% endif %}
+                    <div class="mb-3">
+                        <span class="badge bg-success"><i class="fas fa-star me-1"></i>{{ mentor.reputation_score }} reputation</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#mentorModal{{ mentor.id }}">
+                        Request Mentorship
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="mentorModal{{ mentor.id }}" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form action="{{ url_for('request_mentorship', mentor_id=mentor.id) }}" method="POST">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Request Mentorship from {{ mentor.first_name }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">What areas would you like guidance on?</label>
+                                <input type="text" name="focus_areas" class="form-control" placeholder="e.g., Real estate investing, Tax optimization, Student loans">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Send Request</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>No mentors available at this time. Build your reputation to become a mentor!
+    </div>
+    {% endif %}
+
+    <div class="card bg-light mt-5">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-graduation-cap fa-3x text-primary mb-3"></i>
+            <h4>Become a Mentor</h4>
+            <p class="text-muted">Share your investment knowledge and help fellow physicians. Mentors need 100+ reputation points.</p>
+            <p class="mb-0">Your current reputation: <strong class="text-primary">{{ current_user.reputation_score }}</strong></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

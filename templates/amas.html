@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Expert AMAs - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-microphone-alt me-2"></i>Expert AMAs</h2>
+        <p class="text-muted mb-0">Live Q&A sessions with financial experts</p>
+    </div>
+
+    {% if upcoming %}
+    <h4 class="mb-3"><i class="fas fa-calendar-alt me-2 text-primary"></i>Upcoming AMAs</h4>
+    <div class="row mb-5">
+        {% for ama in upcoming %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                {% if ama.expert_image_url %}
+                <img src="{{ ama.expert_image_url }}" class="card-img-top" alt="{{ ama.expert_name }}" style="height: 200px; object-fit: cover;">
+                {% else %}
+                <div class="bg-gradient text-white d-flex align-items-center justify-content-center" style="height: 200px; background: linear-gradient(135deg, #0d6efd 0%, #198754 100%);">
+                    <i class="fas fa-user-tie fa-4x opacity-75"></i>
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ ama.title }}</h5>
+                    <p class="text-muted mb-2">
+                        <strong>{{ ama.expert_name }}</strong>
+                        {% if ama.expert_title %}<br><small>{{ ama.expert_title }}</small>{% endif %}
+                    </p>
+                    <p class="card-text small">{{ ama.description[:150] }}{% if ama.description|length > 150 %}...{% endif %}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="badge bg-primary">
+                            <i class="fas fa-clock me-1"></i>{{ ama.scheduled_for.strftime('%b %d, %I:%M %p') }}
+                        </span>
+                        {% if ama.is_premium_only %}
+                        <span class="badge bg-warning text-dark"><i class="fas fa-crown me-1"></i>Premium</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{{ url_for('ama_detail', ama_id=ama.id) }}" class="btn btn-outline-primary w-100">View Details</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info mb-5">
+        <i class="fas fa-info-circle me-2"></i>No upcoming AMAs scheduled. Check back soon!
+    </div>
+    {% endif %}
+
+    {% if past %}
+    <h4 class="mb-3"><i class="fas fa-history me-2 text-secondary"></i>Past AMAs</h4>
+    <div class="row">
+        {% for ama in past %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm opacity-75">
+                <div class="card-body">
+                    <h5 class="card-title">{{ ama.title }}</h5>
+                    <p class="text-muted mb-2"><strong>{{ ama.expert_name }}</strong></p>
+                    <p class="card-text small">{{ ama.description[:100] }}...</p>
+                    <span class="badge bg-secondary">
+                        <i class="fas fa-check me-1"></i>{{ ama.scheduled_for.strftime('%b %d, %Y') }}
+                    </span>
+                </div>
+                {% if ama.recording_url %}
+                <div class="card-footer bg-transparent">
+                    <a href="{{ url_for('ama_detail', ama_id=ama.id) }}" class="btn btn-outline-secondary btn-sm w-100">
+                        <i class="fas fa-play me-1"></i>Watch Recording
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

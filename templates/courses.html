@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Courses - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="text-center mb-5">
+        <h2><i class="fas fa-graduation-cap me-2"></i>Investment Courses</h2>
+        <p class="lead text-muted">Comprehensive financial education for physicians</p>
+    </div>
+
+    {% if featured %}
+    <h4 class="mb-3"><i class="fas fa-star me-2 text-warning"></i>Featured Courses</h4>
+    <div class="row mb-5">
+        {% for course in featured %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow border-warning" style="border-width: 2px;">
+                {% if course.thumbnail_url %}
+                <img src="{{ course.thumbnail_url }}" class="card-img-top" style="height: 180px; object-fit: cover;">
+                {% else %}
+                <div class="bg-gradient text-white d-flex align-items-center justify-content-center" style="height: 180px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <i class="fas fa-book-open fa-4x opacity-75"></i>
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <span class="badge bg-{{ 'success' if course.difficulty_level == 'Beginner' else 'warning' if course.difficulty_level == 'Intermediate' else 'danger' }} mb-2">{{ course.difficulty_level or 'All Levels' }}</span>
+                    <h5 class="card-title">{{ course.title }}</h5>
+                    <p class="card-text small">{{ course.description[:100] }}...</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            {% if course.original_price and course.original_price > course.price %}
+                            <span class="text-decoration-line-through text-muted">${{ "%.0f"|format(course.original_price) }}</span>
+                            {% endif %}
+                            <strong class="text-primary h5">${{ "%.0f"|format(course.price) }}</strong>
+                        </div>
+                        <small class="text-muted">
+                            <i class="fas fa-users me-1"></i>{{ course.enrolled_count }} enrolled
+                        </small>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{{ url_for('course_detail', course_id=course.id) }}" class="btn btn-warning w-100">
+                        {% if course.id in enrolled_ids %}
+                        <i class="fas fa-play me-1"></i>Continue
+                        {% else %}
+                        View Course
+                        {% endif %}
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <h4 class="mb-3"><i class="fas fa-book me-2"></i>All Courses</h4>
+    {% if courses %}
+    <div class="row">
+        {% for course in courses %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                {% if course.thumbnail_url %}
+                <img src="{{ course.thumbnail_url }}" class="card-img-top" style="height: 160px; object-fit: cover;">
+                {% else %}
+                <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 160px;">
+                    <i class="fas fa-book-open fa-3x opacity-75"></i>
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="badge bg-light text-dark">{{ course.total_modules }} modules</span>
+                        {% if course.avg_rating > 0 %}
+                        <span class="badge bg-warning text-dark">
+                            <i class="fas fa-star me-1"></i>{{ "%.1f"|format(course.avg_rating) }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <h5 class="card-title">{{ course.title }}</h5>
+                    {% if course.instructor_name %}
+                    <p class="text-muted small mb-2">by {{ course.instructor_name }}</p>
+                    {% endif %}
+                    <p class="card-text small">{{ course.description[:80] }}...</p>
+                </div>
+                <div class="card-footer bg-transparent d-flex justify-content-between align-items-center">
+                    <strong class="text-primary">${{ "%.0f"|format(course.price) }}</strong>
+                    <a href="{{ url_for('course_detail', course_id=course.id) }}" class="btn btn-outline-primary btn-sm">
+                        {% if course.id in enrolled_ids %}
+                        Continue <i class="fas fa-arrow-right ms-1"></i>
+                        {% else %}
+                        Learn More
+                        {% endif %}
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>No courses available yet. Check back soon!
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

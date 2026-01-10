@@ -6,24 +6,38 @@ The platform features two main architectures: a primary Flask-based web applicat
 
 ## Recent Changes (January 10, 2026)
 
-✓ Added AI Job Rate Limiting & Idempotency:
-- Per-user rate limit of 12 AI jobs per hour
-- Fingerprint-based de-duplication prevents duplicate requests
-- Idempotency-Key header support for client-side retry safety
-- Request fingerprinting stored in database for dedup
-- 429 rate_limited error response when limit exceeded
+✓ Added Comprehensive Platform Features:
+- **Expert AMAs**: Scheduled Q&A sessions with financial experts (/amas)
+  - Registration, question submission with voting, anonymous questions
+  - Sponsor integration, recording playback support
+- **Investment Deal Marketplace**: Vetted investment opportunities (/deals)
+  - Real estate, funds, practice partnerships, syndicates
+  - Interest expression, view tracking, featured deals
+- **Mentorship Program**: Peer-to-peer guidance system (/mentorship)
+  - Match experienced investors with newcomers
+  - Session tracking, feedback system
+- **Courses & Events**: Educational content (/courses, /events)
+  - Premium courses with modules, enrollment tracking
+  - Virtual/in-person events with registrations
+- **Referral Program**: Viral growth mechanics (/referral)
+  - Unique referral codes, reward tiers
+- **Premium Subscription**: Freemium model (/premium)
+  - Free vs Premium tier comparison
 
-✓ Added Next.js Frontend Scaffold:
-- Admin verification dashboard components
-- Deal detail page with AI Analyst panel
-- Cookie-based session auth integration with Flask
-- Located in frontend/ directory (see FRONTEND.md)
+✓ New Database Models:
+- ExpertAMA, AMAQuestion, AMARegistration
+- InvestmentDeal, DealInterest
+- Mentorship, MentorshipSession
+- Course, CourseModule, CourseEnrollment
+- Event, EventSession, EventRegistration
+- Referral, Subscription, Payment, EmailCampaign
 
-✓ Database Migration:
-- Migration 0003_ai_jobs_idempotency adds idempotency columns
-- Run: `alembic upgrade head` to apply
+✓ User Engagement Fields Added:
+- referral_code, subscription_tier, points, level, login_streak
 
-→ STATUS: AI job processing now has robust rate limiting and idempotency
+✓ Previous: Added AI Job Rate Limiting & Idempotency, Next.js Frontend Scaffold
+
+→ STATUS: Platform now has full monetization and engagement features
 
 ## Changes (January 4, 2026)
 

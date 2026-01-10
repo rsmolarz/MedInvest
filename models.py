@@ -610,3 +610,412 @@ class Alert(db.Model):
     sent_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+
+# ============================================================================
+# SUBSCRIPTION & PAYMENTS
+# ============================================================================
+
+class Subscription(db.Model):
+    """Track subscription history and payments"""
+    __tablename__ = 'subscriptions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    tier = db.Column(db.String(20), nullable=False)  # free, premium, enterprise
+    stripe_subscription_id = db.Column(db.String(100), unique=True)
+    stripe_price_id = db.Column(db.String(100))
+    amount = db.Column(db.Float, nullable=False)
+    interval = db.Column(db.String(20))  # month or year
+    status = db.Column(db.String(20))  # active, cancelled, past_due
+    current_period_start = db.Column(db.DateTime)
+    current_period_end = db.Column(db.DateTime)
+    cancel_at_period_end = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = db.relationship('User', backref='subscriptions')
+
+
+class Payment(db.Model):
+    """Track individual payments"""
+    __tablename__ = 'payments'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    stripe_payment_intent_id = db.Column(db.String(100), unique=True)
+    amount = db.Column(db.Float, nullable=False)
+    currency = db.Column(db.String(3), default='USD')
+    status = db.Column(db.String(20))  # succeeded, pending, failed
+    payment_type = db.Column(db.String(50))  # subscription, course, event
+    metadata_json = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref='payments')
+
+
+# ============================================================================
+# EXPERT AMAs
+# ============================================================================
+
+class ExpertAMA(db.Model):
+    """Scheduled Q&A sessions with experts"""
+    __tablename__ = 'expert_amas'
+
+    id = db.Column(db.Integer, primary_key=True)
+    expert_name = db.Column(db.String(200), nullable=False)
+    expert_title = db.Column(db.String(200))
+    expert_bio = db.Column(db.Text)
+    expert_image_url = db.Column(db.String(500))
+    title = db.Column(db.String(300), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    topic_tags = db.Column(db.String(500))
+    scheduled_for = db.Column(db.DateTime, nullable=False, index=True)
+    duration_minutes = db.Column(db.Integer, default=60)
+    status = db.Column(db.String(20), default='scheduled')  # scheduled, live, ended, cancelled
+    is_premium_only = db.Column(db.Boolean, default=False)
+    max_participants = db.Column(db.Integer)
+    sponsor_name = db.Column(db.String(200))
+    sponsor_logo_url = db.Column(db.String(500))
+    sponsor_url = db.Column(db.String(500))
+    recording_url = db.Column(db.String(500))
+    recording_price = db.Column(db.Float)
+    participant_count = db.Column(db.Integer, default=0)
+    question_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    questions = db.relationship('AMAQuestion', back_populates='ama', lazy='dynamic')
+    registrations = db.relationship('AMARegistration', back_populates='ama', lazy='dynamic')
+
+
+class AMAQuestion(db.Model):
+    """Questions asked during AMA"""
+    __tablename__ = 'ama_questions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    ama_id = db.Column(db.Integer, db.ForeignKey('expert_amas.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    question = db.Column(db.Text, nullable=False)
+    is_anonymous = db.Column(db.Boolean, default=False)
+    upvotes = db.Column(db.Integer, default=0)
+    answer = db.Column(db.Text)
+    answered_at = db.Column(db.DateTime)
+    is_answered = db.Column(db.Boolean, default=False)
+    asked_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    ama = db.relationship('ExpertAMA', back_populates='questions')
+    user = db.relationship('User', backref='ama_questions')
+
+
+class AMARegistration(db.Model):
+    """Track who registered for AMAs"""
+    __tablename__ = 'ama_registrations'
+
+    id = db.Column(db.Integer, primary_key=True)
+    ama_id = db.Column(db.Integer, db.ForeignKey('expert_amas.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    attended = db.Column(db.Boolean, default=False)
+    registered_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    ama = db.relationship('ExpertAMA', back_populates='registrations')
+    user = db.relationship('User', backref='ama_registrations')
+
+    __table_args__ = (db.UniqueConstraint('ama_id', 'user_id', name='unique_ama_registration'),)
+
+
+# ============================================================================
+# INVESTMENT DEAL MARKETPLACE
+# ============================================================================
+
+class InvestmentDeal(db.Model):
+    """Investment opportunities for physicians"""
+    __tablename__ = 'investment_deals'
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(300), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    deal_type = db.Column(db.String(50), nullable=False)  # real_estate, fund, practice, syndicate
+    minimum_investment = db.Column(db.Float, nullable=False)
+    target_raise = db.Column(db.Float)
+    current_raised = db.Column(db.Float, default=0)
+    projected_return = db.Column(db.String(50))
+    investment_term = db.Column(db.String(50))
+    accredited_only = db.Column(db.Boolean, default=True)
+    physician_only = db.Column(db.Boolean, default=False)
+    sponsor_name = db.Column(db.String(200), nullable=False)
+    sponsor_bio = db.Column(db.Text)
+    sponsor_track_record = db.Column(db.Text)
+    sponsor_contact = db.Column(db.String(200))
+    location = db.Column(db.String(200))
+    offering_document_url = db.Column(db.String(500))
+    pitch_deck_url = db.Column(db.String(500))
+    status = db.Column(db.String(20), default='draft')  # draft, review, active, closed, rejected
+    deadline = db.Column(db.DateTime)
+    is_featured = db.Column(db.Boolean, default=False)
+    featured_until = db.Column(db.DateTime)
+    view_count = db.Column(db.Integer, default=0)
+    interest_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    interests = db.relationship('DealInterest', back_populates='deal', lazy='dynamic')
+
+
+class DealInterest(db.Model):
+    """Track user interest in deals"""
+    __tablename__ = 'deal_interests'
+
+    id = db.Column(db.Integer, primary_key=True)
+    deal_id = db.Column(db.Integer, db.ForeignKey('investment_deals.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    investment_amount = db.Column(db.Float)
+    message = db.Column(db.Text)
+    status = db.Column(db.String(20), default='interested')  # interested, contacted, invested
+    contacted_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    deal = db.relationship('InvestmentDeal', back_populates='interests')
+    user = db.relationship('User', backref='deal_interests')
+
+    __table_args__ = (db.UniqueConstraint('deal_id', 'user_id', name='unique_deal_interest'),)
+
+
+# ============================================================================
+# MENTORSHIP
+# ============================================================================
+
+class Mentorship(db.Model):
+    """Mentor-mentee relationships"""
+    __tablename__ = 'mentorships'
+
+    id = db.Column(db.Integer, primary_key=True)
+    mentor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    mentee_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    focus_areas = db.Column(db.String(500))
+    duration_months = db.Column(db.Integer, default=3)
+    status = db.Column(db.String(20), default='pending')  # pending, active, completed, cancelled
+    start_date = db.Column(db.DateTime)
+    end_date = db.Column(db.DateTime)
+    total_meetings = db.Column(db.Integer, default=0)
+    last_meeting = db.Column(db.DateTime)
+    mentor_rating = db.Column(db.Integer)
+    mentee_rating = db.Column(db.Integer)
+    mentor_feedback = db.Column(db.Text)
+    mentee_feedback = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    mentor = db.relationship('User', foreign_keys=[mentor_id], backref='mentorships_as_mentor')
+    mentee = db.relationship('User', foreign_keys=[mentee_id], backref='mentorships_as_mentee')
+    sessions = db.relationship('MentorshipSession', back_populates='mentorship', lazy='dynamic')
+
+
+class MentorshipSession(db.Model):
+    """Individual mentorship meetings"""
+    __tablename__ = 'mentorship_sessions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    mentorship_id = db.Column(db.Integer, db.ForeignKey('mentorships.id'), nullable=False)
+    scheduled_for = db.Column(db.DateTime, nullable=False)
+    duration_minutes = db.Column(db.Integer, default=30)
+    topics_discussed = db.Column(db.Text)
+    action_items = db.Column(db.Text)
+    notes = db.Column(db.Text)
+    completed = db.Column(db.Boolean, default=False)
+    completed_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    mentorship = db.relationship('Mentorship', back_populates='sessions')
+
+
+# ============================================================================
+# COURSES & EDUCATIONAL CONTENT
+# ============================================================================
+
+class Course(db.Model):
+    """Premium courses"""
+    __tablename__ = 'courses'
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(300), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    instructor_name = db.Column(db.String(200))
+    price = db.Column(db.Float, nullable=False)
+    original_price = db.Column(db.Float)
+    total_modules = db.Column(db.Integer, default=0)
+    total_duration_minutes = db.Column(db.Integer, default=0)
+    difficulty_level = db.Column(db.String(20))
+    thumbnail_url = db.Column(db.String(500))
+    preview_video_url = db.Column(db.String(500))
+    is_published = db.Column(db.Boolean, default=False)
+    is_featured = db.Column(db.Boolean, default=False)
+    enrolled_count = db.Column(db.Integer, default=0)
+    completion_rate = db.Column(db.Float, default=0)
+    avg_rating = db.Column(db.Float, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    modules = db.relationship('CourseModule', back_populates='course', lazy='dynamic')
+    enrollments = db.relationship('CourseEnrollment', back_populates='course', lazy='dynamic')
+
+
+class CourseModule(db.Model):
+    """Course content modules"""
+    __tablename__ = 'course_modules'
+
+    id = db.Column(db.Integer, primary_key=True)
+    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
+    title = db.Column(db.String(300), nullable=False)
+    description = db.Column(db.Text)
+    content = db.Column(db.Text)
+    video_url = db.Column(db.String(500))
+    duration_minutes = db.Column(db.Integer)
+    order_index = db.Column(db.Integer, default=0)
+    downloadable_resources = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    course = db.relationship('Course', back_populates='modules')
+
+
+class CourseEnrollment(db.Model):
+    """Track course purchases and progress"""
+    __tablename__ = 'course_enrollments'
+
+    id = db.Column(db.Integer, primary_key=True)
+    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    purchase_price = db.Column(db.Float, nullable=False)
+    payment_id = db.Column(db.Integer, db.ForeignKey('payments.id'))
+    progress_percent = db.Column(db.Float, default=0)
+    completed_modules = db.Column(db.Text)
+    completed = db.Column(db.Boolean, default=False)
+    completed_at = db.Column(db.DateTime)
+    rating = db.Column(db.Integer)
+    review = db.Column(db.Text)
+    enrolled_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    course = db.relationship('Course', back_populates='enrollments')
+    user = db.relationship('User', backref='course_enrollments')
+
+    __table_args__ = (db.UniqueConstraint('course_id', 'user_id', name='unique_course_enrollment'),)
+
+
+# ============================================================================
+# EVENTS & CONFERENCES
+# ============================================================================
+
+class Event(db.Model):
+    """Virtual conferences and events"""
+    __tablename__ = 'events'
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(300), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    event_type = db.Column(db.String(50))  # conference, workshop, networking
+    start_date = db.Column(db.DateTime, nullable=False)
+    end_date = db.Column(db.DateTime, nullable=False)
+    timezone = db.Column(db.String(50), default='America/New_York')
+    is_virtual = db.Column(db.Boolean, default=True)
+    venue_name = db.Column(db.String(200))
+    venue_address = db.Column(db.Text)
+    meeting_url = db.Column(db.String(500))
+    meeting_password = db.Column(db.String(100))
+    early_bird_price = db.Column(db.Float)
+    early_bird_ends = db.Column(db.DateTime)
+    regular_price = db.Column(db.Float, nullable=False)
+    vip_price = db.Column(db.Float)
+    max_attendees = db.Column(db.Integer)
+    current_attendees = db.Column(db.Integer, default=0)
+    is_published = db.Column(db.Boolean, default=False)
+    is_featured = db.Column(db.Boolean, default=False)
+    banner_url = db.Column(db.String(500))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    registrations = db.relationship('EventRegistration', back_populates='event', lazy='dynamic')
+    sessions = db.relationship('EventSession', back_populates='event', lazy='dynamic')
+
+
+class EventSession(db.Model):
+    """Individual sessions within an event"""
+    __tablename__ = 'event_sessions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey('events.id'), nullable=False)
+    title = db.Column(db.String(300), nullable=False)
+    description = db.Column(db.Text)
+    speaker_name = db.Column(db.String(200))
+    speaker_bio = db.Column(db.Text)
+    start_time = db.Column(db.DateTime, nullable=False)
+    duration_minutes = db.Column(db.Integer, default=60)
+    recording_url = db.Column(db.String(500))
+
+    event = db.relationship('Event', back_populates='sessions')
+
+
+class EventRegistration(db.Model):
+    """Event ticket purchases"""
+    __tablename__ = 'event_registrations'
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey('events.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    ticket_type = db.Column(db.String(20))  # regular, vip
+    purchase_price = db.Column(db.Float, nullable=False)
+    payment_id = db.Column(db.Integer, db.ForeignKey('payments.id'))
+    attended = db.Column(db.Boolean, default=False)
+    check_in_time = db.Column(db.DateTime)
+    registered_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    event = db.relationship('Event', back_populates='registrations')
+    user = db.relationship('User', backref='event_registrations')
+
+    __table_args__ = (db.UniqueConstraint('event_id', 'user_id', name='unique_event_registration'),)
+
+
+# ============================================================================
+# REFERRAL PROGRAM
+# ============================================================================
+
+class Referral(db.Model):
+    """Track referrals and rewards"""
+    __tablename__ = 'referrals'
+
+    id = db.Column(db.Integer, primary_key=True)
+    referrer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    referred_user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    referral_code_used = db.Column(db.String(20))
+    status = db.Column(db.String(20), default='pending')  # pending, completed, rewarded
+    reward_type = db.Column(db.String(50))  # points, premium_month, cash
+    reward_value = db.Column(db.Float)
+    rewarded_at = db.Column(db.DateTime)
+    referred_user_activated = db.Column(db.Boolean, default=False)
+    referred_user_premium = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    referrer = db.relationship('User', foreign_keys=[referrer_id], backref='referrals_sent')
+    referred_user = db.relationship('User', foreign_keys=[referred_user_id], backref='referral_received')
+
+
+# ============================================================================
+# EMAIL CAMPAIGNS
+# ============================================================================
+
+class EmailCampaign(db.Model):
+    """Email marketing campaigns"""
+    __tablename__ = 'email_campaigns'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    subject = db.Column(db.String(300), nullable=False)
+    html_content = db.Column(db.Text, nullable=False)
+    text_content = db.Column(db.Text)
+    segment = db.Column(db.String(100))  # all, free, premium, specialty_cardiology
+    send_at = db.Column(db.DateTime)
+    sent = db.Column(db.Boolean, default=False)
+    sent_at = db.Column(db.DateTime)
+    total_recipients = db.Column(db.Integer, default=0)
+    opened = db.Column(db.Integer, default=0)
+    clicked = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+

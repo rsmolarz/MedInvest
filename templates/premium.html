@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Premium Membership - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="text-center mb-5">
+        <h2><i class="fas fa-crown text-warning me-2"></i>Premium Membership</h2>
+        <p class="lead text-muted">Unlock the full potential of your investment journey</p>
+    </div>
+
+    {% if current_subscription %}
+    <div class="row justify-content-center mb-5">
+        <div class="col-md-8">
+            <div class="alert alert-success">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-check-circle fa-2x me-3"></i>
+                    <div>
+                        <h5 class="mb-1">You're a Premium Member!</h5>
+                        <p class="mb-0">Your subscription is active until {{ current_subscription.current_period_end.strftime('%B %d, %Y') if current_subscription.current_period_end else 'ongoing' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row justify-content-center mb-5">
+        <div class="col-md-5 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-light text-center py-3">
+                    <h4 class="mb-0">Free</h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <h2 class="mb-0">$0</h2>
+                        <small class="text-muted">Forever</small>
+                    </div>
+                    <ul class="list-unstyled">
+                        <li class="mb-3"><i class="fas fa-check text-success me-2"></i>Access to community feed</li>
+                        <li class="mb-3"><i class="fas fa-check text-success me-2"></i>Join up to 3 investment rooms</li>
+                        <li class="mb-3"><i class="fas fa-check text-success me-2"></i>Basic learning modules</li>
+                        <li class="mb-3"><i class="fas fa-check text-success me-2"></i>Anonymous posting</li>
+                        <li class="mb-3"><i class="fas fa-times text-muted me-2"></i>Limited deal access</li>
+                        <li class="mb-3"><i class="fas fa-times text-muted me-2"></i>Ads shown</li>
+                    </ul>
+                </div>
+                <div class="card-footer bg-transparent text-center">
+                    <span class="text-muted">Current Plan</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-5 mb-4">
+            <div class="card h-100 shadow border-warning" style="border-width: 3px;">
+                <div class="card-header bg-warning text-dark text-center py-3">
+                    <h4 class="mb-0"><i class="fas fa-crown me-2"></i>Premium</h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <h2 class="mb-0">$29<small class="text-muted">/month</small></h2>
+                        <small class="text-muted">or $249/year (save $99)</small>
+                    </div>
+                    <ul class="list-unstyled">
+                        <li class="mb-3"><i class="fas fa-check text-success me-2"></i>Everything in Free</li>
+                        <li class="mb-3"><i class="fas fa-check text-success me-2"></i><strong>Unlimited</strong> investment rooms</li>
+                        <li class="mb-3"><i class="fas fa-check text-success me-2"></i>Full deal marketplace access</li>
+                        <li class="mb-3"><i class="fas fa-check text-success me-2"></i>Ask questions in Expert AMAs</li>
+                        <li class="mb-3"><i class="fas fa-check text-success me-2"></i>Advanced analytics dashboard</li>
+                        <li class="mb-3"><i class="fas fa-check text-success me-2"></i>Priority mentorship matching</li>
+                        <li class="mb-3"><i class="fas fa-check text-success me-2"></i><strong>No ads</strong></li>
+                        <li class="mb-3"><i class="fas fa-check text-success me-2"></i>Premium badge on profile</li>
+                    </ul>
+                </div>
+                <div class="card-footer bg-transparent text-center">
+                    {% if current_subscription %}
+                    <button class="btn btn-secondary btn-lg w-100" disabled>Currently Active</button>
+                    {% else %}
+                    <button class="btn btn-warning btn-lg w-100">
+                        <i class="fas fa-rocket me-2"></i>Upgrade to Premium
+                    </button>
+                    <small class="text-muted d-block mt-2">Cancel anytime. 7-day free trial.</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>Frequently Asked Questions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="faqAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                    Can I cancel anytime?
+                                </button>
+                            </h2>
+                            <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Yes! You can cancel your subscription at any time. You'll continue to have access until the end of your billing period.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                    Is there a free trial?
+                                </button>
+                            </h2>
+                            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Yes, we offer a 7-day free trial for new Premium subscribers. No charges until the trial ends.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                    What payment methods do you accept?
+                                </button>
+                            </h2>
+                            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    We accept all major credit cards through Stripe, our secure payment processor.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

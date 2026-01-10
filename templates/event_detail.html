@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}{{ event.title }} - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('events') }}">Events</a></li>
+            <li class="breadcrumb-item active">{{ event.title[:40] }}...</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                {% if event.banner_url %}
+                <img src="{{ event.banner_url }}" class="card-img-top" style="height: 300px; object-fit: cover;">
+                {% else %}
+                <div class="bg-gradient text-white d-flex align-items-center justify-content-center" style="height: 300px; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                    <i class="fas fa-calendar-alt fa-5x opacity-75"></i>
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="badge bg-{{ 'info' if event.is_virtual else 'success' }}">
+                            <i class="fas fa-{{ 'video' if event.is_virtual else 'map-marker-alt' }} me-1"></i>
+                            {{ 'Virtual Event' if event.is_virtual else 'In-Person' }}
+                        </span>
+                        <span class="badge bg-secondary">{{ (event.event_type or 'event').title() }}</span>
+                    </div>
+                    <h2>{{ event.title }}</h2>
+                    <p class="lead">{{ event.description }}</p>
+                </div>
+            </div>
+
+            {% if sessions %}
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-calendar-day me-2"></i>Event Schedule</h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for session in sessions %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">{{ session.title }}</h6>
+                                {% if session.speaker_name %}
+                                <small class="text-muted">Speaker: {{ session.speaker_name }}</small>
+                                {% endif %}
+                                {% if session.description %}
+                                <p class="mb-0 mt-2 small">{{ session.description }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-light text-dark">
+                                    {{ session.start_time.strftime('%I:%M %p') }}
+                                </span>
+                                <small class="d-block text-muted">{{ session.duration_minutes }} min</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4 sticky-top" style="top: 20px;">
+                <div class="card-body">
+                    <h5 class="mb-3 text-center">Register Now</h5>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-3 p-2 bg-light rounded">
+                        <div>
+                            <i class="fas fa-calendar me-2"></i>
+                            <strong>{{ event.start_date.strftime('%B %d, %Y') }}</strong>
+                        </div>
+                        <div>
+                            <i class="fas fa-clock me-2"></i>
+                            {{ event.start_date.strftime('%I:%M %p') }}
+                        </div>
+                    </div>
+
+                    {% if not event.is_virtual and event.venue_name %}
+                    <div class="mb-3 p-2 bg-light rounded">
+                        <i class="fas fa-map-marker-alt me-2"></i>
+                        {{ event.venue_name }}
+                        {% if event.venue_address %}
+                        <small class="d-block text-muted">{{ event.venue_address }}</small>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    {% if registration %}
+                    <div class="alert alert-success text-center">
+                        <i class="fas fa-check-circle me-1"></i>You're registered!
+                        {% if event.meeting_url and event.is_virtual %}
+                        <a href="{{ event.meeting_url }}" target="_blank" class="btn btn-success btn-sm d-block mt-2">
+                            <i class="fas fa-video me-1"></i>Join Meeting
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Regular Ticket</span>
+                            <strong class="text-primary">${{ "%.0f"|format(event.regular_price) }}</strong>
+                        </div>
+                        {% if event.vip_price %}
+                        <div class="d-flex justify-content-between mt-2">
+                            <span>VIP Ticket</span>
+                            <strong class="text-warning">${{ "%.0f"|format(event.vip_price) }}</strong>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <button class="btn btn-primary btn-lg w-100">
+                        <i class="fas fa-ticket-alt me-2"></i>Get Tickets
+                    </button>
+                    {% endif %}
+
+                    {% if event.max_attendees %}
+                    <div class="text-center mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-users me-1"></i>
+                            {{ event.current_attendees or 0 }}/{{ event.max_attendees }} spots filled
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
