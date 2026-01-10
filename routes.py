@@ -2,7 +2,7 @@ from flask import render_template, request, redirect, url_for, flash, session, j
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash
 from app import app, db
-from models import User, Module, UserProgress, ForumTopic, ForumPost, PortfolioTransaction, Resource, Post, Comment, Like, Follow, Notification, Group, GroupMembership, Connection, DealDetails, DealAnalysis, AiJob, ReputationEvent, Invite, Digest, DigestItem, UserActivity, Alert, ExpertAMA, AMAQuestion, AMARegistration, InvestmentDeal, DealInterest, Mentorship, MentorshipSession, Course, CourseModule, CourseEnrollment, Event, EventSession, EventRegistration, Referral, Subscription, Payment, VerificationQueueEntry, OnboardingPrompt, UserPromptDismissal, InviteCreditEvent, CohortNorm, ModerationEvent, ContentReport, DealOutcome, SponsorProfile, SponsorReview
+from models import User, Module, UserProgress, ForumTopic, ForumPost, PortfolioTransaction, Resource, Post, Comment, Like, Follow, Notification, Group, GroupMembership, Connection, DealDetails, DealAnalysis, AiJob, ReputationEvent, Invite, Digest, DigestItem, UserActivity, Alert, ExpertAMA, AMAQuestion, AMARegistration, InvestmentDeal, DealInterest, Mentorship, MentorshipSession, Course, CourseModule, CourseEnrollment, Event, EventSession, EventRegistration, Referral, Subscription, Payment, VerificationQueueEntry, OnboardingPrompt, UserPromptDismissal, InviteCreditEvent, CohortNorm, ModerationEvent, ContentReport, DealOutcome, SponsorProfile, SponsorReview, InvestmentRoom, RoomMembership, Hashtag, PostHashtag, Achievement, UserAchievement, UserPoints, PointTransaction
 from datetime import datetime, timedelta
 import json
 import math
@@ -603,6 +603,8 @@ def create_post():
     content = request.form.get('content', '').strip()
     post_type = request.form.get('post_type', 'general')
     tags = request.form.get('tags', '')
+    is_anonymous = request.form.get('is_anonymous') == '1'
+    room_id = request.form.get('room_id', type=int)
     
     if not content:
         flash('Post content cannot be empty.', 'error')
@@ -613,9 +615,40 @@ def create_post():
     post.content = content
     post.post_type = post_type
     post.tags = tags
+    post.is_anonymous = is_anonymous
+    if room_id:
+        post.room_id = room_id
+    
+    # Extract and process hashtags
+    import re
+    hashtag_pattern = r'#(\w+)'
+    found_hashtags = re.findall(hashtag_pattern, content)
     
     try:
         db.session.add(post)
+        db.session.flush()
+        
+        # Create/update hashtags
+        for tag_name in found_hashtags[:10]:  # Max 10 hashtags per post
+            tag_name_lower = tag_name.lower()
+            hashtag = Hashtag.query.filter_by(name=tag_name_lower).first()
+            if not hashtag:
+                hashtag = Hashtag(name=tag_name_lower)
+                db.session.add(hashtag)
+                db.session.flush()
+            hashtag.post_count = (hashtag.post_count or 0) + 1
+            hashtag.weekly_count = (hashtag.weekly_count or 0) + 1
+            hashtag.last_used = datetime.utcnow()
+            
+            post_hashtag = PostHashtag(post_id=post.id, hashtag_id=hashtag.id)
+            db.session.add(post_hashtag)
+        
+        # Update room post count if posting to a room
+        if room_id:
+            room = InvestmentRoom.query.get(room_id)
+            if room:
+                room.post_count = (room.post_count or 0) + 1
+        
         db.session.commit()
         flash('Post created successfully!', 'success')
     except Exception as e:
@@ -623,6 +656,9 @@ def create_post():
         logging.error(f"Error creating post: {e}")
         flash('Error creating post. Please try again.', 'error')
     
+    # Redirect back to room if posting from a room
+    if room_id:
+        return redirect(url_for('room_detail', room_id=room_id))
     return redirect(url_for('dashboard'))
 
 
@@ -2945,3 +2981,247 @@ def dismiss_onboarding_prompt():
         db.session.commit()
     
     return jsonify({'success': True})
+
+
+# ============================================================================
+# INVESTMENT ROOMS
+# ============================================================================
+
+@app.route('/rooms')
+@login_required
+def rooms():
+    """Browse specialty investment rooms."""
+    all_rooms = InvestmentRoom.query.filter_by(is_active=True).order_by(InvestmentRoom.member_count.desc()).all()
+    
+    # Get user's joined room IDs
+    user_memberships = RoomMembership.query.filter_by(user_id=current_user.id).all()
+    user_room_ids = [m.room_id for m in user_memberships]
+    
+    # Get user's joined rooms
+    user_rooms = [room for room in all_rooms if room.id in user_room_ids]
+    
+    # Group rooms by category
+    specialty_rooms = [r for r in all_rooms if r.category == 'specialty']
+    career_stage_rooms = [r for r in all_rooms if r.category == 'career_stage']
+    topic_rooms = [r for r in all_rooms if r.category == 'topic']
+    
+    return render_template('rooms.html', 
+                          rooms=all_rooms, 
+                          user_rooms=user_rooms,
+                          specialty_rooms=specialty_rooms,
+                          career_stage_rooms=career_stage_rooms,
+                          topic_rooms=topic_rooms,
+                          user_room_ids=user_room_ids)
+
+
+@app.route('/rooms/<int:room_id>')
+@login_required
+def room_detail(room_id):
+    """View a specific investment room."""
+    room = InvestmentRoom.query.get_or_404(room_id)
+    
+    # Check if user is a member
+    membership = RoomMembership.query.filter_by(user_id=current_user.id, room_id=room_id).first()
+    
+    # Get room posts
+    posts = Post.query.filter_by(room_id=room_id, is_published=True).order_by(Post.created_at.desc()).limit(50).all()
+    
+    # Stats object for template
+    stats = {
+        'is_member': membership is not None,
+        'members': room.member_count or 0,
+        'posts': room.post_count or 0
+    }
+    
+    return render_template('room_detail.html',
+                          room=room,
+                          stats=stats,
+                          posts=posts)
+
+
+@app.route('/room/<int:room_id>/post', methods=['POST'])
+@login_required
+def create_room_post(room_id):
+    """Create a post in a specific room."""
+    room = InvestmentRoom.query.get_or_404(room_id)
+    
+    # Check membership
+    membership = RoomMembership.query.filter_by(user_id=current_user.id, room_id=room_id).first()
+    if not membership:
+        flash('You must join this room to post.', 'warning')
+        return redirect(url_for('room_detail', room_id=room_id))
+    
+    content = request.form.get('content', '').strip()
+    post_type = request.form.get('post_type', 'general')
+    tags = request.form.get('tags', '')
+    is_anonymous = request.form.get('anonymous') == 'true'
+    
+    if not content:
+        flash('Post content cannot be empty.', 'error')
+        return redirect(url_for('room_detail', room_id=room_id))
+    
+    post = Post()
+    post.author_id = current_user.id
+    post.room_id = room_id
+    post.content = content
+    post.post_type = post_type
+    post.tags = tags
+    post.is_anonymous = is_anonymous
+    
+    try:
+        db.session.add(post)
+        room.post_count = (room.post_count or 0) + 1
+        db.session.commit()
+        flash('Post created successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error creating room post: {e}")
+        flash('Error creating post. Please try again.', 'error')
+    
+    return redirect(url_for('room_detail', room_id=room_id))
+
+
+@app.route('/rooms/<int:room_id>/join', methods=['POST'])
+@login_required
+def join_room(room_id):
+    """Join an investment room."""
+    room = InvestmentRoom.query.get_or_404(room_id)
+    
+    existing = RoomMembership.query.filter_by(user_id=current_user.id, room_id=room_id).first()
+    if existing:
+        flash('You are already a member of this room.', 'info')
+        return redirect(url_for('room_detail', room_id=room_id))
+    
+    membership = RoomMembership(user_id=current_user.id, room_id=room_id)
+    db.session.add(membership)
+    room.member_count = (room.member_count or 0) + 1
+    db.session.commit()
+    
+    flash(f'Welcome to {room.name}!', 'success')
+    return redirect(url_for('room_detail', room_id=room_id))
+
+
+@app.route('/rooms/<int:room_id>/leave', methods=['POST'])
+@login_required
+def leave_room(room_id):
+    """Leave an investment room."""
+    room = InvestmentRoom.query.get_or_404(room_id)
+    
+    membership = RoomMembership.query.filter_by(user_id=current_user.id, room_id=room_id).first()
+    if not membership:
+        flash('You are not a member of this room.', 'info')
+        return redirect(url_for('rooms'))
+    
+    db.session.delete(membership)
+    room.member_count = max((room.member_count or 1) - 1, 0)
+    db.session.commit()
+    
+    flash(f'You have left {room.name}.', 'info')
+    return redirect(url_for('rooms'))
+
+
+# ============================================================================
+# TRENDING TOPICS
+# ============================================================================
+
+@app.route('/trending')
+@login_required
+def trending():
+    """View trending topics and hashtags."""
+    # Get top trending hashtags by weekly count
+    trending_hashtags = Hashtag.query.order_by(Hashtag.weekly_count.desc()).limit(20).all()
+    
+    # Create trending data structure for template
+    trending_data = []
+    trending_posts = {}
+    
+    for hashtag in trending_hashtags:
+        trending_data.append({
+            'tag': hashtag.name,
+            'post_count': hashtag.post_count or 0,
+            'mention_count': hashtag.weekly_count or 0,
+            'last_mentioned': hashtag.last_used or datetime.utcnow()
+        })
+        
+        # Get top posts for this hashtag
+        post_ids = [ph.post_id for ph in PostHashtag.query.filter_by(hashtag_id=hashtag.id).limit(3).all()]
+        if post_ids:
+            posts = Post.query.filter(Post.id.in_(post_ids), Post.is_published == True).order_by(Post.created_at.desc()).all()
+            trending_posts[hashtag.name] = posts
+    
+    return render_template('trending.html',
+                          trending=trending_data,
+                          trending_posts=trending_posts)
+
+
+@app.route('/tag/<tag_name>')
+@login_required
+def view_tag(tag_name):
+    """View all posts with a specific hashtag."""
+    hashtag = Hashtag.query.filter_by(name=tag_name.lower()).first()
+    
+    posts = []
+    if hashtag:
+        post_ids = [ph.post_id for ph in PostHashtag.query.filter_by(hashtag_id=hashtag.id).all()]
+        posts = Post.query.filter(Post.id.in_(post_ids), Post.is_published == True).order_by(Post.created_at.desc()).limit(50).all()
+    
+    return render_template('tag_posts.html',
+                          tag=tag_name,
+                          hashtag=hashtag,
+                          posts=posts)
+
+
+# ============================================================================
+# ACHIEVEMENTS & GAMIFICATION
+# ============================================================================
+
+@app.route('/achievements')
+@login_required
+def achievements_page():
+    """View achievements and leaderboard."""
+    # Get all achievements
+    all_achievements = Achievement.query.filter_by(is_active=True).order_by(Achievement.category, Achievement.tier).all()
+    
+    # Get user's earned achievements
+    user_achievement_ids = [ua.achievement_id for ua in UserAchievement.query.filter_by(user_id=current_user.id).all()]
+    
+    # Get user's points record
+    points_record = UserPoints.query.filter_by(user_id=current_user.id).first()
+    if not points_record:
+        points_record = UserPoints(user_id=current_user.id)
+        db.session.add(points_record)
+        db.session.commit()
+    
+    # Get leaderboard (top 10 by points) - return User objects with their points
+    leaderboard_data = db.session.query(User, UserPoints).join(UserPoints).order_by(UserPoints.total_points.desc()).limit(10).all()
+    
+    # Create leaderboard as list of users with points attribute
+    leaderboard = []
+    for user, points in leaderboard_data:
+        user.total_points = points.total_points
+        user.achievement_count = len(UserAchievement.query.filter_by(user_id=user.id).all())
+        leaderboard.append(user)
+    
+    # Calculate progress percentage
+    earned_count = len(user_achievement_ids)
+    total_count = len(all_achievements)
+    progress_percent = int((earned_count / total_count * 100) if total_count > 0 else 0)
+    
+    # Group achievements by category
+    achievements_by_category = {}
+    for achievement in all_achievements:
+        cat = achievement.category or 'general'
+        if cat not in achievements_by_category:
+            achievements_by_category[cat] = []
+        achievements_by_category[cat].append({
+            'achievement': achievement,
+            'earned': achievement.id in user_achievement_ids
+        })
+    
+    return render_template('achievements.html',
+                          achievements_by_category=achievements_by_category,
+                          user_points=points_record.total_points or 0,
+                          leaderboard=leaderboard,
+                          earned_count=earned_count,
+                          total_count=total_count,
+                          progress_percent=progress_percent)

@@ -267,6 +267,7 @@ class Post(db.Model):
     post_type = db.Column(db.String(20), default='general')  # general, question, insight, achievement, deal
     tags = db.Column(db.String(500))  # Comma-separated tags
     is_published = db.Column(db.Boolean, default=True)
+    is_anonymous = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -284,6 +285,14 @@ class Post(db.Model):
     
     def is_liked_by(self, user):
         return self.likes.filter_by(user_id=user.id).first() is not None
+    
+    def get_display_name(self):
+        """Get display name, showing specialty/location for anonymous posts"""
+        if self.is_anonymous:
+            specialty = self.author.specialty or 'Physician'
+            location = self.author.location or 'USA'
+            return f"{specialty} • {location}"
+        return self.author.full_name
 
 
 class Comment(db.Model):
