@@ -4,7 +4,28 @@ MedInvest is a Facebook-like social media platform designed specifically for med
 
 The platform features two main architectures: a primary Flask-based web application for the educational content and user interface, and a FastAPI scaffold for potential future investment deal management and financial integrations.
 
-## Recent Changes (January 4, 2026)
+## Recent Changes (January 10, 2026)
+
+✓ Added AI Job Rate Limiting & Idempotency:
+- Per-user rate limit of 12 AI jobs per hour
+- Fingerprint-based de-duplication prevents duplicate requests
+- Idempotency-Key header support for client-side retry safety
+- Request fingerprinting stored in database for dedup
+- 429 rate_limited error response when limit exceeded
+
+✓ Added Next.js Frontend Scaffold:
+- Admin verification dashboard components
+- Deal detail page with AI Analyst panel
+- Cookie-based session auth integration with Flask
+- Located in frontend/ directory (see FRONTEND.md)
+
+✓ Database Migration:
+- Migration 0003_ai_jobs_idempotency adds idempotency columns
+- Run: `alembic upgrade head` to apply
+
+→ STATUS: AI job processing now has robust rate limiting and idempotency
+
+## Changes (January 4, 2026)
 
 ✓ Added Two-Factor Authentication (2FA):
 - TOTP-based 2FA using pyotp and qrcode libraries
