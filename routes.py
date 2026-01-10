@@ -2,7 +2,9 @@ from flask import render_template, request, redirect, url_for, flash, session, j
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash
 from app import app, db
-from models import User, Module, UserProgress, ForumTopic, ForumPost, PortfolioTransaction, Resource, Post, Comment, Like, Follow, Notification, Group, GroupMembership, Connection, DealDetails, DealAnalysis, AiJob, ReputationEvent, Invite, Digest, DigestItem, UserActivity, Alert, ExpertAMA, AMAQuestion, AMARegistration, InvestmentDeal, DealInterest, Mentorship, MentorshipSession, Course, CourseModule, CourseEnrollment, Event, EventSession, EventRegistration, Referral, Subscription, Payment, VerificationQueueEntry, OnboardingPrompt, UserPromptDismissal, InviteCreditEvent, CohortNorm, ModerationEvent, ContentReport, DealOutcome, SponsorProfile, SponsorReview, InvestmentRoom, RoomMembership, Hashtag, PostHashtag, Achievement, UserAchievement, UserPoints, PointTransaction
+from models import User, Module, UserProgress, ForumTopic, ForumPost, PortfolioTransaction, Resource, Post, Comment, Like, Follow, Notification, Group, GroupMembership, Connection, DealDetails, DealAnalysis, AiJob, ReputationEvent, Invite, Digest, DigestItem, UserActivity, Alert, ExpertAMA, AMAQuestion, AMARegistration, InvestmentDeal, DealInterest, Mentorship, MentorshipSession, Course, CourseModule, CourseEnrollment, Event, EventSession, EventRegistration, Referral, Subscription, Payment, VerificationQueueEntry, OnboardingPrompt, UserPromptDismissal, InviteCreditEvent, CohortNorm, ModerationEvent, ContentReport, DealOutcome, SponsorProfile, SponsorReview, InvestmentRoom, RoomMembership, Hashtag, PostHashtag, Achievement, UserAchievement, UserPoints, PointTransaction, AdAdvertiser, AdCampaign, AdCreative, AdImpression, AdClick
+import hmac
+import hashlib
 from datetime import datetime, timedelta
 import json
 import math
@@ -3240,3 +3242,335 @@ def achievements_page():
                           earned_count=earned_count,
                           total_count=total_count,
                           progress_percent=progress_percent)
+
+
+# ============================================================================
+# ADS SERVING SYSTEM
+# ============================================================================
+
+def _b64url_encode(data: bytes) -> str:
+    """URL-safe base64 encode without padding."""
+    return base64.urlsafe_b64encode(data).decode("utf-8").rstrip("=")
+
+
+def _b64url_decode(data: str) -> bytes:
+    """URL-safe base64 decode with padding restoration."""
+    padded = data + "=" * (-len(data) % 4)
+    return base64.urlsafe_b64decode(padded.encode("utf-8"))
+
+
+def _sign_ad_token(payload_b64: str) -> str:
+    """Sign a payload with HMAC-SHA256."""
+    secret = os.environ.get('SESSION_SECRET', 'dev-secret-key').encode('utf-8')
+    mac = hmac.new(secret, payload_b64.encode('utf-8'), hashlib.sha256)
+    return _b64url_encode(mac.digest())
+
+
+def _make_click_token(creative_id: int, user_id: int) -> str:
+    """Create a signed click token for tracking."""
+    payload = {
+        "creative_id": creative_id,
+        "user_id": user_id,
+        "ts": int(datetime.utcnow().timestamp()),
+    }
+    payload_b64 = _b64url_encode(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
+    sig = _sign_ad_token(payload_b64)
+    return f"{payload_b64}.{sig}"
+
+
+def _parse_click_token(token: str):
+    """Parse and verify a click token."""
+    try:
+        payload_b64, sig = token.split(".", 1)
+    except ValueError:
+        return None
+    if not hmac.compare_digest(_sign_ad_token(payload_b64), sig):
+        return None
+    try:
+        payload = json.loads(_b64url_decode(payload_b64).decode("utf-8"))
+        return payload
+    except Exception:
+        return None
+
+
+def _load_targeting(raw):
+    """Load targeting JSON safely."""
+    if not raw:
+        return {}
+    try:
+        return json.loads(raw)
+    except Exception:
+        return {}
+
+
+def _matches_targeting(targeting: dict, ctx: dict) -> bool:
+    """Check if a user context matches campaign targeting."""
+    if not targeting:
+        return True
+    
+    # Hard excludes
+    if ctx.get("user_id") in set(targeting.get("exclude_user_ids", [])):
+        return False
+    
+    def _in_list(key: str) -> bool:
+        allowed = targeting.get(key)
+        if not allowed:
+            return True
+        return ctx.get(key) in set(allowed)
+    
+    if not _in_list("specialty"):
+        return False
+    if not _in_list("role"):
+        return False
+    if not _in_list("state"):
+        return False
+    if not _in_list("placement"):
+        return False
+    
+    keywords_any = targeting.get("keywords_any")
+    if keywords_any:
+        hay = (ctx.get("keywords") or "").lower()
+        if not any(k.lower() in hay for k in keywords_any):
+            return False
+    
+    return True
+
+
+@app.route('/ads/serve')
+@login_required
+def serve_ad():
+    """Serve an ad based on placement and targeting."""
+    placement = request.args.get('placement', 'feed')
+    keywords = request.args.get('keywords', '')
+    specialty = request.args.get('specialty')
+    role = request.args.get('role')
+    state = request.args.get('state')
+    
+    now = datetime.utcnow()
+    ctx = {
+        "user_id": current_user.id,
+        "placement": placement,
+        "keywords": keywords,
+        "specialty": specialty or getattr(current_user, 'specialty', None),
+        "role": role,
+        "state": state,
+    }
+    
+    # Query active creatives in active campaigns
+    results = db.session.query(AdCreative, AdCampaign)\
+        .join(AdCampaign, AdCreative.campaign_id == AdCampaign.id)\
+        .filter(AdCreative.is_active == True)\
+        .filter(AdCampaign.start_at <= now)\
+        .filter(AdCampaign.end_at >= now)\
+        .filter(AdCreative.format == placement)\
+        .order_by(AdCreative.id.desc())\
+        .limit(50)\
+        .all()
+    
+    chosen = None
+    for creative, campaign in results:
+        targeting = _load_targeting(campaign.targeting_json)
+        if _matches_targeting(targeting, ctx):
+            chosen = creative
+            break
+    
+    if not chosen:
+        return jsonify({"creative": None})
+    
+    token = _make_click_token(chosen.id, current_user.id)
+    return jsonify({
+        "creative": {
+            "id": chosen.id,
+            "format": chosen.format,
+            "headline": chosen.headline,
+            "body": chosen.body,
+            "image_url": chosen.image_url,
+            "cta_text": chosen.cta_text,
+            "disclaimer_text": chosen.disclaimer_text,
+            "click_url": f"/ads/click/{token}",
+        }
+    })
+
+
+@app.route('/ads/impression', methods=['POST'])
+@login_required
+def log_ad_impression():
+    """Log an ad impression."""
+    data = request.get_json() or {}
+    creative_id = data.get('creative_id')
+    placement = data.get('placement', 'feed')
+    page_view_id = data.get('page_view_id')
+    
+    if not creative_id:
+        return jsonify({"error": "creative_id required"}), 400
+    
+    # Idempotency guard
+    if page_view_id:
+        existing = AdImpression.query.filter_by(
+            user_id=current_user.id,
+            creative_id=creative_id,
+            page_view_id=page_view_id
+        ).first()
+        if existing:
+            return jsonify({"status": "ok"})
+    
+    impression = AdImpression(
+        creative_id=creative_id,
+        user_id=current_user.id,
+        placement=placement,
+        page_view_id=page_view_id,
+        created_at=datetime.utcnow()
+    )
+    db.session.add(impression)
+    db.session.commit()
+    return jsonify({"status": "ok"})
+
+
+@app.route('/ads/click/<token>')
+@login_required
+def ad_click_redirect(token):
+    """Handle ad click and redirect to landing URL."""
+    payload = _parse_click_token(token)
+    if not payload:
+        return jsonify({"error": "Invalid click token"}), 400
+    
+    if payload.get("user_id") != current_user.id:
+        return jsonify({"error": "Invalid user"}), 403
+    
+    creative_id = int(payload.get("creative_id"))
+    creative = AdCreative.query.get(creative_id)
+    if not creative:
+        return jsonify({"error": "Creative not found"}), 404
+    
+    # Log the click
+    click = AdClick(
+        creative_id=creative_id,
+        user_id=current_user.id,
+        created_at=datetime.utcnow()
+    )
+    db.session.add(click)
+    db.session.commit()
+    
+    return redirect(creative.landing_url)
+
+
+# ============================================================================
+# ADS ADMIN CRUD ENDPOINTS
+# ============================================================================
+
+@app.route('/api/ads/admin/advertisers', methods=['GET', 'POST'])
+@login_required
+def ads_admin_advertisers():
+    """Admin: List or create advertisers."""
+    if not current_user.is_admin:
+        return jsonify({"error": "Admin required"}), 403
+    
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        advertiser = AdAdvertiser(
+            name=data.get('name', ''),
+            category=data.get('category', 'other'),
+            compliance_status=data.get('compliance_status', 'active')
+        )
+        db.session.add(advertiser)
+        db.session.commit()
+        return jsonify({
+            "id": advertiser.id,
+            "name": advertiser.name,
+            "category": advertiser.category,
+            "compliance_status": advertiser.compliance_status
+        }), 201
+    
+    advertisers = AdAdvertiser.query.order_by(AdAdvertiser.id.desc()).limit(200).all()
+    return jsonify([{
+        "id": a.id,
+        "name": a.name,
+        "category": a.category,
+        "compliance_status": a.compliance_status,
+        "created_at": a.created_at.isoformat() if a.created_at else None
+    } for a in advertisers])
+
+
+@app.route('/api/ads/admin/campaigns', methods=['GET', 'POST'])
+@login_required
+def ads_admin_campaigns():
+    """Admin: List or create campaigns."""
+    if not current_user.is_admin:
+        return jsonify({"error": "Admin required"}), 403
+    
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        campaign = AdCampaign(
+            advertiser_id=data.get('advertiser_id'),
+            name=data.get('name', ''),
+            start_at=datetime.fromisoformat(data.get('start_at')) if data.get('start_at') else datetime.utcnow(),
+            end_at=datetime.fromisoformat(data.get('end_at')) if data.get('end_at') else datetime.utcnow() + timedelta(days=30),
+            daily_budget=data.get('daily_budget', 0),
+            targeting_json=json.dumps(data.get('targeting_json', {}))
+        )
+        db.session.add(campaign)
+        db.session.commit()
+        return jsonify({
+            "id": campaign.id,
+            "advertiser_id": campaign.advertiser_id,
+            "name": campaign.name,
+            "start_at": campaign.start_at.isoformat() if campaign.start_at else None,
+            "end_at": campaign.end_at.isoformat() if campaign.end_at else None
+        }), 201
+    
+    campaigns = AdCampaign.query.order_by(AdCampaign.id.desc()).limit(200).all()
+    return jsonify([{
+        "id": c.id,
+        "advertiser_id": c.advertiser_id,
+        "name": c.name,
+        "start_at": c.start_at.isoformat() if c.start_at else None,
+        "end_at": c.end_at.isoformat() if c.end_at else None,
+        "daily_budget": c.daily_budget,
+        "targeting_json": c.targeting_json
+    } for c in campaigns])
+
+
+@app.route('/api/ads/admin/creatives', methods=['GET', 'POST'])
+@login_required
+def ads_admin_creatives():
+    """Admin: List or create creatives."""
+    if not current_user.is_admin:
+        return jsonify({"error": "Admin required"}), 403
+    
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        creative = AdCreative(
+            campaign_id=data.get('campaign_id'),
+            format=data.get('format', 'feed'),
+            headline=data.get('headline', ''),
+            body=data.get('body', ''),
+            image_url=data.get('image_url'),
+            cta_text=data.get('cta_text', 'Learn more'),
+            landing_url=data.get('landing_url', ''),
+            disclaimer_text=data.get('disclaimer_text', ''),
+            is_active=True
+        )
+        db.session.add(creative)
+        db.session.commit()
+        return jsonify({
+            "id": creative.id,
+            "campaign_id": creative.campaign_id,
+            "format": creative.format,
+            "headline": creative.headline,
+            "is_active": creative.is_active
+        }), 201
+    
+    creatives = AdCreative.query.order_by(AdCreative.id.desc()).limit(200).all()
+    return jsonify([{
+        "id": c.id,
+        "campaign_id": c.campaign_id,
+        "format": c.format,
+        "headline": c.headline,
+        "body": c.body,
+        "image_url": c.image_url,
+        "cta_text": c.cta_text,
+        "landing_url": c.landing_url,
+        "disclaimer_text": c.disclaimer_text,
+        "is_active": c.is_active,
+        "created_at": c.created_at.isoformat() if c.created_at else None
+    } for c in creatives])
