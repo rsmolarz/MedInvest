@@ -2690,6 +2690,21 @@ def admin_reports():
     } for r in reports]})
 
 
+@app.route('/api/admin/reports/<int:report_id>')
+@login_required
+def admin_get_report(report_id):
+    """Get a single content report with full details."""
+    decision = can(current_user, Actions.VIEW_REPORTS)
+    if not decision.allowed:
+        return deny_response(decision.reason)
+    
+    report = ContentReport.query.get(report_id)
+    if not report:
+        return jsonify({'error': 'Report not found'}), 404
+    
+    return jsonify(report.to_dict(include_content=True))
+
+
 @app.route('/api/admin/reports/<int:report_id>/resolve', methods=['POST'])
 @login_required
 def admin_resolve_report(report_id):

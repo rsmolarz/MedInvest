@@ -1254,6 +1254,65 @@ class ContentReport(db.Model):
     resolved_by = db.relationship('User', foreign_keys=[resolved_by_id])
 
     __table_args__ = (db.UniqueConstraint('reporter_id', 'entity_type', 'entity_id', name='unique_report_per_user'),)
+    
+    def to_dict(self, include_content=False):
+        """Convert report to dictionary for API responses"""
+        data = {
+            'id': self.id,
+            'reporter_id': self.reporter_id,
+            'entity_type': self.entity_type,
+            'entity_id': self.entity_id,
+            'reason': self.reason,
+            'details': self.details,
+            'status': self.status,
+            'resolved_by_id': self.resolved_by_id,
+            'resolution': self.resolution,
+            'resolved_at': self.resolved_at.isoformat() if self.resolved_at else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+        
+        if include_content:
+            data['reporter'] = {
+                'id': self.reporter.id,
+                'name': self.reporter.full_name,
+                'email': self.reporter.email
+            } if self.reporter else None
+            
+            data['resolved_by'] = {
+                'id': self.resolved_by.id,
+                'name': self.resolved_by.full_name
+            } if self.resolved_by else None
+            
+            if self.entity_type == 'post':
+                from models import Post
+                post = Post.query.get(self.entity_id)
+                if post:
+                    data['content'] = {
+                        'type': 'post',
+                        'content': post.content[:500] if post.content else None,
+                        'author_id': post.author_id,
+                        'created_at': post.created_at.isoformat() if post.created_at else None
+                    }
+            elif self.entity_type == 'comment':
+                from models import Comment
+                comment = Comment.query.get(self.entity_id)
+                if comment:
+                    data['content'] = {
+                        'type': 'comment',
+                        'content': comment.content[:500] if comment.content else None,
+                        'author_id': comment.author_id,
+                        'created_at': comment.created_at.isoformat() if comment.created_at else None
+                    }
+            elif self.entity_type == 'user':
+                reported_user = User.query.get(self.entity_id)
+                if reported_user:
+                    data['content'] = {
+                        'type': 'user',
+                        'name': reported_user.full_name,
+                        'email': reported_user.email
+                    }
+        
+        return data
 
 
 # ============================================================================

@@ -6,6 +6,19 @@ The platform features two main architectures: a primary Flask-based web applicat
 
 ## Recent Changes (January 10, 2026)
 
+✓ Modular Blueprint Architecture Migration:
+- Migrated from monolithic routes.py to 13 modular blueprints in routes/ folder
+- Blueprints: auth, main, rooms, ama, deals, subscription, courses, events, mentorship, referral, portfolio, ai, admin, errors
+- Added compatibility models: Room (alias for InvestmentRoom), PostVote, Bookmark
+- Enhanced Post model with voting fields (upvotes, downvotes, view_count)
+- Added User.is_admin property for role-based access control
+- Updated seed.py to populate demo data (users, rooms, AMAs, deals, courses, events, posts)
+
+✓ Single Report Endpoint Added:
+- GET /api/admin/reports/<report_id> - Fetch single report with full details
+- ContentReport.to_dict() method with include_content option for rich data
+- Includes reporter info, resolved_by info, and reported content details
+
 ✓ Added Comprehensive Platform Features:
 - **Expert AMAs**: Scheduled Q&A sessions with financial experts (/amas)
   - Registration, question submission with voting, anonymous questions
