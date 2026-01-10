@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Analytics - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1">Analytics Overview</h1>
+            <p class="text-muted mb-0" id="window-dates">Loading...</p>
+        </div>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Admin
+        </a>
+    </div>
+
+    <div id="loading" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <div id="error-message" class="alert alert-danger d-none" role="alert"></div>
+
+    <div id="analytics-content" class="d-none">
+        <div class="row g-4 mb-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-muted small mb-1">Verified WAU</div>
+                        <div class="display-6 fw-bold" id="verified-wau">-</div>
+                        <div class="text-muted small mt-1">Active verified physicians</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-muted small mb-1">Deal WAU</div>
+                        <div class="display-6 fw-bold" id="deal-wau">-</div>
+                        <div class="text-muted small mt-1">Engaged with deals</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-muted small mb-1">TTFV (p50)</div>
+                        <div class="display-6 fw-bold" id="ttfv">-</div>
+                        <div class="text-muted small mt-1">Time to first value</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-muted small mb-1">Verification SLA (p50)</div>
+                        <div class="display-6 fw-bold" id="sla-p50">-</div>
+                        <div class="text-muted small mt-1">p95: <span id="sla-p95">-</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-muted small mb-1">Invites Issued (7d)</div>
+                        <div class="display-6 fw-bold" id="invites-issued">-</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-muted small mb-1">Invites Accepted (7d)</div>
+                        <div class="display-6 fw-bold" id="invites-accepted">-</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="text-muted small mb-1">Invite Conversion</div>
+                        <div class="display-6 fw-bold" id="invite-conversion">-</div>
+                        <div class="text-muted small mt-1">Accepted / Issued</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="fas fa-lightbulb me-2 text-warning"></i>Quick Insights</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0" id="insights-list">
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/admin/analytics/overview')
+        .then(response => {
+            if (!response.ok) throw new Error('Admin access required');
+            return response.json();
+        })
+        .then(data => {
+            document.getElementById('loading').classList.add('d-none');
+            document.getElementById('analytics-content').classList.remove('d-none');
+            
+            const startDate = new Date(data.window.start).toLocaleDateString();
+            const endDate = new Date(data.window.end).toLocaleDateString();
+            document.getElementById('window-dates').textContent = `${startDate} — ${endDate}`;
+            
+            document.getElementById('verified-wau').textContent = data.verified_wau;
+            document.getElementById('deal-wau').textContent = data.deal_wau;
+            document.getElementById('ttfv').textContent = data.time_to_first_value_hours_p50 + 'h';
+            document.getElementById('sla-p50').textContent = data.verification_sla_hours.p50 + 'h';
+            document.getElementById('sla-p95').textContent = data.verification_sla_hours.p95 + 'h';
+            document.getElementById('invites-issued').textContent = data.invites_7d.issued;
+            document.getElementById('invites-accepted').textContent = data.invites_7d.accepted;
+            document.getElementById('invite-conversion').textContent = data.invites_7d.conversion_pct + '%';
+            
+            const insights = [
+                {
+                    check: data.verified_wau > 0,
+                    question: 'Are we growing?',
+                    answer: `${data.verified_wau} verified physicians active this week`
+                },
+                {
+                    check: data.verification_sla_hours.p50 < 24,
+                    question: 'Is verification the bottleneck?',
+                    answer: `Median ${data.verification_sla_hours.p50}h to approve`
+                },
+                {
+                    check: data.deal_wau > 0,
+                    question: 'Are doctors posting deals?',
+                    answer: `${data.deal_wau} engaged with deals this week`
+                }
+            ];
+            
+            const insightsList = document.getElementById('insights-list');
+            insights.forEach(insight => {
+                const icon = insight.check ? 
+                    '<i class="fas fa-check-circle text-success me-2"></i>' : 
+                    '<i class="fas fa-exclamation-circle text-warning me-2"></i>';
+                const li = document.createElement('li');
+                li.className = 'mb-2';
+                li.innerHTML = `${icon}<strong>${insight.question}</strong> — ${insight.answer}`;
+                insightsList.appendChild(li);
+            });
+        })
+        .catch(error => {
+            document.getElementById('loading').classList.add('d-none');
+            document.getElementById('error-message').classList.remove('d-none');
+            document.getElementById('error-message').textContent = error.message;
+        });
+});
+</script>
+{% endblock %}

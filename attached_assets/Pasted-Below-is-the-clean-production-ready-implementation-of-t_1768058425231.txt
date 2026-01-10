@@ -1,0 +1,194 @@
+Below is the clean, production-ready implementation of the three items you approved, designed to layer safely onto what you already shipped.
+
+A) Alert Thresholds — Email when Verification SLA > X
+What this does
+
+Automatically notifies admins when verification throughput degrades—before it hurts activation.
+
+Config (env)
+SLA_ALERT_P50_HOURS=8
+SLA_ALERT_P95_HOURS=24
+ALERT_EMAILS=ops@yourdomain.com,admin@yourdomain.com
+
+Data (new)
+
+alerts
+
+id
+
+alert_type ENUM('verification_sla')
+
+metric ENUM('p50','p95')
+
+value_hours
+
+threshold_hours
+
+window_start
+
+window_end
+
+sent_at
+
+created_at
+
+Job (runs hourly)
+
+Recompute SLA p50/p95 (same logic as analytics overview)
+
+If threshold breached and not already alerted for the window, send email
+
+Persist alert (idempotent per window)
+
+Email (plain, actionable)
+
+Subject: Verification SLA Breach — Action Required
+Body:
+
+Metric breached (p50/p95)
+
+Current value vs threshold
+
+Window
+
+Link to Admin Verification Queue
+
+Acceptance criteria
+
+One alert per breach window
+
+No duplicate alerts
+
+Clear link to fix the bottleneck
+
+B) user_activity Logging (Clean, Low-Overhead)
+Why
+
+You need accurate WAU/DAU and cohort analytics without polluting business logic.
+
+Data (new)
+
+user_activity
+
+id
+
+user_id FK INDEX
+
+activity_type ENUM('view','post','comment','endorse','deal_create','ai_run','invite_accept')
+
+entity_type ENUM('deal','post','comment','digest','invite') NULL
+
+entity_id NULL
+
+created_at INDEX
+
+How it’s logged (pattern)
+
+Use a single helper called from routers/services—not middleware everywhere.
+
+def log_activity(db, user_id, activity_type, entity_type=None, entity_id=None):
+    db.add(UserActivity(
+        user_id=user_id,
+        activity_type=activity_type,
+        entity_type=entity_type,
+        entity_id=entity_id
+    ))
+
+Where to call it (v1)
+
+Deal created → deal_create
+
+Comment created → comment
+
+Endorsement → endorse
+
+AI job created → ai_run
+
+Digest viewed → view
+
+Invite accepted → invite_accept
+
+Acceptance criteria
+
+No blocking calls
+
+Logging failure never breaks main request
+
+Enables accurate WAU + cohorts
+
+C) Per-Cohort Analytics (Invite Source & Specialty)
+Goal
+
+Answer why users activate or stall—not just how many.
+
+Cohorts (v1)
+
+Invite Source
+
+Direct admin
+
+Peer invite
+
+Specialty
+
+ENT, IM, Surgery, Anesthesia, etc.
+
+Time
+
+Week of verification
+
+Endpoint
+GET /api/admin/analytics/cohorts
+
+Query params
+?dimension=invite_source|specialty|verification_week
+&metric=activation|deal_post|wau
+&window_days=7
+
+Response
+{
+  "dimension": "specialty",
+  "metric": "activation",
+  "results": [
+    { "key": "ENT", "users": 42, "activated_pct": 71.4 },
+    { "key": "IM", "users": 58, "activated_pct": 39.7 }
+  ]
+}
+
+Metrics definitions
+
+Activation: verified → first post/comment within 7 days
+
+Deal post rate: % who posted ≥1 deal
+
+WAU: % active in last 7 days
+
+SQL strategy (fast & safe)
+
+Pre-aggregate via CTEs using user_activity
+
+Join on users.specialty and users.invite_id IS NULL ? 'admin' : 'peer'
+
+Acceptance criteria
+
+Admin can see which specialties activate
+
+Admin can compare admin-invited vs peer-invited users
+
+Queries run <300ms on moderate data
+
+What this unlocks immediately
+
+Operational control (SLA alerts)
+
+True signal metrics (real activity, not page loads)
+
+Growth intelligence (who to invite next, who needs help)
+
+Ship order (2–3 days total)
+
+user_activity table + helper → deploy
+
+SLA alert job + email → deploy
+
+Cohort endpoint + admin page → deploy

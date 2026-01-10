@@ -1846,48 +1846,122 @@ def api_digest_get(digest_id: int):
     }), 200
 
 
-# Analytics Dashboard API (Admin-only)
+# Analytics Dashboard (Admin-only)
+
+@app.route('/admin/analytics')
+@login_required
+@require_roles('admin')
+def admin_analytics():
+    return render_template('admin_analytics.html')
+
 
 @app.route('/api/admin/analytics/overview', methods=['GET'])
 @login_required
 @require_roles('admin')
 def api_admin_analytics_overview():
+    from sqlalchemy import text
+    
     now = datetime.utcnow()
-    week_ago = now - timedelta(days=7)
-    
-    verified_wau = User.query.filter(
-        User.verification_status == 'verified',
-        User.last_seen >= week_ago
-    ).count()
-    
-    deal_wau = db.session.query(db.func.count(db.distinct(Post.author_id))).filter(
-        Post.post_type == 'deal',
-        Post.created_at >= week_ago
-    ).scalar() or 0
-    
-    pending_verifications = User.query.filter(User.verification_status == 'pending').count()
-    
-    invites_issued_7d = Invite.query.filter(Invite.created_at >= week_ago).count()
-    invites_accepted_7d = Invite.query.filter(
-        Invite.status == 'accepted',
-        Invite.accepted_at >= week_ago
-    ).count()
-    
-    deals_created_7d = DealDetails.query.filter(DealDetails.created_at >= week_ago).count()
-    
-    ai_jobs_7d = AiJob.query.filter(AiJob.created_at >= week_ago).count()
-    ai_jobs_completed_7d = AiJob.query.filter(
-        AiJob.status == 'done',
-        AiJob.finished_at >= week_ago
-    ).count()
-    
+    window_start = now - timedelta(days=7)
+
+    # 1) Verified WAU - unique verified physicians active in last 7 days
+    # Active = post, comment, or last_seen
+    verified_wau_result = db.session.execute(text("""
+        SELECT COUNT(DISTINCT u.id)
+        FROM users u
+        LEFT JOIN posts p ON p.author_id = u.id AND p.created_at >= :start
+        LEFT JOIN comments c ON c.author_id = u.id AND c.created_at >= :start
+        WHERE u.verification_status = 'verified'
+          AND (
+            u.last_seen >= :start
+            OR p.id IS NOT NULL
+            OR c.id IS NOT NULL
+          )
+    """), {"start": window_start})
+    verified_wau = verified_wau_result.scalar() or 0
+
+    # 2) Deal WAU - verified physicians who created or commented on a deal in last 7 days
+    deal_wau_result = db.session.execute(text("""
+        SELECT COUNT(DISTINCT u.id)
+        FROM users u
+        LEFT JOIN posts p ON p.author_id = u.id AND p.post_type = 'deal' AND p.created_at >= :start
+        LEFT JOIN comments c ON c.author_id = u.id AND c.created_at >= :start
+        LEFT JOIN posts cp ON cp.id = c.post_id AND cp.post_type = 'deal'
+        WHERE u.verification_status = 'verified'
+          AND (
+            p.id IS NOT NULL
+            OR cp.id IS NOT NULL
+          )
+    """), {"start": window_start})
+    deal_wau = deal_wau_result.scalar() or 0
+
+    # 3) Time to First Value (p50) - median hours from verified_at to first post/comment
+    ttfv_result = db.session.execute(text("""
+        SELECT
+          PERCENTILE_CONT(0.5)
+          WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (first_action_at - verified_at))/3600)
+        FROM (
+          SELECT
+            u.id,
+            u.verified_at,
+            LEAST(
+              MIN(p.created_at),
+              MIN(c.created_at)
+            ) AS first_action_at
+          FROM users u
+          LEFT JOIN posts p ON p.author_id = u.id
+          LEFT JOIN comments c ON c.author_id = u.id
+          WHERE u.verified_at IS NOT NULL
+          GROUP BY u.id, u.verified_at
+        ) t
+        WHERE first_action_at IS NOT NULL
+          AND first_action_at > verified_at
+    """))
+    ttfv = ttfv_result.scalar() or 0
+
+    # 4) Verification SLA p50 / p95 - hours from submission to approval
+    sla_result = db.session.execute(text("""
+        SELECT
+          PERCENTILE_CONT(0.5)
+            WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (verified_at - verification_submitted_at))/3600) AS p50,
+          PERCENTILE_CONT(0.95)
+            WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (verified_at - verification_submitted_at))/3600) AS p95
+        FROM users
+        WHERE verified_at IS NOT NULL
+          AND verification_submitted_at IS NOT NULL
+    """))
+    sla = sla_result.fetchone()
+    sla_p50 = float(sla.p50 or 0) if sla and sla.p50 else 0
+    sla_p95 = float(sla.p95 or 0) if sla and sla.p95 else 0
+
+    # 5) Invites 7d - issued vs accepted with conversion
+    invites_result = db.session.execute(text("""
+        SELECT
+          COUNT(*) FILTER (WHERE status IN ('issued','accepted')) AS issued,
+          COUNT(*) FILTER (WHERE status = 'accepted') AS accepted
+        FROM invites
+        WHERE created_at >= :start
+    """), {"start": window_start})
+    invites = invites_result.fetchone()
+    invites_issued = int(invites.issued or 0) if invites else 0
+    invites_accepted = int(invites.accepted or 0) if invites else 0
+    conversion_pct = round((invites_accepted / invites_issued * 100) if invites_issued else 0, 1)
+
     return jsonify({
         'verified_wau': verified_wau,
         'deal_wau': deal_wau,
-        'pending_verifications': pending_verifications,
-        'invites_issued_7d': invites_issued_7d,
-        'invites_accepted_7d': invites_accepted_7d,
-        'deals_created_7d': deals_created_7d,
-        'ai_jobs_7d': ai_jobs_7d,
-        'ai_jobs_completed_7d': ai_jobs_completed_7d,
+        'time_to_first_value_hours_p50': round(float(ttfv), 1),
+        'verification_sla_hours': {
+            'p50': round(sla_p50, 1),
+            'p95': round(sla_p95, 1)
+        },
+        'invites_7d': {
+            'issued': invites_issued,
+            'accepted': invites_accepted,
+            'conversion_pct': conversion_pct
+        },
+        'window': {
+            'start': window_start.isoformat() + 'Z',
+            'end': now.isoformat() + 'Z'
+        }
     }), 200
