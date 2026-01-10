@@ -1591,3 +1591,86 @@ class Bookmark(db.Model):
     
     __table_args__ = (db.UniqueConstraint('user_id', 'post_id', name='unique_bookmark'),)
 
+
+# =============================================================================
+# ADS MODELS
+# =============================================================================
+
+class AdAdvertiser(db.Model):
+    """Advertisers who run ad campaigns"""
+    __tablename__ = 'ad_advertisers'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    category = db.Column(db.String(64), default='other')  # pharma, finance, recruiter, software, other
+    compliance_status = db.Column(db.String(64), default='active')  # active, paused, restricted
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    campaigns = db.relationship('AdCampaign', back_populates='advertiser', lazy='dynamic')
+
+
+class AdCampaign(db.Model):
+    """Ad campaigns with targeting and budget"""
+    __tablename__ = 'ad_campaigns'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    advertiser_id = db.Column(db.Integer, db.ForeignKey('ad_advertisers.id'), nullable=False, index=True)
+    name = db.Column(db.String(255), nullable=False)
+    start_at = db.Column(db.DateTime, default=datetime.utcnow)
+    end_at = db.Column(db.DateTime, default=datetime.utcnow)
+    daily_budget = db.Column(db.Float, default=0)
+    targeting_json = db.Column(db.Text, default='{}')  # JSON string for targeting rules
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    advertiser = db.relationship('AdAdvertiser', back_populates='campaigns')
+    creatives = db.relationship('AdCreative', back_populates='campaign', lazy='dynamic')
+
+
+class AdCreative(db.Model):
+    """Ad creative assets (the actual ads)"""
+    __tablename__ = 'ad_creatives'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    campaign_id = db.Column(db.Integer, db.ForeignKey('ad_campaigns.id'), nullable=False, index=True)
+    format = db.Column(db.String(64), nullable=False, index=True)  # feed, sidebar, deal_inline
+    headline = db.Column(db.String(140), nullable=False)
+    body = db.Column(db.Text, default='')
+    image_url = db.Column(db.String(1024))
+    cta_text = db.Column(db.String(64), default='Learn more')
+    landing_url = db.Column(db.String(2048), nullable=False)
+    disclaimer_text = db.Column(db.Text, default='')
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    campaign = db.relationship('AdCampaign', back_populates='creatives')
+    impressions = db.relationship('AdImpression', back_populates='creative', lazy='dynamic')
+    clicks = db.relationship('AdClick', back_populates='creative', lazy='dynamic')
+
+
+class AdImpression(db.Model):
+    """Track ad impressions"""
+    __tablename__ = 'ad_impressions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    creative_id = db.Column(db.Integer, db.ForeignKey('ad_creatives.id'), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    placement = db.Column(db.String(64), index=True)
+    page_view_id = db.Column(db.String(64), index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    
+    creative = db.relationship('AdCreative', back_populates='impressions')
+    user = db.relationship('User', backref='ad_impressions')
+
+
+class AdClick(db.Model):
+    """Track ad clicks"""
+    __tablename__ = 'ad_clicks'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    creative_id = db.Column(db.Integer, db.ForeignKey('ad_creatives.id'), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    
+    creative = db.relationship('AdCreative', back_populates='clicks')
+    user = db.relationship('User', backref='ad_clicks')
+

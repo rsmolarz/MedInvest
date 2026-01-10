@@ -1,0 +1,281 @@
+/* Custom styles for MedLearn Invest */
+
+:root {
+    --primary-blue: #0066cc;
+    --light-blue: #f8fbff;
+    --dark-blue: #004499;
+    --success-green: #28a745;
+    --warning-orange: #ffc107;
+    --danger-red: #dc3545;
+    --light-gray: #f8f9fa;
+    --medium-gray: #6c757d;
+}
+
+/* Override Bootstrap primary color */
+.text-primary {
+    color: var(--primary-blue) !important;
+}
+
+.bg-primary {
+    background-color: var(--primary-blue) !important;
+}
+
+.btn-primary {
+    background-color: var(--primary-blue);
+    border-color: var(--primary-blue);
+}
+
+.btn-primary:hover {
+    background-color: var(--dark-blue);
+    border-color: var(--dark-blue);
+}
+
+.border-primary {
+    border-color: var(--primary-blue) !important;
+}
+
+/* Medical professional styling */
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    font-weight: 600;
+    border-bottom: 2px solid #e9ecef;
+}
+
+/* Professional color scheme */
+.bg-light {
+    background-color: var(--light-gray) !important;
+}
+
+/* Hero section styling */
+.hero-section {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%);
+}
+
+/* Module cards */
+.module-card {
+    transition: transform 0.2s ease;
+}
+
+.module-card:hover {
+    transform: translateY(-2px);
+}
+
+/* Forum styling */
+.forum-post {
+    border-left: 4px solid var(--primary-blue);
+    padding-left: 1rem;
+}
+
+.verified-badge {
+    color: var(--success-green);
+}
+
+/* Progress bars */
+.progress {
+    background-color: #e9ecef;
+}
+
+.progress-bar {
+    background-color: var(--primary-blue);
+}
+
+/* Professional badges */
+.badge {
+    font-size: 0.75em;
+    font-weight: 500;
+}
+
+/* Form styling */
+.form-control:focus {
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 0.2rem rgba(0, 102, 204, 0.25);
+}
+
+.form-select:focus {
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 0.2rem rgba(0, 102, 204, 0.25);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .display-4 {
+        font-size: 2.5rem;
+    }
+    
+    .display-5 {
+        font-size: 2rem;
+    }
+    
+    .display-6 {
+        font-size: 1.75rem;
+    }
+}
+
+/* Custom spacing */
+.py-6 {
+    padding-top: 4rem !important;
+    padding-bottom: 4rem !important;
+}
+
+.my-6 {
+    margin-top: 4rem !important;
+    margin-bottom: 4rem !important;
+}
+
+/* Professional icons */
+.professional-icon {
+    width: 60px;
+    height: 60px;
+    background-color: var(--primary-blue);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+}
+
+.professional-icon i {
+    color: white;
+    font-size: 1.5rem;
+}
+
+/* Achievement styling */
+.achievement-item {
+    border-left: 4px solid var(--success-green);
+    padding-left: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Portfolio styling */
+.portfolio-card {
+    border: 2px solid #e9ecef;
+    transition: border-color 0.3s ease;
+}
+
+.portfolio-card:hover {
+    border-color: var(--primary-blue);
+}
+
+/* Professional verification */
+.verification-pending {
+    color: var(--warning-orange);
+}
+
+.verification-approved {
+    color: var(--success-green);
+}
+
+/* Medical specialty colors */
+.specialty-cardiology { border-left-color: #dc3545; }
+.specialty-neurology { border-left-color: #6f42c1; }
+.specialty-orthopedic { border-left-color: #fd7e14; }
+.specialty-pediatrics { border-left-color: #20c997; }
+.specialty-surgery { border-left-color: #dc3545; }
+.specialty-family { border-left-color: #0dcaf0; }
+
+/* Loading states */
+.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* Utility classes for medical platform */
+.medical-shadow {
+    box-shadow: 0 2px 10px rgba(0, 102, 204, 0.1);
+}
+
+.medical-border {
+    border: 1px solid rgba(0, 102, 204, 0.2);
+}
+
+.professional-spacing {
+    margin-bottom: 2rem;
+}
+
+/* Forum post styling */
+.post-content p {
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+}
+
+.reply-indent {
+    margin-left: 2rem;
+    border-left: 2px solid #e9ecef;
+    padding-left: 1rem;
+}
+
+/* Module content styling */
+.module-content h3 {
+    color: var(--primary-blue);
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.module-content ul {
+    margin-bottom: 1.5rem;
+}
+
+.module-content li {
+    margin-bottom: 0.5rem;
+}
+
+/* Professional tables */
+.table th {
+    background-color: var(--light-blue);
+    color: var(--primary-blue);
+    font-weight: 600;
+    border-top: none;
+}
+
+/* Alert styling for medical platform */
+.alert {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.alert-info {
+    background-color: rgba(0, 102, 204, 0.1);
+    color: var(--primary-blue);
+    border-left: 4px solid var(--primary-blue);
+}
+
+/* Footer styling */
+footer {
+    background-color: var(--light-gray);
+    border-top: 1px solid #e9ecef;
+}
+
+footer h5, footer h6 {
+    color: var(--primary-blue);
+}
+
+/* Print styles for professional use */
+@media print {
+    .navbar, .btn, footer {
+        display: none !important;
+    }
+    
+    .card {
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+    }
+    
+    .text-primary {
+        color: #000 !important;
+    }
+}
