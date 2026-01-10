@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import wraps
 from typing import Callable, Any
 
-from flask import jsonify
+from flask import jsonify, request, redirect, url_for, flash
 from flask_login import current_user
 
 
@@ -12,14 +12,28 @@ def _is_verified() -> bool:
     return bool(getattr(current_user, "is_verified", False)) or getattr(current_user, "verification_status", "unverified") == "verified"
 
 
+def _wants_json() -> bool:
+    """Check if request expects JSON response."""
+    return (
+        request.is_json or 
+        request.path.startswith('/api/') or
+        request.headers.get('Accept', '').startswith('application/json')
+    )
+
+
 def require_verified(func: Callable[..., Any]) -> Callable[..., Any]:
     """Require the current user to be a verified physician."""
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any):
         if not getattr(current_user, "is_authenticated", False):
-            return jsonify({"error": "authentication_required"}), 401
+            if _wants_json():
+                return jsonify({"error": "authentication_required"}), 401
+            return redirect(url_for('login'))
         if not _is_verified():
-            return jsonify({"error": "verification_required"}), 403
+            if _wants_json():
+                return jsonify({"error": "verification_required"}), 403
+            flash('This feature requires account verification. Please complete your verification to access it.', 'warning')
+            return redirect(url_for('submit_verification'))
         return func(*args, **kwargs)
     return wrapper
 
