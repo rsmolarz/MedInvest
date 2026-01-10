@@ -1,0 +1,343 @@
+1) First-Deal Wizard UX + API (design you can implement immediately)
+UX: First-Deal Wizard (4 steps, <90 seconds)
+
+Entry points
+
+Primary CTA: “Post a Deal”
+
+Secondary: empty-state prompt on Deals tab
+
+Step 1 — Deal basics
+
+Asset class (dropdown)
+
+Strategy (dropdown)
+
+Location (text; optional)
+
+Time horizon (months; optional)
+
+Step 2 — Thesis
+
+“What’s the deal in 3 sentences?” (textarea; required)
+
+“What’s the edge / why now?” (optional)
+
+Step 3 — What you want from the room
+
+Checklist (choose up to 3):
+
+“Validate assumptions”
+
+“Find risks I’m missing”
+
+“Evaluate sponsor”
+
+“Compare alternatives”
+
+“Diligence checklist”
+
+Optional free-text: “Specific questions”
+
+Step 4 — Visibility + submit
+
+Visibility:
+
+Physicians-only (default)
+
+Group (if user is member)
+
+Checkbox: “Educational discussion only — not investment advice” (required)
+
+Submit button
+
+On submit
+
+Create deal post
+
+Auto-enqueue AI job: analyze_deal (no extra click)
+
+Redirect to Deal Detail with “AI Analyst running” state
+
+API: minimal endpoints (keep surface area tight)
+Create deal (wizard submit)
+
+POST /api/deals
+
+Request
+
+{
+  "title": "Bob Hall Self Storage - Dothan",
+  "visibility": "physicians",
+  "group_id": null,
+  "deal": {
+    "asset_class": "self_storage",
+    "strategy": "value_add",
+    "location": "Dothan, AL",
+    "time_horizon_months": 60,
+    "thesis": "…",
+    "key_risks": "…",
+    "diligence_needed": "…",
+    "status": "open",
+    "user_questions": ["Find risks I’m missing", "Diligence checklist"],
+    "questions_detail": "…"
+  },
+  "auto_ai": true
+}
+
+
+Response
+
+{
+  "deal_id": 123,
+  "post_id": 456,
+  "ai_job_id": "ai_9f3a",
+  "redirect": "/deals/123"
+}
+
+
+Server behavior
+
+Requires verified physician
+
+Writes Post(post_type="deal") + DealDetails
+
+If auto_ai=true, enqueue AiJob(job_type="analyze_deal", deal_id=123)
+
+Return ai_job_id for immediate polling in UI
+
+Wizard metadata (optional but helpful)
+
+GET /api/deals/meta
+
+Returns lists for asset_class/strategy options + group list for the user
+
+2) Weekly “Signal Digest” job (retention engine)
+Output spec (the digest card)
+
+Top 3 deals (by “signal score”)
+
+Top 3 comments (by “impact score”)
+
+“AI: what we learned this week” (short)
+
+CTA: “Review these 3 deals” → deep links
+
+Ranking formulas (simple, robust)
+
+Deal signal score
+
+10 * deal_endorsements
+
++ 2 * comment_count
+
++ 0.1 * author_reputation_score
+
+Recency decay: multiply by exp(-age_days / 7)
+
+Comment impact score
+
+5 * comment_endorsements
+
++ 0.1 * commenter_reputation_score
+
+If comment is on a deal: +2 bonus
+
+Recency decay: exp(-age_days / 7)
+
+Job schedule
+
+Weekly: Monday 07:00 America/St_Thomas (or 08:00)
+
+Storage
+
+Digest(id, period_start, period_end, created_at)
+
+DigestItem(digest_id, item_type, entity_id, score, rank)
+
+One Notification per user referencing the digest
+
+Endpoint
+
+GET /api/digests/latest
+
+GET /api/digests/<digest_id>
+
+Minimum implementation
+
+Cron/scheduler runs a Python function:
+
+fetch last 7 days data
+
+compute scores
+
+write digest + items
+
+notify verified users (in-app)
+
+3) Invite-only growth mechanics (keep quality high)
+Rules (v1)
+
+Only verified physicians can invite
+
+Each verified physician gets 2 invites
+
+Invites expire in 14 days
+
+Invitees can sign up but remain read-only until verified
+
+Data model
+
+Invite
+
+code (random, unique)
+
+inviter_user_id
+
+invitee_email (optional)
+
+status: issued|accepted|expired|revoked
+
+created_at, expires_at, accepted_at
+
+Endpoints
+
+POST /api/invites (create)
+
+admin can create unlimited; normal users limited to remaining credits
+
+GET /api/invites (my invites)
+
+POST /api/invites/accept (accept with code)
+
+returns signup token / associates invite to new account
+
+UX
+
+“Invite colleagues” page with:
+
+remaining invites
+
+copy link button
+
+list of issued invites + status
+
+4) Reputation weighting + sorting (anti-noise)
+Don’t show “likes” as the main signal
+
+Keep “likes” for lightweight feedback, but sort by endorsements + reputation.
+
+Sorting rules
+
+Default comment sort on deals
+
+Pinned (admin/mod pinned)
+
+“Best” = comment_score
+
+“New” optional tab
+
+Comment score formula
+
+10 * endorsements
+
++ log1p(commenter_reputation_score) * 3
+
++ 2 if commenter is verified physician (redundant but useful)
+
+- 10 if comment is flagged > threshold
+
+Recency small decay only after 14 days
+
+Feed sort (deals tab)
+
+“Trending” = deal signal score (above)
+
+“New” = created_at desc
+
+“Following” = only from followed users/groups
+
+Guardrails
+
+Daily endorsement cap per user (e.g., 25/day)
+
+No self-endorsement
+
+Downrank accounts with repeated reports
+
+5) Activation playbook for onboarding first doctors (the script + process)
+Goal
+
+Within 7 days:
+
+50 verified doctors
+
+20 deal posts
+
+150 meaningful comments
+
+70% of users return at least once
+
+Cohort selection
+
+Start with 25–50:
+
+10 attendings (credible anchors)
+
+10 “curious learners” (post questions)
+
+5–10 finance-savvy docs (high-signal responders)
+
+2 moderators (you + one trusted doc)
+
+Onboarding steps (Day 0–2)
+
+Personal invite (short, direct)
+
+“Doctor-only room. Verified only. Deals + diligence. No noise.”
+
+Verification concierge
+
+You process approvals 2x/day for the first week
+
+First action
+
+Wizard forces: “post 1 deal OR post 1 question”
+
+Content seeding (Day 1–7)
+
+You pre-seed:
+
+3 example deals (anonymized)
+
+3 “how would you diligence this?” posts
+
+1 “what I wish I knew before investing” thread
+
+You post a weekly prompt:
+
+“Post a deal you passed on and why.”
+
+Engagement loop
+
+When someone posts a deal:
+
+You tag 3 credible people (manually at first)
+
+AI analyst runs automatically
+
+You comment first with a model “diligence checklist”
+
+Create one weekly live “Deal Rounds” thread (async)
+
+Success metrics to watch daily
+
+% verified within 24h of signup
+
+Time-to-first-post (goal < 48h)
+
+Deal posts per verified user
+
+Comment depth per deal
+
+Endorsements per user (too high = gaming)

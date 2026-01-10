@@ -465,6 +465,8 @@ class DealDetails(db.Model):
     thesis = db.Column(db.Text, nullable=False)
     key_risks = db.Column(db.Text)
     diligence_needed = db.Column(db.Text)
+    feedback_areas = db.Column(db.String(200))
+    disclaimer_acknowledged = db.Column(db.Boolean, default=False)
     status = db.Column(db.String(30), default='open')  # open, closed, pass
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

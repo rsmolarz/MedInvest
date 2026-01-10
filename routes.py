@@ -1364,3 +1364,132 @@ def api_deal_detail(deal_id: int):
         },
         'analyses': analyses
     })
+
+
+# ----------------------
+# First-Deal Wizard
+# ----------------------
+
+ASSET_CLASSES = [
+    'Multifamily',
+    'Self-Storage',
+    'Medical Office',
+    'Industrial',
+    'Retail',
+    'Private Equity',
+    'Venture Capital',
+    'Syndication',
+    'REIT',
+    'Crypto/Web3',
+    'Other',
+]
+
+
+@app.route('/deals/new')
+@login_required
+@require_verified
+def deal_wizard():
+    return render_template('deal_wizard.html', asset_classes=ASSET_CLASSES)
+
+
+@app.route('/deals/new', methods=['POST'])
+@login_required
+@require_verified
+def deal_wizard_submit():
+    asset_class = request.form.get('asset_class', '').strip()
+    thesis = request.form.get('thesis', '').strip()
+    feedback_areas = request.form.getlist('feedback_areas')
+    feedback_request = request.form.get('feedback_request', '').strip()
+    visibility = request.form.get('visibility', 'physicians')
+    disclaimer_accepted = request.form.get('disclaimer_accepted') == 'yes'
+    
+    if not asset_class or not thesis:
+        flash('Please complete all required fields.', 'warning')
+        return redirect(url_for('deal_wizard'))
+    
+    if not disclaimer_accepted:
+        flash('You must acknowledge the disclaimer to share a deal.', 'warning')
+        return redirect(url_for('deal_wizard'))
+    
+    if len(feedback_areas) > 3:
+        flash('Please select up to 3 feedback areas only.', 'warning')
+        return redirect(url_for('deal_wizard'))
+    
+    post_content = f"**New Deal: {asset_class}**\n\n{thesis}"
+    if feedback_areas:
+        area_labels = {'returns': 'Return expectations', 'sponsor': 'Sponsor experience', 
+                       'diligence': 'Due diligence', 'market': 'Market conditions',
+                       'risks': 'Key risks', 'structure': 'Deal structure'}
+        areas_text = ', '.join(area_labels.get(a, a) for a in feedback_areas[:3])
+        post_content += f"\n\n**Looking for feedback on:** {areas_text}"
+    if feedback_request:
+        post_content += f"\n\n**Additional context:** {feedback_request}"
+    
+    post = Post()
+    post.author_id = current_user.id
+    post.content = post_content
+    post.post_type = 'deal'
+    post.visibility = visibility
+    post.tags = asset_class.lower().replace(' ', '-')
+    db.session.add(post)
+    db.session.flush()
+    
+    deal = DealDetails(
+        post_id=post.id,
+        asset_class=asset_class,
+        thesis=thesis,
+        diligence_needed=feedback_request or None,
+        feedback_areas=','.join(feedback_areas) if feedback_areas else None,
+        disclaimer_acknowledged=True,
+        status='open'
+    )
+    db.session.add(deal)
+    db.session.commit()
+    
+    try:
+        job = enqueue_ai_job(
+            job_type='analyze_deal',
+            created_by_id=current_user.id,
+            deal_id=deal.id,
+        )
+        logging.info(f"Auto-enqueued AI job {job.id} for deal {deal.id}")
+    except ValueError as e:
+        if str(e) == 'rate_limited':
+            flash('AI analysis queued but rate limited. Will run shortly.', 'info')
+        else:
+            logging.error(f"Failed to enqueue AI job: {e}")
+    
+    _notify_relevant_physicians(deal, post)
+    
+    flash('Deal shared! AI Analyst is reviewing it now.', 'success')
+    return redirect(url_for('view_post', post_id=post.id))
+
+
+def _notify_relevant_physicians(deal: DealDetails, post: Post):
+    """Notify physicians with matching investment interests or specialties."""
+    try:
+        asset_class_lower = deal.asset_class.lower()
+        
+        relevant_users = User.query.filter(
+            User.id != current_user.id,
+            User.verification_status == 'verified',
+            db.or_(
+                User.investment_interests.ilike(f'%{asset_class_lower}%'),
+                User.specialty.in_(['General Practice', 'Internal Medicine', 'Surgery'])
+            )
+        ).limit(10).all()
+        
+        for user in relevant_users:
+            notification = Notification(
+                recipient_id=user.id,
+                sender_id=current_user.id,
+                notification_type='new_deal',
+                message=f'New {deal.asset_class} deal needs eyes',
+                related_post_id=post.id,
+                is_read=False,
+            )
+            db.session.add(notification)
+        
+        db.session.commit()
+    except Exception as e:
+        logging.error(f"Failed to notify physicians: {e}")

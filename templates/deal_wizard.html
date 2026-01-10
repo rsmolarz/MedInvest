@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+{% block title %}Share a Deal - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-handshake me-2"></i>Share a Deal</h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">Share an investment opportunity with the community. Our AI Analyst will automatically provide initial feedback.</p>
+                    
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between">
+                            <div class="step-indicator" id="step1-indicator">
+                                <span class="badge bg-primary rounded-pill">1</span>
+                                <small class="d-block mt-1">Asset Class</small>
+                            </div>
+                            <div class="step-indicator text-muted" id="step2-indicator">
+                                <span class="badge bg-secondary rounded-pill">2</span>
+                                <small class="d-block mt-1">Thesis</small>
+                            </div>
+                            <div class="step-indicator text-muted" id="step3-indicator">
+                                <span class="badge bg-secondary rounded-pill">3</span>
+                                <small class="d-block mt-1">Feedback</small>
+                            </div>
+                            <div class="step-indicator text-muted" id="step4-indicator">
+                                <span class="badge bg-secondary rounded-pill">4</span>
+                                <small class="d-block mt-1">Visibility</small>
+                            </div>
+                        </div>
+                        <div class="progress mt-3" style="height: 4px;">
+                            <div class="progress-bar" id="wizard-progress" role="progressbar" style="width: 25%"></div>
+                        </div>
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('deal_wizard_submit') }}" id="deal-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
+                        
+                        <div id="step1" class="wizard-step">
+                            <h5 class="mb-3">What type of investment is this?</h5>
+                            <div class="row g-3">
+                                {% for asset in asset_classes %}
+                                <div class="col-6 col-md-4">
+                                    <input type="radio" class="btn-check" name="asset_class" id="asset_{{ loop.index }}" value="{{ asset }}" required>
+                                    <label class="btn btn-outline-primary w-100 py-3" for="asset_{{ loop.index }}">
+                                        {{ asset }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="d-flex justify-content-end mt-4">
+                                <button type="button" class="btn btn-primary" onclick="nextStep(2)">
+                                    Next <i class="fas fa-arrow-right ms-1"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="step2" class="wizard-step d-none">
+                            <h5 class="mb-3">Describe the opportunity</h5>
+                            <div class="mb-3">
+                                <label for="thesis" class="form-label">Investment Thesis</label>
+                                <textarea class="form-control" id="thesis" name="thesis" rows="5" required
+                                    placeholder="What's the deal? Why is it interesting? Include key metrics like target returns, timeline, minimum investment..."></textarea>
+                                <div class="form-text">Be specific. Better deals get better feedback.</div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-outline-secondary" onclick="prevStep(1)">
+                                    <i class="fas fa-arrow-left me-1"></i> Back
+                                </button>
+                                <button type="button" class="btn btn-primary" onclick="nextStep(3)">
+                                    Next <i class="fas fa-arrow-right ms-1"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="step3" class="wizard-step d-none">
+                            <h5 class="mb-3">What feedback do you want?</h5>
+                            <p class="text-muted mb-3">Select up to 3 areas you'd like feedback on:</p>
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input feedback-check" type="checkbox" name="feedback_areas" value="returns" id="fb_returns">
+                                        <label class="form-check-label" for="fb_returns">Return expectations</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input feedback-check" type="checkbox" name="feedback_areas" value="sponsor" id="fb_sponsor">
+                                        <label class="form-check-label" for="fb_sponsor">Sponsor experience</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input feedback-check" type="checkbox" name="feedback_areas" value="diligence" id="fb_diligence">
+                                        <label class="form-check-label" for="fb_diligence">Due diligence focus</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input feedback-check" type="checkbox" name="feedback_areas" value="market" id="fb_market">
+                                        <label class="form-check-label" for="fb_market">Market conditions</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input feedback-check" type="checkbox" name="feedback_areas" value="risks" id="fb_risks">
+                                        <label class="form-check-label" for="fb_risks">Key risks</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input feedback-check" type="checkbox" name="feedback_areas" value="structure" id="fb_structure">
+                                        <label class="form-check-label" for="fb_structure">Deal structure</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="feedback_request" class="form-label">Additional context (optional)</label>
+                                <textarea class="form-control" id="feedback_request" name="feedback_request" rows="2"
+                                    placeholder="Anything else you'd like the community to weigh in on?"></textarea>
+                            </div>
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-outline-secondary" onclick="prevStep(2)">
+                                    <i class="fas fa-arrow-left me-1"></i> Back
+                                </button>
+                                <button type="button" class="btn btn-primary" onclick="nextStep(4)">
+                                    Next <i class="fas fa-arrow-right ms-1"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="step4" class="wizard-step d-none">
+                            <h5 class="mb-3">Who should see this?</h5>
+                            <div class="row g-3 mb-4">
+                                <div class="col-12">
+                                    <input type="radio" class="btn-check" name="visibility" id="vis_physicians" value="physicians" checked>
+                                    <label class="btn btn-outline-primary w-100 text-start p-3" for="vis_physicians">
+                                        <i class="fas fa-user-md me-2"></i>
+                                        <strong>All Verified Physicians</strong>
+                                        <div class="small text-muted">Visible to the entire MedInvest community</div>
+                                    </label>
+                                </div>
+                                <div class="col-12">
+                                    <input type="radio" class="btn-check" name="visibility" id="vis_group" value="group">
+                                    <label class="btn btn-outline-primary w-100 text-start p-3" for="vis_group">
+                                        <i class="fas fa-users me-2"></i>
+                                        <strong>My Groups Only</strong>
+                                        <div class="small text-muted">Limited to your private investment groups</div>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <i class="fas fa-robot me-2"></i>
+                                <strong>AI Analyst</strong> will automatically review your deal and provide initial feedback within minutes.
+                            </div>
+                            
+                            <div class="alert alert-warning mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="disclaimer_accepted" name="disclaimer_accepted" value="yes" required>
+                                    <label class="form-check-label" for="disclaimer_accepted">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>
+                                        <strong>I acknowledge:</strong> This is for educational discussion only. Not investment advice. I understand I must conduct my own due diligence before making any investment decisions.
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-outline-secondary" onclick="prevStep(3)">
+                                    <i class="fas fa-arrow-left me-1"></i> Back
+                                </button>
+                                <button type="submit" class="btn btn-success btn-lg" id="submit-btn">
+                                    <i class="fas fa-paper-plane me-1"></i> Share Deal
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentStep = 1;
+
+function updateProgress() {
+    const progress = (currentStep / 4) * 100;
+    document.getElementById('wizard-progress').style.width = progress + '%';
+    
+    for (let i = 1; i <= 4; i++) {
+        const indicator = document.getElementById('step' + i + '-indicator');
+        const badge = indicator.querySelector('.badge');
+        if (i <= currentStep) {
+            indicator.classList.remove('text-muted');
+            badge.classList.remove('bg-secondary');
+            badge.classList.add('bg-primary');
+        } else {
+            indicator.classList.add('text-muted');
+            badge.classList.remove('bg-primary');
+            badge.classList.add('bg-secondary');
+        }
+    }
+}
+
+function nextStep(step) {
+    if (step === 2) {
+        const assetClass = document.querySelector('input[name="asset_class"]:checked');
+        if (!assetClass) {
+            alert('Please select an asset class');
+            return;
+        }
+    }
+    if (step === 3) {
+        const thesis = document.getElementById('thesis').value.trim();
+        if (!thesis || thesis.length < 20) {
+            alert('Please describe the opportunity (at least 20 characters)');
+            return;
+        }
+    }
+    
+    document.getElementById('step' + currentStep).classList.add('d-none');
+    document.getElementById('step' + step).classList.remove('d-none');
+    currentStep = step;
+    updateProgress();
+}
+
+function prevStep(step) {
+    document.getElementById('step' + currentStep).classList.add('d-none');
+    document.getElementById('step' + step).classList.remove('d-none');
+    currentStep = step;
+    updateProgress();
+}
+
+document.querySelectorAll('.feedback-check').forEach(function(checkbox) {
+    checkbox.addEventListener('change', function() {
+        var checked = document.querySelectorAll('.feedback-check:checked');
+        if (checked.length > 3) {
+            this.checked = false;
+            alert('Please select up to 3 feedback areas only.');
+        }
+    });
+});
+</script>
+{% endblock %}

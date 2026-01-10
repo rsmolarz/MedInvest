@@ -1,0 +1,143 @@
+Here’s the unambiguous next step if you want this to turn into a real product with momentum, not just a well-built system.
+
+You’ve now cleared the three hardest early blockers:
+
+Trust gating (verification pipeline)
+
+Asynchronous intelligence (AI analyst with persistence)
+
+Admin throughput + UI
+
+From here, the risk is overbuilding. The leverage is activation + retention.
+
+NEXT #1 — Activation Loop (this is the highest leverage now)
+
+Goal: A verified doctor posts one deal and gets value within 24 hours.
+
+Build (small, surgical)
+
+First-Deal Wizard
+
+4 steps max:
+
+Asset class
+
+Thesis (plain text)
+
+What I want feedback on
+
+Visibility (physicians / group)
+
+Auto-run AI Analyst on submit
+
+Auto-prompt the room
+
+When a deal is posted:
+
+Tag 3–5 relevant specialties or asset-interest cohorts
+
+Send notifications (“New deal needs eyes”)
+
+Why this matters
+Doctors don’t explore products.
+They need a clear first action with fast feedback.
+
+NEXT #2 — Weekly “Signal Digest” (retention engine)
+
+Build
+
+Scheduled job (weekly):
+
+Top 3 deals by endorsements
+
+Top 3 comments by reputation delta
+
+One AI-generated “what we learned this week”
+
+Deliver
+
+In-app notification first
+
+Email later (don’t block on email infra)
+
+Why
+This creates:
+
+Social proof
+
+Fear of missing signal
+
+Habit without doom-scrolling
+
+NEXT #3 — Reputation-weighted sorting (anti-noise)
+
+Change
+
+Default sort on comments:
+
+reputation_score * endorsement_weight
+
+Hide raw like counts from non-authors
+
+Why
+This prevents LinkedIn-style engagement decay and protects signal quality.
+
+NEXT #4 — Invite-only growth (defensive moat)
+
+Mechanism
+
+Verified doctors get 2 invites
+
+Invites unlock:
+
+ability to comment
+
+ability to post deals
+
+Why
+
+Keeps quality high
+
+Creates social accountability
+
+Controls moderation load
+
+NEXT #5 — Legal & Trust Hardening (before scale)
+
+You don’t need lawyers yet—but you need clear rails.
+
+Add
+
+Mandatory disclaimer on deal creation
+
+“Educational discussion only” flag per deal
+
+Soft compliance language (not investment advice)
+
+This protects the platform and users.
+
+The 30-day execution map from today
+
+Week 1
+
+First-Deal Wizard
+
+Auto-run AI on submit
+
+Week 2
+
+Reputation-weighted sorting
+
+Weekly digest job
+
+Week 3
+
+Invite system
+
+Visibility tuning
+
+Week 4
+
+Seed 25–50 physicians
+
+Observe behavior, not opinions
