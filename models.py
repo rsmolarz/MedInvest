@@ -260,6 +260,7 @@ class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     group_id = db.Column(db.Integer, db.ForeignKey('groups.id'))
+    room_id = db.Column(db.Integer, db.ForeignKey('investment_rooms.id'))
     visibility = db.Column(db.String(20), default='physicians')  # public, physicians, group
     content = db.Column(db.Text, nullable=False)
     image_url = db.Column(db.String(500))
@@ -1228,4 +1229,149 @@ class SponsorReview(db.Model):
     deal = db.relationship('InvestmentDeal')
 
     __table_args__ = (db.UniqueConstraint('sponsor_id', 'reviewer_id', 'deal_id', name='unique_sponsor_review'),)
+
+
+# ============================================================================
+# SPECIALTY INVESTMENT ROOMS
+# ============================================================================
+
+class InvestmentRoom(db.Model):
+    """Specialty-specific investment discussion rooms"""
+    __tablename__ = 'investment_rooms'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    slug = db.Column(db.String(100), nullable=False, unique=True)
+    description = db.Column(db.Text)
+    category = db.Column(db.String(50))  # specialty, career_stage, topic
+    icon = db.Column(db.String(50), default='💼')
+    color = db.Column(db.String(20), default='#4A90A4')
+    member_count = db.Column(db.Integer, default=0)
+    post_count = db.Column(db.Integer, default=0)
+    is_active = db.Column(db.Boolean, default=True)
+    is_featured = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    members = db.relationship('RoomMembership', back_populates='room', lazy='dynamic', cascade='all, delete-orphan')
+    posts = db.relationship('Post', backref='room', lazy='dynamic', foreign_keys='Post.room_id')
+
+
+class RoomMembership(db.Model):
+    """User membership in investment rooms"""
+    __tablename__ = 'room_memberships'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    room_id = db.Column(db.Integer, db.ForeignKey('investment_rooms.id'), nullable=False)
+    role = db.Column(db.String(20), default='member')  # member, moderator, admin
+    notifications_enabled = db.Column(db.Boolean, default=True)
+    joined_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref='room_memberships')
+    room = db.relationship('InvestmentRoom', back_populates='members')
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'room_id', name='unique_room_membership'),)
+
+
+# ============================================================================
+# TRENDING TOPICS & HASHTAGS
+# ============================================================================
+
+class Hashtag(db.Model):
+    """Hashtags for trending topics"""
+    __tablename__ = 'hashtags'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)  # without #
+    post_count = db.Column(db.Integer, default=0)
+    weekly_count = db.Column(db.Integer, default=0)
+    last_used = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class PostHashtag(db.Model):
+    """Association between posts and hashtags"""
+    __tablename__ = 'post_hashtags'
+
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'), nullable=False)
+    hashtag_id = db.Column(db.Integer, db.ForeignKey('hashtags.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    post = db.relationship('Post', backref='hashtags')
+    hashtag = db.relationship('Hashtag', backref='posts')
+
+    __table_args__ = (db.UniqueConstraint('post_id', 'hashtag_id', name='unique_post_hashtag'),)
+
+
+# ============================================================================
+# ACHIEVEMENT & GAMIFICATION SYSTEM
+# ============================================================================
+
+class Achievement(db.Model):
+    """Available achievements/badges"""
+    __tablename__ = 'achievements'
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(50), nullable=False, unique=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    icon = db.Column(db.String(50), default='🏆')
+    category = db.Column(db.String(30))  # engagement, content, learning, investing, community
+    points = db.Column(db.Integer, default=10)
+    tier = db.Column(db.String(20), default='bronze')  # bronze, silver, gold, platinum
+    is_secret = db.Column(db.Boolean, default=False)
+    requirement_type = db.Column(db.String(30))  # count, threshold, action
+    requirement_value = db.Column(db.Integer)
+    requirement_field = db.Column(db.String(50))  # posts_count, followers_count, etc.
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class UserAchievement(db.Model):
+    """User's earned achievements"""
+    __tablename__ = 'user_achievements'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    achievement_id = db.Column(db.Integer, db.ForeignKey('achievements.id'), nullable=False)
+    earned_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_displayed = db.Column(db.Boolean, default=True)
+
+    user = db.relationship('User', backref='achievements')
+    achievement = db.relationship('Achievement', backref='earners')
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'achievement_id', name='unique_user_achievement'),)
+
+
+class UserPoints(db.Model):
+    """Track user points and levels"""
+    __tablename__ = 'user_points'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
+    total_points = db.Column(db.Integer, default=0)
+    level = db.Column(db.Integer, default=1)
+    weekly_points = db.Column(db.Integer, default=0)
+    monthly_points = db.Column(db.Integer, default=0)
+    streak_days = db.Column(db.Integer, default=0)
+    last_activity_date = db.Column(db.Date)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = db.relationship('User', backref='points_record')
+
+
+class PointTransaction(db.Model):
+    """Log of point transactions"""
+    __tablename__ = 'point_transactions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    points = db.Column(db.Integer, nullable=False)  # Positive or negative
+    action = db.Column(db.String(50), nullable=False)  # post_created, comment_added, like_received, etc.
+    reference_type = db.Column(db.String(30))  # post, comment, achievement
+    reference_id = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref='point_transactions')
 
