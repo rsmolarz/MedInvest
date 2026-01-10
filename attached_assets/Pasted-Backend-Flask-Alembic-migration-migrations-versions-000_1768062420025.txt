@@ -1,0 +1,149 @@
+Backend (Flask)
+Alembic migration
+
+migrations/versions/0005_ops_analytics_moderation_outcomes_sponsors.py
+
+Adds: user_activity, alert, verification_queue_entry, onboarding_prompt, user_prompt_dismissal, invite_credit_event, cohort_norm, moderation_event, content_report, deal_outcome, sponsor_profile, sponsor_review
+
+Adds user.can_review_verifications
+
+Centralized authorization extensions
+
+authorization.py: new actions added (analytics/reports/sponsors/invites)
+
+Verification throughput (gating constraint)
+
+Pending list now driven by VerificationQueueEntry with SLA sorting and assignment fields
+
+Submit/approve/reject update queue + activity logs
+
+Endpoints:
+
+GET /api/admin/verification/pending (now includes SLA fields and assignment)
+
+POST /api/verification/submit
+
+POST /api/admin/verification/<id>/approve
+
+POST /api/admin/verification/<id>/reject
+
+Analytics (cards + cohorts)
+
+Endpoints:
+
+GET /api/admin/analytics/overview
+
+Verified WAU, Deal WAU, TTFV p50, verification SLA p50/p95, invites 7d issued/accepted
+
+GET /api/admin/analytics/cohorts
+
+Activation by specialty + invite_source (30d window)
+
+Clean user_activity logging
+
+activity.py with log_activity(...)
+
+Wired into: verification submit/approve/reject, deal create/view, AI job enqueue, invite create/accept, outcome submit, report submit
+
+Alerts + email
+
+mailer.py supports SendGrid + Postmark
+
+Env:
+
+EMAIL_PROVIDER=sendgrid|postmark
+
+SENDGRID_API_KEY, SENDGRID_FROM
+
+POSTMARK_SERVER_TOKEN, POSTMARK_FROM
+
+OPS_ADMIN_EMAILS (comma-separated)
+
+Ops jobs (SLA alerts, routing, invite boosts, weekly digest)
+
+ops_jobs.py
+
+monitor_verification_sla_and_alert()
+
+auto_route_verification_queue()
+
+invite_credit_boosts_by_specialty()
+
+weekly_signal_digest()
+
+run_all_ops_jobs()
+
+scheduler.py simple loop runner (no extra deps)
+
+Auto-moderation (reputation + cohort norms)
+
+moderation_engine.py
+
+Uses CohortNorm thresholds (fallback defaults)
+
+Applies hide/lock/downrank to Posts/Comments
+
+Writes ModerationEvent audit records
+
+Reporting endpoints:
+
+POST /api/reports (deduped per user/entity; triggers auto-moderation)
+
+GET /api/admin/reports?status=open|resolved
+
+POST /api/admin/reports/<report_id>/resolve (no_action/hide/lock)
+
+Deal outcome tracking (closed → lessons learned)
+
+Endpoint:
+
+GET|POST /api/deals/<deal_id>/outcome
+
+POST allowed for deal author or admin
+
+Updates DealDetails.status when outcome says closed/passed
+
+Sponsor vetting workflow
+
+Endpoints:
+
+GET|POST /api/sponsors/profile (self: submit/update; status goes pending)
+
+GET /api/sponsors/<user_id>/profile (approved-only unless admin/self)
+
+GET|POST /api/sponsors/<user_id>/reviews (submit reviews; list)
+
+POST /api/admin/sponsors/<user_id>/status (approve/reject)
+
+Onboarding prompts (cohort-specific)
+
+Endpoints:
+
+GET /api/onboarding/prompt
+
+POST /api/onboarding/prompt/dismiss
+
+Seed defaults
+
+seed_data.py seeds:
+
+a global “Post your first deal” onboarding prompt
+
+a default cohort norm row
+
+Frontend (Next.js)
+Admin analytics UI
+
+app/admin/analytics/page.tsx
+
+app/admin/analytics/cohorts/page.tsx
+
+Components:
+
+components/admin/AdminAnalyticsOverview.tsx (cards)
+
+components/admin/AdminCohortAnalytics.tsx (tables)
+
+Dependencies
+
+pyproject.toml adds requests (for Postmark)

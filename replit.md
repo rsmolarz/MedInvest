@@ -35,9 +35,42 @@ The platform features two main architectures: a primary Flask-based web applicat
 ✓ User Engagement Fields Added:
 - referral_code, subscription_tier, points, level, login_streak
 
+✓ Added Ops & Moderation Infrastructure:
+- **Verification Queue**: SLA tracking with assignment and priority
+- **Analytics API**: Admin endpoints for WAU, cohorts, verification metrics
+- **Auto-Moderation**: Reputation-based posting, report thresholds, content hiding/locking
+- **Content Reports**: User-submitted reports with admin resolution workflow
+- **Deal Outcomes**: Lessons learned tracking for closed deals
+- **Sponsor Vetting**: Profile submission, admin approval, investor reviews
+- **Onboarding Prompts**: Cohort-specific prompts with dismissal tracking
+- **Activity Logging**: Centralized activity.py for analytics
+
+✓ New Python Modules:
+- activity.py: Centralized activity logging
+- mailer.py: Email abstraction (SendGrid/Postmark)
+- ops_jobs.py: Background jobs (SLA monitoring, auto-routing, invite boosts)
+- scheduler.py: Simple interval-based job scheduler
+- moderation_engine.py: Auto-moderation with cohort norms
+
+✓ New Database Tables:
+- verification_queue_entries, onboarding_prompts, user_prompt_dismissals
+- invite_credit_events, cohort_norms, moderation_events
+- content_reports, deal_outcomes, sponsor_profiles, sponsor_reviews
+
+✓ New API Endpoints:
+- GET /api/admin/analytics/overview, /api/admin/analytics/cohorts
+- POST /api/reports, GET /api/admin/reports, POST /api/admin/reports/<id>/resolve
+- GET|POST /api/deals/<id>/outcome
+- GET|POST /api/sponsors/profile, GET /api/sponsors/<id>/profile
+- GET|POST /api/sponsors/<id>/reviews, POST /api/admin/sponsors/<id>/status
+- GET /api/onboarding/prompt, POST /api/onboarding/prompt/dismiss
+
+✓ Authorization Extended:
+- New actions in authorization.py for analytics, reports, sponsors, invites, deals
+
 ✓ Previous: Added AI Job Rate Limiting & Idempotency, Next.js Frontend Scaffold
 
-→ STATUS: Platform now has full monetization and engagement features
+→ STATUS: Platform now has full ops, analytics, moderation, and sponsor vetting features
 
 ## Changes (January 4, 2026)
 

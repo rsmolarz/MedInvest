@@ -40,6 +40,8 @@ class User(UserMixin, db.Model):
     invite_credits = db.Column(db.Integer, default=2)
     invite_id = db.Column(db.Integer, db.ForeignKey('invites.id'))
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
+    # Admin permissions
+    can_review_verifications = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -1018,4 +1020,212 @@ class EmailCampaign(db.Model):
     opened = db.Column(db.Integer, default=0)
     clicked = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+# ============================================================================
+# VERIFICATION QUEUE & SLA TRACKING
+# ============================================================================
+
+class VerificationQueueEntry(db.Model):
+    """Track verification requests with SLA and assignment"""
+    __tablename__ = 'verification_queue_entries'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
+    submitted_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    sla_deadline = db.Column(db.DateTime)
+    assigned_to_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    assigned_at = db.Column(db.DateTime)
+    priority = db.Column(db.Integer, default=0)
+    status = db.Column(db.String(20), default='pending')  # pending, in_review, approved, rejected
+    reviewed_at = db.Column(db.DateTime)
+    reviewed_by_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    notes = db.Column(db.Text)
+
+    user = db.relationship('User', foreign_keys=[user_id], backref='verification_queue_entry')
+    assigned_to = db.relationship('User', foreign_keys=[assigned_to_id])
+    reviewed_by = db.relationship('User', foreign_keys=[reviewed_by_id])
+
+
+# ============================================================================
+# ONBOARDING PROMPTS
+# ============================================================================
+
+class OnboardingPrompt(db.Model):
+    """Cohort-specific onboarding prompts"""
+    __tablename__ = 'onboarding_prompts'
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    action_url = db.Column(db.String(300))
+    action_label = db.Column(db.String(100))
+    target_cohort = db.Column(db.String(50))  # all, new_user, specialty_cardiology, etc.
+    priority = db.Column(db.Integer, default=0)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class UserPromptDismissal(db.Model):
+    """Track which prompts users have dismissed"""
+    __tablename__ = 'user_prompt_dismissals'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    prompt_id = db.Column(db.Integer, db.ForeignKey('onboarding_prompts.id'), nullable=False)
+    dismissed_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref='prompt_dismissals')
+    prompt = db.relationship('OnboardingPrompt')
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'prompt_id', name='unique_user_prompt_dismissal'),)
+
+
+# ============================================================================
+# INVITE CREDITS & BOOSTS
+# ============================================================================
+
+class InviteCreditEvent(db.Model):
+    """Track invite credit changes"""
+    __tablename__ = 'invite_credit_events'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    delta = db.Column(db.Integer, nullable=False)  # positive = credits added, negative = used
+    reason = db.Column(db.String(100), nullable=False)  # signup_bonus, specialty_boost, invite_used, admin_grant
+    related_invite_id = db.Column(db.Integer, db.ForeignKey('invites.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref='invite_credit_events')
+    related_invite = db.relationship('Invite')
+
+
+# ============================================================================
+# COHORT NORMS & MODERATION
+# ============================================================================
+
+class CohortNorm(db.Model):
+    """Thresholds for auto-moderation by cohort"""
+    __tablename__ = 'cohort_norms'
+
+    id = db.Column(db.Integer, primary_key=True)
+    cohort = db.Column(db.String(50), nullable=False, unique=True)  # global, specialty_cardiology, etc.
+    min_reputation_to_post = db.Column(db.Integer, default=-10)
+    auto_hide_threshold = db.Column(db.Integer, default=3)  # hide after N reports
+    auto_lock_threshold = db.Column(db.Integer, default=5)  # lock after N reports
+    downrank_after_reports = db.Column(db.Integer, default=2)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ModerationEvent(db.Model):
+    """Audit log for moderation actions"""
+    __tablename__ = 'moderation_events'
+
+    id = db.Column(db.Integer, primary_key=True)
+    entity_type = db.Column(db.String(30), nullable=False)  # post, comment, user
+    entity_id = db.Column(db.Integer, nullable=False)
+    action = db.Column(db.String(30), nullable=False)  # hide, lock, downrank, unhide, unlock
+    reason = db.Column(db.String(100))  # auto_reports, admin_action, spam_detected
+    performed_by_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    is_automated = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    performed_by = db.relationship('User')
+
+
+class ContentReport(db.Model):
+    """User-submitted content reports"""
+    __tablename__ = 'content_reports'
+
+    id = db.Column(db.Integer, primary_key=True)
+    reporter_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    entity_type = db.Column(db.String(30), nullable=False)  # post, comment, user
+    entity_id = db.Column(db.Integer, nullable=False)
+    reason = db.Column(db.String(100), nullable=False)  # spam, harassment, misinformation, other
+    details = db.Column(db.Text)
+    status = db.Column(db.String(20), default='open')  # open, resolved, dismissed
+    resolved_by_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    resolution = db.Column(db.String(50))  # no_action, hide, lock, warning
+    resolved_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    reporter = db.relationship('User', foreign_keys=[reporter_id], backref='reports_submitted')
+    resolved_by = db.relationship('User', foreign_keys=[resolved_by_id])
+
+    __table_args__ = (db.UniqueConstraint('reporter_id', 'entity_type', 'entity_id', name='unique_report_per_user'),)
+
+
+# ============================================================================
+# DEAL OUTCOMES
+# ============================================================================
+
+class DealOutcome(db.Model):
+    """Track deal outcomes and lessons learned"""
+    __tablename__ = 'deal_outcomes'
+
+    id = db.Column(db.Integer, primary_key=True)
+    deal_id = db.Column(db.Integer, db.ForeignKey('investment_deals.id'), nullable=False, unique=True)
+    submitted_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    outcome_status = db.Column(db.String(30), nullable=False)  # closed_success, closed_loss, passed, ongoing
+    actual_return = db.Column(db.String(50))
+    actual_term = db.Column(db.String(50))
+    lessons_learned = db.Column(db.Text)
+    would_invest_again = db.Column(db.Boolean)
+    is_public = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    deal = db.relationship('InvestmentDeal', backref='outcome')
+    submitted_by = db.relationship('User', backref='deal_outcomes_submitted')
+
+
+# ============================================================================
+# SPONSOR VETTING
+# ============================================================================
+
+class SponsorProfile(db.Model):
+    """Sponsor profiles for deal sponsors"""
+    __tablename__ = 'sponsor_profiles'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
+    company_name = db.Column(db.String(200), nullable=False)
+    company_description = db.Column(db.Text)
+    company_website = db.Column(db.String(300))
+    company_logo_url = db.Column(db.String(500))
+    years_in_business = db.Column(db.Integer)
+    total_deals = db.Column(db.Integer, default=0)
+    aum = db.Column(db.String(50))  # Assets under management
+    track_record = db.Column(db.Text)
+    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    approved_at = db.Column(db.DateTime)
+    approved_by_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    rejection_reason = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = db.relationship('User', foreign_keys=[user_id], backref='sponsor_profile')
+    approved_by = db.relationship('User', foreign_keys=[approved_by_id])
+
+
+class SponsorReview(db.Model):
+    """Reviews of sponsors by investors"""
+    __tablename__ = 'sponsor_reviews'
+
+    id = db.Column(db.Integer, primary_key=True)
+    sponsor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    reviewer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    deal_id = db.Column(db.Integer, db.ForeignKey('investment_deals.id'))
+    rating = db.Column(db.Integer, nullable=False)  # 1-5
+    review_text = db.Column(db.Text)
+    is_verified_investment = db.Column(db.Boolean, default=False)
+    is_public = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    sponsor = db.relationship('User', foreign_keys=[sponsor_id], backref='sponsor_reviews_received')
+    reviewer = db.relationship('User', foreign_keys=[reviewer_id], backref='sponsor_reviews_given')
+    deal = db.relationship('InvestmentDeal')
+
+    __table_args__ = (db.UniqueConstraint('sponsor_id', 'reviewer_id', 'deal_id', name='unique_sponsor_review'),)
 

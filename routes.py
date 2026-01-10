@@ -2,7 +2,7 @@ from flask import render_template, request, redirect, url_for, flash, session, j
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash
 from app import app, db
-from models import User, Module, UserProgress, ForumTopic, ForumPost, PortfolioTransaction, Resource, Post, Comment, Like, Follow, Notification, Group, GroupMembership, Connection, DealDetails, DealAnalysis, AiJob, ReputationEvent, Invite, Digest, DigestItem, UserActivity, Alert, ExpertAMA, AMAQuestion, AMARegistration, InvestmentDeal, DealInterest, Mentorship, MentorshipSession, Course, CourseModule, CourseEnrollment, Event, EventSession, EventRegistration, Referral, Subscription, Payment
+from models import User, Module, UserProgress, ForumTopic, ForumPost, PortfolioTransaction, Resource, Post, Comment, Like, Follow, Notification, Group, GroupMembership, Connection, DealDetails, DealAnalysis, AiJob, ReputationEvent, Invite, Digest, DigestItem, UserActivity, Alert, ExpertAMA, AMAQuestion, AMARegistration, InvestmentDeal, DealInterest, Mentorship, MentorshipSession, Course, CourseModule, CourseEnrollment, Event, EventSession, EventRegistration, Referral, Subscription, Payment, VerificationQueueEntry, OnboardingPrompt, UserPromptDismissal, InviteCreditEvent, CohortNorm, ModerationEvent, ContentReport, DealOutcome, SponsorProfile, SponsorReview
 from datetime import datetime, timedelta
 import json
 import math
@@ -2484,3 +2484,464 @@ def premium():
     ).first()
     
     return render_template('premium.html', current_subscription=current_sub)
+
+
+# ============================================================================
+# ANALYTICS API
+# ============================================================================
+
+@app.route('/api/admin/analytics/overview')
+@login_required
+def admin_analytics_overview():
+    """Get analytics overview data."""
+    decision = can(current_user, Actions.VIEW_ANALYTICS)
+    if not decision.allowed:
+        return deny_response(decision.reason)
+    
+    now = datetime.utcnow()
+    week_ago = now - timedelta(days=7)
+    
+    # Verified WAU
+    verified_wau = db.session.query(UserActivity.user_id).distinct().join(
+        User, UserActivity.user_id == User.id
+    ).filter(
+        User.is_verified == True,
+        UserActivity.created_at >= week_ago
+    ).count()
+    
+    # Deal WAU (users who interacted with deals)
+    deal_wau = db.session.query(UserActivity.user_id).distinct().filter(
+        UserActivity.entity_type == 'deal',
+        UserActivity.created_at >= week_ago
+    ).count()
+    
+    # TTFV (Time to First Verification) - median days
+    verified_users = User.query.filter(User.verified_at.isnot(None)).all()
+    ttfv_days = []
+    for u in verified_users:
+        if u.verification_submitted_at and u.verified_at:
+            delta = (u.verified_at - u.verification_submitted_at).days
+            ttfv_days.append(delta)
+    ttfv_p50 = sorted(ttfv_days)[len(ttfv_days)//2] if ttfv_days else 0
+    
+    # Verification SLA
+    pending = VerificationQueueEntry.query.filter_by(status='pending').all()
+    wait_hours = [(now - p.submitted_at).total_seconds() / 3600 for p in pending]
+    wait_hours.sort()
+    sla_p50 = wait_hours[len(wait_hours)//2] if wait_hours else 0
+    sla_p95 = wait_hours[int(len(wait_hours) * 0.95)] if wait_hours else 0
+    
+    # Invites in last 7 days
+    invites_issued = Invite.query.filter(Invite.created_at >= week_ago).count()
+    invites_accepted = Invite.query.filter(
+        Invite.accepted_at >= week_ago,
+        Invite.accepted_at.isnot(None)
+    ).count()
+    
+    return jsonify({
+        'verified_wau': verified_wau,
+        'deal_wau': deal_wau,
+        'ttfv_p50_days': ttfv_p50,
+        'verification_sla_p50_hours': round(sla_p50, 1),
+        'verification_sla_p95_hours': round(sla_p95, 1),
+        'invites_7d_issued': invites_issued,
+        'invites_7d_accepted': invites_accepted
+    })
+
+
+@app.route('/api/admin/analytics/cohorts')
+@login_required
+def admin_analytics_cohorts():
+    """Get cohort analytics data."""
+    decision = can(current_user, Actions.VIEW_ANALYTICS)
+    if not decision.allowed:
+        return deny_response(decision.reason)
+    
+    # Activation by specialty (verified in last 30 days)
+    month_ago = datetime.utcnow() - timedelta(days=30)
+    
+    specialty_stats = db.session.query(
+        User.specialty,
+        db.func.count(User.id).label('total'),
+        db.func.sum(db.case((User.is_verified == True, 1), else_=0)).label('verified')
+    ).filter(
+        User.created_at >= month_ago
+    ).group_by(User.specialty).all()
+    
+    cohorts = []
+    for stat in specialty_stats:
+        cohorts.append({
+            'specialty': stat.specialty or 'Unknown',
+            'total': stat.total,
+            'verified': stat.verified or 0,
+            'activation_rate': round((stat.verified or 0) / stat.total * 100, 1) if stat.total > 0 else 0
+        })
+    
+    return jsonify({'cohorts': cohorts})
+
+
+# ============================================================================
+# REPORTING API
+# ============================================================================
+
+@app.route('/api/reports', methods=['POST'])
+@login_required
+def submit_report():
+    """Submit a content report."""
+    decision = can(current_user, Actions.SUBMIT_REPORT)
+    if not decision.allowed:
+        return deny_response(decision.reason)
+    
+    data = request.get_json()
+    entity_type = data.get('entity_type')
+    entity_id = data.get('entity_id')
+    reason = data.get('reason')
+    details = data.get('details')
+    
+    if not all([entity_type, entity_id, reason]):
+        return jsonify({'error': 'Missing required fields'}), 400
+    
+    # Check for duplicate report
+    existing = ContentReport.query.filter_by(
+        reporter_id=current_user.id,
+        entity_type=entity_type,
+        entity_id=entity_id
+    ).first()
+    
+    if existing:
+        return jsonify({'error': 'You have already reported this content'}), 409
+    
+    report = ContentReport(
+        reporter_id=current_user.id,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        reason=reason,
+        details=details
+    )
+    db.session.add(report)
+    db.session.commit()
+    
+    # Trigger auto-moderation
+    from moderation_engine import process_new_report
+    process_new_report(report)
+    
+    # Log activity
+    from activity import log_report_submit
+    log_report_submit(current_user.id, report.id)
+    
+    return jsonify({'success': True, 'report_id': report.id}), 201
+
+
+@app.route('/api/admin/reports')
+@login_required
+def admin_reports():
+    """List content reports."""
+    decision = can(current_user, Actions.VIEW_REPORTS)
+    if not decision.allowed:
+        return deny_response(decision.reason)
+    
+    status = request.args.get('status', 'open')
+    reports = ContentReport.query.filter_by(status=status).order_by(ContentReport.created_at.desc()).all()
+    
+    return jsonify({'reports': [{
+        'id': r.id,
+        'entity_type': r.entity_type,
+        'entity_id': r.entity_id,
+        'reason': r.reason,
+        'details': r.details,
+        'reporter_id': r.reporter_id,
+        'created_at': r.created_at.isoformat()
+    } for r in reports]})
+
+
+@app.route('/api/admin/reports/<int:report_id>/resolve', methods=['POST'])
+@login_required
+def admin_resolve_report(report_id):
+    """Resolve a content report."""
+    decision = can(current_user, Actions.RESOLVE_REPORT)
+    if not decision.allowed:
+        return deny_response(decision.reason)
+    
+    data = request.get_json()
+    resolution = data.get('resolution', 'no_action')
+    
+    from moderation_engine import resolve_report
+    success, msg = resolve_report(report_id, current_user.id, resolution)
+    
+    if not success:
+        return jsonify({'error': msg}), 400
+    
+    return jsonify({'success': True})
+
+
+# ============================================================================
+# DEAL OUTCOMES API
+# ============================================================================
+
+@app.route('/api/deals/<int:deal_id>/outcome', methods=['GET', 'POST'])
+@login_required
+def deal_outcome(deal_id):
+    """Get or submit deal outcome."""
+    deal = InvestmentDeal.query.get_or_404(deal_id)
+    
+    if request.method == 'GET':
+        outcome = DealOutcome.query.filter_by(deal_id=deal_id).first()
+        if not outcome:
+            return jsonify({'outcome': None})
+        
+        return jsonify({'outcome': {
+            'id': outcome.id,
+            'outcome_status': outcome.outcome_status,
+            'actual_return': outcome.actual_return,
+            'actual_term': outcome.actual_term,
+            'lessons_learned': outcome.lessons_learned if outcome.is_public else None,
+            'would_invest_again': outcome.would_invest_again
+        }})
+    
+    # POST - submit outcome
+    decision = can(current_user, Actions.SUBMIT_DEAL_OUTCOME)
+    if not decision.allowed:
+        return deny_response(decision.reason)
+    
+    # Only deal creator or admin can submit
+    if deal.created_by_id != current_user.id and current_user.role != 'admin':
+        return jsonify({'error': 'Forbidden'}), 403
+    
+    data = request.get_json()
+    
+    existing = DealOutcome.query.filter_by(deal_id=deal_id).first()
+    if existing:
+        existing.outcome_status = data.get('outcome_status', existing.outcome_status)
+        existing.actual_return = data.get('actual_return')
+        existing.actual_term = data.get('actual_term')
+        existing.lessons_learned = data.get('lessons_learned')
+        existing.would_invest_again = data.get('would_invest_again')
+        existing.updated_at = datetime.utcnow()
+    else:
+        existing = DealOutcome(
+            deal_id=deal_id,
+            submitted_by_id=current_user.id,
+            outcome_status=data.get('outcome_status'),
+            actual_return=data.get('actual_return'),
+            actual_term=data.get('actual_term'),
+            lessons_learned=data.get('lessons_learned'),
+            would_invest_again=data.get('would_invest_again')
+        )
+        db.session.add(existing)
+    
+    # Update deal status
+    if data.get('outcome_status') in ('closed_success', 'closed_loss', 'passed'):
+        deal.status = 'closed'
+    
+    db.session.commit()
+    
+    # Log activity
+    from activity import log_outcome_submit
+    log_outcome_submit(current_user.id, deal_id)
+    
+    return jsonify({'success': True})
+
+
+# ============================================================================
+# SPONSOR PROFILES API
+# ============================================================================
+
+@app.route('/api/sponsors/profile', methods=['GET', 'POST'])
+@login_required
+def sponsor_profile_self():
+    """Get or submit own sponsor profile."""
+    if request.method == 'GET':
+        profile = SponsorProfile.query.filter_by(user_id=current_user.id).first()
+        if not profile:
+            return jsonify({'profile': None})
+        
+        return jsonify({'profile': {
+            'company_name': profile.company_name,
+            'company_description': profile.company_description,
+            'company_website': profile.company_website,
+            'years_in_business': profile.years_in_business,
+            'aum': profile.aum,
+            'track_record': profile.track_record,
+            'status': profile.status
+        }})
+    
+    # POST - submit profile
+    decision = can(current_user, Actions.SUBMIT_SPONSOR_PROFILE)
+    if not decision.allowed:
+        return deny_response(decision.reason)
+    
+    data = request.get_json()
+    
+    profile = SponsorProfile.query.filter_by(user_id=current_user.id).first()
+    if profile:
+        profile.company_name = data.get('company_name', profile.company_name)
+        profile.company_description = data.get('company_description')
+        profile.company_website = data.get('company_website')
+        profile.years_in_business = data.get('years_in_business')
+        profile.aum = data.get('aum')
+        profile.track_record = data.get('track_record')
+        profile.status = 'pending'
+        profile.updated_at = datetime.utcnow()
+    else:
+        profile = SponsorProfile(
+            user_id=current_user.id,
+            company_name=data.get('company_name'),
+            company_description=data.get('company_description'),
+            company_website=data.get('company_website'),
+            years_in_business=data.get('years_in_business'),
+            aum=data.get('aum'),
+            track_record=data.get('track_record')
+        )
+        db.session.add(profile)
+    
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/api/sponsors/<int:user_id>/profile')
+@login_required
+def sponsor_profile(user_id):
+    """Get sponsor profile (approved only unless admin/self)."""
+    profile = SponsorProfile.query.filter_by(user_id=user_id).first()
+    if not profile:
+        return jsonify({'error': 'Profile not found'}), 404
+    
+    # Only show if approved, or if requesting own profile, or if admin
+    if profile.status != 'approved' and user_id != current_user.id and current_user.role != 'admin':
+        return jsonify({'error': 'Profile not approved'}), 403
+    
+    return jsonify({'profile': {
+        'user_id': profile.user_id,
+        'company_name': profile.company_name,
+        'company_description': profile.company_description,
+        'company_website': profile.company_website,
+        'years_in_business': profile.years_in_business,
+        'total_deals': profile.total_deals,
+        'aum': profile.aum,
+        'track_record': profile.track_record,
+        'status': profile.status
+    }})
+
+
+@app.route('/api/sponsors/<int:user_id>/reviews', methods=['GET', 'POST'])
+@login_required
+def sponsor_reviews(user_id):
+    """Get or submit sponsor reviews."""
+    if request.method == 'GET':
+        reviews = SponsorReview.query.filter_by(sponsor_id=user_id, is_public=True).order_by(SponsorReview.created_at.desc()).all()
+        return jsonify({'reviews': [{
+            'id': r.id,
+            'rating': r.rating,
+            'review_text': r.review_text,
+            'is_verified_investment': r.is_verified_investment,
+            'created_at': r.created_at.isoformat()
+        } for r in reviews]})
+    
+    # POST - submit review
+    decision = can(current_user, Actions.SUBMIT_SPONSOR_REVIEW)
+    if not decision.allowed:
+        return deny_response(decision.reason)
+    
+    data = request.get_json()
+    
+    review = SponsorReview(
+        sponsor_id=user_id,
+        reviewer_id=current_user.id,
+        deal_id=data.get('deal_id'),
+        rating=data.get('rating'),
+        review_text=data.get('review_text')
+    )
+    db.session.add(review)
+    db.session.commit()
+    
+    return jsonify({'success': True}), 201
+
+
+@app.route('/api/admin/sponsors/<int:user_id>/status', methods=['POST'])
+@login_required
+def admin_sponsor_status(user_id):
+    """Approve or reject sponsor profile."""
+    decision = can(current_user, Actions.APPROVE_SPONSOR)
+    if not decision.allowed:
+        return deny_response(decision.reason)
+    
+    profile = SponsorProfile.query.filter_by(user_id=user_id).first_or_404()
+    data = request.get_json()
+    
+    action = data.get('action')
+    if action == 'approve':
+        profile.status = 'approved'
+        profile.approved_at = datetime.utcnow()
+        profile.approved_by_id = current_user.id
+    elif action == 'reject':
+        profile.status = 'rejected'
+        profile.rejection_reason = data.get('reason')
+    else:
+        return jsonify({'error': 'Invalid action'}), 400
+    
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+# ============================================================================
+# ONBOARDING PROMPTS API
+# ============================================================================
+
+@app.route('/api/onboarding/prompt')
+@login_required
+def get_onboarding_prompt():
+    """Get next onboarding prompt for user."""
+    decision = can(current_user, Actions.VIEW_ONBOARDING)
+    if not decision.allowed:
+        return deny_response(decision.reason)
+    
+    # Get dismissed prompts
+    dismissed_ids = [d.prompt_id for d in UserPromptDismissal.query.filter_by(user_id=current_user.id).all()]
+    
+    # Find cohort-appropriate prompt
+    cohorts = ['all', f"specialty_{current_user.specialty}"]
+    if current_user.created_at and (datetime.utcnow() - current_user.created_at).days < 7:
+        cohorts.append('new_user')
+    
+    prompt = OnboardingPrompt.query.filter(
+        OnboardingPrompt.is_active == True,
+        OnboardingPrompt.target_cohort.in_(cohorts),
+        ~OnboardingPrompt.id.in_(dismissed_ids)
+    ).order_by(OnboardingPrompt.priority.desc()).first()
+    
+    if not prompt:
+        return jsonify({'prompt': None})
+    
+    return jsonify({'prompt': {
+        'id': prompt.id,
+        'title': prompt.title,
+        'message': prompt.message,
+        'action_url': prompt.action_url,
+        'action_label': prompt.action_label
+    }})
+
+
+@app.route('/api/onboarding/prompt/dismiss', methods=['POST'])
+@login_required
+def dismiss_onboarding_prompt():
+    """Dismiss an onboarding prompt."""
+    decision = can(current_user, Actions.DISMISS_PROMPT)
+    if not decision.allowed:
+        return deny_response(decision.reason)
+    
+    data = request.get_json()
+    prompt_id = data.get('prompt_id')
+    
+    if not prompt_id:
+        return jsonify({'error': 'prompt_id required'}), 400
+    
+    existing = UserPromptDismissal.query.filter_by(
+        user_id=current_user.id, prompt_id=prompt_id
+    ).first()
+    
+    if not existing:
+        dismissal = UserPromptDismissal(user_id=current_user.id, prompt_id=prompt_id)
+        db.session.add(dismissal)
+        db.session.commit()
+    
+    return jsonify({'success': True})

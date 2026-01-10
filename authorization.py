@@ -45,6 +45,32 @@ class Actions:
 
     SEND_DM = "send_dm"
 
+    # Analytics & Reports
+    VIEW_ANALYTICS = "view_analytics"
+    EXPORT_ANALYTICS = "export_analytics"
+    VIEW_REPORTS = "view_reports"
+    RESOLVE_REPORT = "resolve_report"
+    SUBMIT_REPORT = "submit_report"
+
+    # Sponsors
+    SUBMIT_SPONSOR_PROFILE = "submit_sponsor_profile"
+    VIEW_SPONSOR_PROFILE = "view_sponsor_profile"
+    APPROVE_SPONSOR = "approve_sponsor"
+    SUBMIT_SPONSOR_REVIEW = "submit_sponsor_review"
+
+    # Invites
+    CREATE_INVITE = "create_invite"
+    VIEW_INVITES = "view_invites"
+
+    # Deals
+    CREATE_DEAL = "create_deal"
+    EDIT_DEAL = "edit_deal"
+    SUBMIT_DEAL_OUTCOME = "submit_deal_outcome"
+
+    # Onboarding
+    VIEW_ONBOARDING = "view_onboarding"
+    DISMISS_PROMPT = "dismiss_prompt"
+
 
 def is_authenticated(user: Any) -> bool:
     return bool(getattr(user, "is_authenticated", False))
@@ -121,10 +147,59 @@ def can(user: Any, action: str, resource: Optional[Any] = None, **ctx: Any) -> D
         return Decision(True, "ok")
 
     if action in {Actions.REVIEW_VERIFICATION, Actions.ADMIN_REVIEW_VERIFICATION, Actions.MODERATE}:
-        # Non-admin needs explicit roles.
+        # Non-admin needs explicit roles or can_review_verifications.
         if _has_role(user, {"admin"}):
             return Decision(True, "ok")
+        if action == Actions.REVIEW_VERIFICATION and getattr(user, "can_review_verifications", False):
+            return Decision(True, "reviewer")
         return Decision(False, "forbidden")
+
+    # Analytics and reporting (admin only)
+    if action in {Actions.VIEW_ANALYTICS, Actions.EXPORT_ANALYTICS, Actions.VIEW_REPORTS, Actions.RESOLVE_REPORT}:
+        return Decision(False, "forbidden")
+
+    # Report submission (verified users only)
+    if action == Actions.SUBMIT_REPORT:
+        if is_verified(user):
+            return Decision(True, "ok")
+        return Decision(False, "verification_required")
+
+    # Sponsor actions
+    if action == Actions.SUBMIT_SPONSOR_PROFILE:
+        return Decision(True, "ok")
+
+    if action == Actions.VIEW_SPONSOR_PROFILE:
+        return Decision(True, "ok")
+
+    if action == Actions.APPROVE_SPONSOR:
+        return Decision(False, "forbidden")
+
+    if action == Actions.SUBMIT_SPONSOR_REVIEW:
+        if is_verified(user):
+            return Decision(True, "ok")
+        return Decision(False, "verification_required")
+
+    # Invites (verified users with credits)
+    if action == Actions.CREATE_INVITE:
+        if is_verified(user) and getattr(user, "invite_credits", 0) > 0:
+            return Decision(True, "ok")
+        return Decision(False, "no_invite_credits")
+
+    if action == Actions.VIEW_INVITES:
+        return Decision(True, "ok")
+
+    # Deals
+    if action == Actions.CREATE_DEAL:
+        if is_verified(user):
+            return Decision(True, "ok")
+        return Decision(False, "verification_required")
+
+    if action == Actions.SUBMIT_DEAL_OUTCOME:
+        return Decision(True, "ok")
+
+    # Onboarding
+    if action in {Actions.VIEW_ONBOARDING, Actions.DISMISS_PROMPT}:
+        return Decision(True, "ok")
 
     # Default allow for generic actions already gated above.
     return Decision(True, "ok")
