@@ -2,7 +2,7 @@ from flask import render_template, request, redirect, url_for, flash, session, j
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash
 from app import app, db
-from models import User, Module, UserProgress, ForumTopic, ForumPost, PortfolioTransaction, Resource, Post, Comment, Like, Follow, Notification, Group, GroupMembership, Connection, DealDetails, DealAnalysis, AiJob, ReputationEvent, Invite, Digest, DigestItem
+from models import User, Module, UserProgress, ForumTopic, ForumPost, PortfolioTransaction, Resource, Post, Comment, Like, Follow, Notification, Group, GroupMembership, Connection, DealDetails, DealAnalysis, AiJob, ReputationEvent, Invite, Digest, DigestItem, UserActivity, Alert
 from datetime import datetime, timedelta
 import json
 import math
@@ -1964,4 +1964,177 @@ def api_admin_analytics_overview():
             'start': window_start.isoformat() + 'Z',
             'end': now.isoformat() + 'Z'
         }
+    }), 200
+
+
+@app.route('/api/admin/analytics/cohorts', methods=['GET'])
+@login_required
+@require_roles('admin')
+def api_admin_analytics_cohorts():
+    """Per-cohort analytics by invite_source, specialty, or verification_week."""
+    from sqlalchemy import text
+    
+    dimension = request.args.get('dimension', 'specialty')
+    metric = request.args.get('metric', 'activation')
+    window_days = int(request.args.get('window_days', 7))
+    
+    now = datetime.utcnow()
+    window_start = now - timedelta(days=window_days)
+    
+    if dimension not in ('invite_source', 'specialty', 'verification_week'):
+        return jsonify({'error': 'invalid_dimension'}), 400
+    if metric not in ('activation', 'deal_post', 'wau'):
+        return jsonify({'error': 'invalid_metric'}), 400
+    
+    results = []
+    
+    if dimension == 'specialty':
+        if metric == 'activation':
+            rows = db.session.execute(text("""
+                SELECT 
+                    u.specialty AS key,
+                    COUNT(DISTINCT u.id) AS users,
+                    COUNT(DISTINCT CASE WHEN first_action.first_at IS NOT NULL THEN u.id END) AS activated
+                FROM users u
+                LEFT JOIN (
+                    SELECT author_id, MIN(created_at) AS first_at
+                    FROM posts
+                    GROUP BY author_id
+                    UNION ALL
+                    SELECT author_id, MIN(created_at) AS first_at
+                    FROM comments
+                    GROUP BY author_id
+                ) first_action ON first_action.author_id = u.id
+                    AND first_action.first_at <= u.verified_at + INTERVAL '7 days'
+                WHERE u.verification_status = 'verified'
+                GROUP BY u.specialty
+                ORDER BY users DESC
+            """))
+        elif metric == 'deal_post':
+            rows = db.session.execute(text("""
+                SELECT 
+                    u.specialty AS key,
+                    COUNT(DISTINCT u.id) AS users,
+                    COUNT(DISTINCT CASE WHEN p.id IS NOT NULL THEN u.id END) AS activated
+                FROM users u
+                LEFT JOIN posts p ON p.author_id = u.id AND p.post_type = 'deal'
+                WHERE u.verification_status = 'verified'
+                GROUP BY u.specialty
+                ORDER BY users DESC
+            """))
+        else:  # wau
+            rows = db.session.execute(text("""
+                SELECT 
+                    u.specialty AS key,
+                    COUNT(DISTINCT u.id) AS users,
+                    COUNT(DISTINCT CASE WHEN ua.user_id IS NOT NULL THEN u.id END) AS activated
+                FROM users u
+                LEFT JOIN user_activity ua ON ua.user_id = u.id AND ua.created_at >= :start
+                WHERE u.verification_status = 'verified'
+                GROUP BY u.specialty
+                ORDER BY users DESC
+            """), {"start": window_start})
+        
+        for row in rows:
+            users_count = int(row.users or 0)
+            activated_count = int(row.activated or 0)
+            pct = round((activated_count / users_count * 100) if users_count else 0, 1)
+            results.append({
+                'key': row.key or 'Unknown',
+                'users': users_count,
+                'activated_pct': pct
+            })
+    
+    elif dimension == 'invite_source':
+        if metric == 'activation':
+            rows = db.session.execute(text("""
+                SELECT 
+                    CASE WHEN u.invite_id IS NULL THEN 'admin' ELSE 'peer' END AS key,
+                    COUNT(DISTINCT u.id) AS users,
+                    COUNT(DISTINCT CASE WHEN first_action.first_at IS NOT NULL THEN u.id END) AS activated
+                FROM users u
+                LEFT JOIN (
+                    SELECT author_id, MIN(created_at) AS first_at
+                    FROM posts
+                    GROUP BY author_id
+                    UNION ALL
+                    SELECT author_id, MIN(created_at) AS first_at
+                    FROM comments
+                    GROUP BY author_id
+                ) first_action ON first_action.author_id = u.id
+                    AND first_action.first_at <= u.verified_at + INTERVAL '7 days'
+                WHERE u.verification_status = 'verified'
+                GROUP BY CASE WHEN u.invite_id IS NULL THEN 'admin' ELSE 'peer' END
+            """))
+        elif metric == 'deal_post':
+            rows = db.session.execute(text("""
+                SELECT 
+                    CASE WHEN u.invite_id IS NULL THEN 'admin' ELSE 'peer' END AS key,
+                    COUNT(DISTINCT u.id) AS users,
+                    COUNT(DISTINCT CASE WHEN p.id IS NOT NULL THEN u.id END) AS activated
+                FROM users u
+                LEFT JOIN posts p ON p.author_id = u.id AND p.post_type = 'deal'
+                WHERE u.verification_status = 'verified'
+                GROUP BY CASE WHEN u.invite_id IS NULL THEN 'admin' ELSE 'peer' END
+            """))
+        else:  # wau
+            rows = db.session.execute(text("""
+                SELECT 
+                    CASE WHEN u.invite_id IS NULL THEN 'admin' ELSE 'peer' END AS key,
+                    COUNT(DISTINCT u.id) AS users,
+                    COUNT(DISTINCT CASE WHEN ua.user_id IS NOT NULL THEN u.id END) AS activated
+                FROM users u
+                LEFT JOIN user_activity ua ON ua.user_id = u.id AND ua.created_at >= :start
+                WHERE u.verification_status = 'verified'
+                GROUP BY CASE WHEN u.invite_id IS NULL THEN 'admin' ELSE 'peer' END
+            """), {"start": window_start})
+        
+        for row in rows:
+            users_count = int(row.users or 0)
+            activated_count = int(row.activated or 0)
+            pct = round((activated_count / users_count * 100) if users_count else 0, 1)
+            results.append({
+                'key': row.key,
+                'users': users_count,
+                'activated_pct': pct
+            })
+    
+    elif dimension == 'verification_week':
+        rows = db.session.execute(text("""
+            SELECT 
+                DATE_TRUNC('week', u.verified_at) AS week_start,
+                COUNT(DISTINCT u.id) AS users,
+                COUNT(DISTINCT CASE WHEN first_action.first_at IS NOT NULL THEN u.id END) AS activated
+            FROM users u
+            LEFT JOIN (
+                SELECT author_id, MIN(created_at) AS first_at
+                FROM posts
+                GROUP BY author_id
+                UNION ALL
+                SELECT author_id, MIN(created_at) AS first_at
+                FROM comments
+                GROUP BY author_id
+            ) first_action ON first_action.author_id = u.id
+                AND first_action.first_at <= u.verified_at + INTERVAL '7 days'
+            WHERE u.verified_at IS NOT NULL
+            GROUP BY DATE_TRUNC('week', u.verified_at)
+            ORDER BY week_start DESC
+            LIMIT 12
+        """))
+        
+        for row in rows:
+            users_count = int(row.users or 0)
+            activated_count = int(row.activated or 0)
+            pct = round((activated_count / users_count * 100) if users_count else 0, 1)
+            week_key = row.week_start.strftime('%Y-%m-%d') if row.week_start else 'Unknown'
+            results.append({
+                'key': week_key,
+                'users': users_count,
+                'activated_pct': pct
+            })
+    
+    return jsonify({
+        'dimension': dimension,
+        'metric': metric,
+        'results': results
     }), 200

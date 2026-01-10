@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}Achievements - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-6 fw-bold text-primary mb-2">
+                <i class="fas fa-trophy text-warning me-2"></i>Achievements
+            </h1>
+            <p class="lead text-muted">Earn badges and points as you learn and contribute</p>
+        </div>
+    </div>
+
+    <!-- User Progress -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <i class="fas fa-medal fa-3x text-warning mb-2"></i>
+                    <h3 class="mb-0">{{ user_points }}</h3>
+                    <small class="text-muted">Total Points</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle fa-3x text-success mb-2"></i>
+                    <h3 class="mb-0">{{ earned_count }}</h3>
+                    <small class="text-muted">Achievements Unlocked</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-line fa-3x text-info mb-2"></i>
+                    <h3 class="mb-0">{{ progress_percent }}%</h3>
+                    <small class="text-muted">Overall Progress</small>
+                    <div class="progress mt-2" style="height: 8px;">
+                        <div class="progress-bar bg-info" role="progressbar" 
+                             style="width: {{ progress_percent }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-crown me-2"></i>Top Contributors</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Physician</th>
+                                    <th>Specialty</th>
+                                    <th>Points</th>
+                                    <th>Achievements</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in leaderboard %}
+                                <tr class="{% if user.id == current_user.id %}table-primary{% endif %}">
+                                    <td>
+                                        {% if loop.index == 1 %}
+                                        <i class="fas fa-crown text-warning"></i>
+                                        {% elif loop.index == 2 %}
+                                        <i class="fas fa-medal text-secondary"></i>
+                                        {% elif loop.index == 3 %}
+                                        <i class="fas fa-medal text-bronze"></i>
+                                        {% else %}
+                                        {{ loop.index }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ user.full_name }}</strong>
+                                        {% if user.is_verified %}
+                                        <i class="fas fa-check-circle text-primary ms-1"></i>
+                                        {% endif %}
+                                        {% if user.id == current_user.id %}
+                                        <span class="badge bg-success ms-2">You</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ user.specialty }}</td>
+                                    <td><strong>{{ user.points }}</strong> pts</td>
+                                    <td>{{ user.achievements.count() }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Achievements by Category -->
+    {% for category, achievements in categories.items() %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <h3 class="mb-3">
+                <i class="fas fa-{{ 'graduation-cap' if category == 'learning' else 'users' if category == 'community' else 'chart-line' if category == 'investing' else 'star' }} me-2"></i>
+                {{ category.replace('_', ' ').title() }} Achievements
+            </h3>
+            
+            <div class="row">
+                {% for item in achievements %}
+                {% set achievement = item.achievement %}
+                {% set earned = item.earned %}
+                {% set earned_at = item.earned_at %}
+                
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100 {{ 'border-success bg-light' if earned else 'border-secondary' }}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title {{ 'text-success' if earned else 'text-muted' }}">
+                                    {% if achievement.icon %}
+                                    {{ achievement.icon }} 
+                                    {% else %}
+                                    <i class="fas fa-trophy"></i>
+                                    {% endif %}
+                                    {{ achievement.name }}
+                                </h5>
+                                {% if earned %}
+                                <i class="fas fa-check-circle fa-2x text-success"></i>
+                                {% else %}
+                                <i class="fas fa-lock fa-2x text-muted"></i>
+                                {% endif %}
+                            </div>
+                            
+                            <p class="card-text small {{ 'text-dark' if earned else 'text-muted' }}">
+                                {{ achievement.description }}
+                            </p>
+                            
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <span class="badge bg-{{ 'success' if earned else 'secondary' }}">
+                                    <i class="fas fa-medal me-1"></i>{{ achievement.points }} points
+                                </span>
+                                {% if earned and earned_at %}
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    {{ earned_at.strftime('%b %d, %Y') }}
+                                </small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Info Card -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-info-circle text-primary me-2"></i>How to Earn Points</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Learning Activities</h6>
+                            <ul class="small">
+                                <li>Complete modules</li>
+                                <li>Pass quizzes</li>
+                                <li>Maintain streaks</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Community Participation</h6>
+                            <ul class="small">
+                                <li>Create helpful posts</li>
+                                <li>Engage in discussions</li>
+                                <li>Build your network</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Check for new achievements when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/check_achievements', {
+        method: 'POST',
+        headers: {'X-Requested-With': 'XMLHttpRequest'}
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.achievements && data.achievements.length > 0) {
+            // Show achievement notifications
+            data.achievements.forEach(achievement => {
+                showAchievementNotification(achievement);
+            });
+        }
+    });
+});
+
+function showAchievementNotification(achievement) {
+    const notification = document.createElement('div');
+    notification.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
+    notification.style.zIndex = '9999';
+    notification.innerHTML = `
+        <h5 class="alert-heading">
+            <i class="fas fa-trophy text-warning me-2"></i>Achievement Unlocked!
+        </h5>
+        <strong>${achievement.name}</strong><br>
+        <small>${achievement.description}</small><br>
+        <span class="badge bg-success mt-2">+${achievement.points} points</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 5000);
+}
+</script>
+
+<style>
+.text-bronze {
+    color: #CD7F32;
+}
+</style>
+{% endblock %}

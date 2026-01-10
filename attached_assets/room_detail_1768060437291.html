@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}{{ room.name }} - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Room Header -->
+    <div class="row mb-4">
+        <div class="col-lg-9">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h2 class="mb-0">
+                            <i class="{{ room.icon or 'fas fa-users' }} me-2"></i>{{ room.name }}
+                        </h2>
+                        <div>
+                            {% if stats.is_member %}
+                            <button class="btn btn-light btn-sm leave-room-btn" data-room-id="{{ room.id }}">
+                                <i class="fas fa-times me-1"></i>Leave Room
+                            </button>
+                            {% else %}
+                            <button class="btn btn-light btn-sm join-room-btn" data-room-id="{{ room.id }}">
+                                <i class="fas fa-plus me-1"></i>Join Room
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="lead">{{ room.description }}</p>
+                    <div class="d-flex gap-4">
+                        <div>
+                            <i class="fas fa-users text-primary me-1"></i>
+                            <strong id="member-count">{{ stats.members }}</strong> members
+                        </div>
+                        <div>
+                            <i class="fas fa-comment text-info me-1"></i>
+                            <strong>{{ stats.posts }}</strong> posts
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Room Info Sidebar -->
+        <div class="col-lg-3">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Room Type</h6>
+                </div>
+                <div class="card-body">
+                    <span class="badge bg-primary">{{ room.room_type.replace('_', ' ').title() }}</span>
+                    {% if room.specialty %}
+                    <p class="mt-2 mb-0 small text-muted">{{ room.specialty }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if stats.is_member %}
+    <!-- Create Post -->
+    <div class="row mb-4">
+        <div class="col-lg-9">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-pen me-2"></i>Share with the Community</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('create_room_post', room_id=room.id) }}" method="POST">
+                        <div class="mb-3">
+                            <textarea name="content" class="form-control" rows="4" 
+                                      placeholder="Share your investment question, insight, or experience..." required></textarea>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Post Type</label>
+                                <select name="post_type" class="form-select form-select-sm">
+                                    <option value="general">General</option>
+                                    <option value="question">Question</option>
+                                    <option value="insight">Market Insight</option>
+                                    <option value="achievement">Achievement</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-8 mb-3">
+                                <label class="form-label">Tags (comma-separated)</label>
+                                <input type="text" name="tags" class="form-control form-control-sm" 
+                                       placeholder="e.g., retirement, stocks, real-estate">
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="anonymous" value="true" id="anonymousCheck">
+                                <label class="form-check-label" for="anonymousCheck">
+                                    <i class="fas fa-user-secret me-1"></i>Post Anonymously
+                                    <small class="text-muted">(Shows as "{{ current_user.specialty }} • {{ current_user.location or 'USA' }}")</small>
+                                </label>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-1"></i>Share
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Join Prompt -->
+    <div class="row mb-4">
+        <div class="col-lg-9">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Join this room to participate in discussions and share your insights.
+                <button class="btn btn-primary btn-sm ms-3 join-room-btn" data-room-id="{{ room.id }}">
+                    <i class="fas fa-plus me-1"></i>Join Now
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Posts -->
+    <div class="row">
+        <div class="col-lg-9">
+            <h4 class="mb-3">Recent Discussions</h4>
+            
+            {% if posts %}
+                {% for post in posts %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex">
+                            <div class="me-3">
+                                {% if post.is_anonymous %}
+                                <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center" 
+                                     style="width: 40px; height: 40px;">
+                                    <i class="fas fa-user-secret text-white"></i>
+                                </div>
+                                {% else %}
+                                <div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center" 
+                                     style="width: 40px; height: 40px;">
+                                    <i class="fas fa-user-md text-white"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h6 class="mb-0">
+                                            {{ post.get_display_name() }}
+                                            {% if post.is_anonymous %}
+                                            <span class="badge bg-secondary ms-2">Anonymous</span>
+                                            {% elif post.author.is_verified %}
+                                            <i class="fas fa-check-circle text-primary ms-1"></i>
+                                            {% endif %}
+                                        </h6>
+                                        <small class="text-muted">{{ post.created_at.strftime('%B %d at %I:%M %p') }}</small>
+                                    </div>
+                                    {% if post.post_type != 'general' %}
+                                    <span class="badge bg-{{ 'warning' if post.post_type == 'question' else 'info' if post.post_type == 'insight' else 'success' }}">
+                                        {{ post.post_type.title() }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <p class="mb-2">{{ post.content }}</p>
+                                    
+                                    {% if post.tags %}
+                                    <div class="mb-3">
+                                        {% for tag in post.tags.split(',') %}
+                                        <a href="{{ url_for('view_tag', tag_name=tag.strip()) }}" class="badge bg-light text-dark me-1 text-decoration-none">
+                                            #{{ tag.strip() }}
+                                        </a>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="d-flex gap-3 pt-2 border-top">
+                                    <button class="btn btn-link text-muted p-0 like-btn" data-post-id="{{ post.id }}">
+                                        <i class="fas fa-heart {{ 'text-danger' if post.is_liked_by(current_user) else '' }}"></i>
+                                        <span class="like-count">{{ post.likes_count() }}</span>
+                                    </button>
+                                    <button class="btn btn-link text-muted p-0">
+                                        <i class="fas fa-comment"></i>
+                                        {{ post.comments_count() }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                    <h5>No posts yet</h5>
+                    <p class="text-muted">Be the first to start a discussion in this room!</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Right Sidebar -->
+        <div class="col-lg-3">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Anonymous Posting</h6>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted mb-0">
+                        Share sensitive questions about compensation, debt, or investments without revealing your identity. 
+                        Your specialty and location will be shown for context.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Room Guidelines</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="small mb-0 ps-3">
+                        <li>Be respectful and professional</li>
+                        <li>No personal medical advice</li>
+                        <li>Protect patient privacy</li>
+                        <li>No solicitation or spam</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Join/Leave room functionality
+document.querySelectorAll('.join-room-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const roomId = this.dataset.roomId;
+        fetch(`/room/${roomId}/join`, {
+            method: 'POST',
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        });
+    });
+});
+
+document.querySelectorAll('.leave-room-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        if (confirm('Are you sure you want to leave this room?')) {
+            const roomId = this.dataset.roomId;
+            fetch(`/room/${roomId}/leave`, {
+                method: 'POST',
+                headers: {'X-Requested-With': 'XMLHttpRequest'}
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            });
+        }
+    });
+});
+
+// Like functionality
+document.querySelectorAll('.like-btn').forEach(button => {
+    button.addEventListener('click', function() {
+        const postId = this.dataset.postId;
+        const heartIcon = this.querySelector('i');
+        const likeCount = this.querySelector('.like-count');
+        
+        fetch(`/like_post/${postId}`, {
+            method: 'POST',
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (data.action === 'liked') {
+                    heartIcon.classList.add('text-danger');
+                } else {
+                    heartIcon.classList.remove('text-danger');
+                }
+                likeCount.textContent = data.likes_count;
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

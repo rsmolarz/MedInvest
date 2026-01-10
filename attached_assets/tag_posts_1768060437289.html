@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}#{{ tag }} - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-6 fw-bold text-primary mb-2">
+                #{{ tag }}
+            </h1>
+            <p class="lead text-muted">{{ posts|length }} discussions about {{ tag }}</p>
+        </div>
+    </div>
+
+    <!-- Posts -->
+    <div class="row">
+        <div class="col-lg-8">
+            {% if posts %}
+                {% for post in posts %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex">
+                            <div class="me-3">
+                                {% if post.is_anonymous %}
+                                <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center" 
+                                     style="width: 40px; height: 40px;">
+                                    <i class="fas fa-user-secret text-white"></i>
+                                </div>
+                                {% else %}
+                                <div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center" 
+                                     style="width: 40px; height: 40px;">
+                                    <i class="fas fa-user-md text-white"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <div>
+                                        <h6 class="mb-0">
+                                            {{ post.get_display_name() }}
+                                            {% if post.is_anonymous %}
+                                            <span class="badge bg-secondary ms-1">Anonymous</span>
+                                            {% elif post.author.is_verified %}
+                                            <i class="fas fa-check-circle text-primary ms-1"></i>
+                                            {% endif %}
+                                        </h6>
+                                        <small class="text-muted">
+                                            {{ post.created_at.strftime('%B %d at %I:%M %p') }}
+                                            {% if post.room %}
+                                            • in <a href="{{ url_for('room_detail', room_id=post.room.id) }}">{{ post.room.name }}</a>
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    {% if post.post_type != 'general' %}
+                                    <span class="badge bg-{{ 'warning' if post.post_type == 'question' else 'info' if post.post_type == 'insight' else 'success' }}">
+                                        {{ post.post_type.title() }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                
+                                <p class="mb-2">{{ post.content }}</p>
+                                
+                                {% if post.tags %}
+                                <div class="mb-2">
+                                    {% for tag_item in post.tags.split(',') %}
+                                    <a href="{{ url_for('view_tag', tag_name=tag_item.strip()) }}" 
+                                       class="badge bg-light text-dark me-1 text-decoration-none">
+                                        #{{ tag_item.strip() }}
+                                    </a>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                
+                                <div class="d-flex gap-3 pt-2 border-top">
+                                    <button class="btn btn-link text-muted p-0 like-btn" data-post-id="{{ post.id }}">
+                                        <i class="fas fa-heart {{ 'text-danger' if post.is_liked_by(current_user) else '' }}"></i>
+                                        <span class="like-count">{{ post.likes_count() }}</span>
+                                    </button>
+                                    <span class="text-muted">
+                                        <i class="fas fa-comment"></i>
+                                        {{ post.comments_count() }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h5>No posts found</h5>
+                    <p class="text-muted">Be the first to post about #{{ tag }}!</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Right Sidebar -->
+        <div class="col-lg-4">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Related Topics</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2">
+                        {% set related_tags = ['retirement', 'taxplanning', 'realestate', 'stockmarket', 'indexfunds'] %}
+                        {% for related_tag in related_tags %}
+                        {% if related_tag != tag %}
+                        <a href="{{ url_for('view_tag', tag_name=related_tag) }}" 
+                           class="badge bg-primary text-decoration-none">
+                            #{{ related_tag }}
+                        </a>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-share-alt me-2"></i>Join the Conversation</h6>
+                </div>
+                <div class="card-body">
+                    <p class="small">Use #{{ tag }} in your posts to join this discussion!</p>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-sm w-100">
+                        <i class="fas fa-pen me-1"></i>Create Post
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Like functionality
+document.querySelectorAll('.like-btn').forEach(button => {
+    button.addEventListener('click', function() {
+        const postId = this.dataset.postId;
+        const heartIcon = this.querySelector('i');
+        const likeCount = this.querySelector('.like-count');
+        
+        fetch(`/like_post/${postId}`, {
+            method: 'POST',
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (data.action === 'liked') {
+                    heartIcon.classList.add('text-danger');
+                } else {
+                    heartIcon.classList.remove('text-danger');
+                }
+                likeCount.textContent = data.likes_count;
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

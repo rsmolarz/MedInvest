@@ -581,3 +581,32 @@ class AiJob(db.Model):
     post = db.relationship('Post', foreign_keys=[post_id])
     deal = db.relationship('DealDetails', foreign_keys=[deal_id])
 
+
+class UserActivity(db.Model):
+    """Lightweight activity log for accurate WAU/DAU and cohort analytics."""
+    __tablename__ = 'user_activity'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    activity_type = db.Column(db.String(30), nullable=False)  # view, post, comment, endorse, deal_create, ai_run, invite_accept
+    entity_type = db.Column(db.String(30))  # deal, post, comment, digest, invite
+    entity_id = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    user = db.relationship('User', foreign_keys=[user_id])
+
+
+class Alert(db.Model):
+    """Operational alerts for SLA breaches and other metrics."""
+    __tablename__ = 'alerts'
+
+    id = db.Column(db.Integer, primary_key=True)
+    alert_type = db.Column(db.String(50), nullable=False)  # verification_sla
+    metric = db.Column(db.String(30), nullable=False)  # p50, p95
+    value_hours = db.Column(db.Float, nullable=False)
+    threshold_hours = db.Column(db.Float, nullable=False)
+    window_start = db.Column(db.DateTime, nullable=False)
+    window_end = db.Column(db.DateTime, nullable=False)
+    sent_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+

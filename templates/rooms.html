@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Investment Rooms - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-6 fw-bold text-primary mb-2">
+                <i class="fas fa-users me-2"></i>Investment Discussion Rooms
+            </h1>
+            <p class="lead text-muted">Join specialty-specific communities to discuss investment strategies</p>
+        </div>
+    </div>
+
+    <!-- Your Rooms -->
+    {% if user_rooms %}
+    <div class="row mb-5">
+        <div class="col-12">
+            <h3 class="mb-3"><i class="fas fa-bookmark text-success me-2"></i>Your Rooms</h3>
+            <div class="row">
+                {% for room in user_rooms %}
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100 border-success">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title">
+                                    <i class="{{ room.icon or 'fas fa-users' }} text-primary me-2"></i>
+                                    {{ room.name }}
+                                </h5>
+                                <span class="badge bg-success">Joined</span>
+                            </div>
+                            <p class="card-text text-muted small">{{ room.description }}</p>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-users me-1"></i>{{ room.member_count() }} members
+                                    <i class="fas fa-comment ms-2 me-1"></i>{{ room.post_count() }} posts
+                                </small>
+                            </div>
+                            <a href="{{ url_for('room_detail', room_id=room.id) }}" class="btn btn-primary btn-sm w-100 mt-2">
+                                View Room
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Specialty Rooms -->
+    {% if specialty_rooms %}
+    <div class="row mb-5">
+        <div class="col-12">
+            <h3 class="mb-3"><i class="fas fa-stethoscope text-primary me-2"></i>By Medical Specialty</h3>
+            <div class="row">
+                {% for room in specialty_rooms %}
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="{{ room.icon or 'fas fa-users' }} text-primary me-2"></i>
+                                {{ room.name }}
+                            </h5>
+                            <p class="card-text text-muted small">{{ room.description }}</p>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-users me-1"></i>{{ room.member_count() }} members
+                                </small>
+                                <small class="text-muted">
+                                    <i class="fas fa-comment me-1"></i>{{ room.post_count() }} posts
+                                </small>
+                            </div>
+                            <a href="{{ url_for('room_detail', room_id=room.id) }}" class="btn btn-outline-primary btn-sm w-100 mt-2">
+                                Explore Room
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Career Stage Rooms -->
+    {% if career_stage_rooms %}
+    <div class="row mb-5">
+        <div class="col-12">
+            <h3 class="mb-3"><i class="fas fa-graduation-cap text-warning me-2"></i>By Career Stage</h3>
+            <div class="row">
+                {% for room in career_stage_rooms %}
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="{{ room.icon or 'fas fa-users' }} text-warning me-2"></i>
+                                {{ room.name }}
+                            </h5>
+                            <p class="card-text text-muted small">{{ room.description }}</p>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-users me-1"></i>{{ room.member_count() }} members
+                                </small>
+                                <small class="text-muted">
+                                    <i class="fas fa-comment me-1"></i>{{ room.post_count() }} posts
+                                </small>
+                            </div>
+                            <a href="{{ url_for('room_detail', room_id=room.id) }}" class="btn btn-outline-warning btn-sm w-100 mt-2">
+                                Explore Room
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Topic Rooms -->
+    {% if topic_rooms %}
+    <div class="row mb-5">
+        <div class="col-12">
+            <h3 class="mb-3"><i class="fas fa-lightbulb text-info me-2"></i>By Investment Topic</h3>
+            <div class="row">
+                {% for room in topic_rooms %}
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="{{ room.icon or 'fas fa-users' }} text-info me-2"></i>
+                                {{ room.name }}
+                            </h5>
+                            <p class="card-text text-muted small">{{ room.description }}</p>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-users me-1"></i>{{ room.member_count() }} members
+                                </small>
+                                <small class="text-muted">
+                                    <i class="fas fa-comment me-1"></i>{{ room.post_count() }} posts
+                                </small>
+                            </div>
+                            <a href="{{ url_for('room_detail', room_id=room.id) }}" class="btn btn-outline-info btn-sm w-100 mt-2">
+                                Explore Room
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Info Card -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-info-circle text-primary me-2"></i>About Investment Rooms</h5>
+                    <p class="mb-2">Investment Rooms are specialty-specific communities where you can:</p>
+                    <ul class="mb-0">
+                        <li>Discuss investment strategies relevant to your specialty and income level</li>
+                        <li>Learn from colleagues at similar career stages</li>
+                        <li>Share experiences and ask questions anonymously</li>
+                        <li>Get advice on specialty-specific financial challenges</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

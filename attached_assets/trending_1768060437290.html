@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Trending Topics - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-6 fw-bold text-primary mb-2">
+                <i class="fas fa-fire text-danger me-2"></i>Trending Topics
+            </h1>
+            <p class="lead text-muted">See what physician-investors are discussing right now</p>
+        </div>
+    </div>
+
+    <!-- Trending Tags -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Hot Topics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for topic in trending %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <a href="{{ url_for('view_tag', tag_name=topic.tag) }}" class="text-decoration-none">
+                                <div class="card h-100 border-{{ 'danger' if loop.index <= 3 else 'warning' if loop.index <= 7 else 'primary' }}">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h4 class="text-{{ 'danger' if loop.index <= 3 else 'warning' if loop.index <= 7 else 'primary' }}">
+                                                #{{ topic.tag }}
+                                            </h4>
+                                            <span class="badge bg-{{ 'danger' if loop.index <= 3 else 'warning' if loop.index <= 7 else 'primary' }}">
+                                                #{{ loop.index }}
+                                            </span>
+                                        </div>
+                                        <div class="d-flex justify-content-between text-muted small">
+                                            <span>
+                                                <i class="fas fa-comment me-1"></i>{{ topic.post_count }} posts
+                                            </span>
+                                            <span>
+                                                <i class="fas fa-hashtag me-1"></i>{{ topic.mention_count }} mentions
+                                            </span>
+                                        </div>
+                                        
+                                        {% if trending_posts.get(topic.tag) %}
+                                        <hr>
+                                        <p class="small text-muted mb-0">
+                                            <i class="fas fa-clock me-1"></i>
+                                            Last mentioned {{ topic.last_mentioned.strftime('%I:%M %p') }}
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Posts by Topic -->
+    {% for topic in trending[:5] %}
+    {% set posts = trending_posts.get(topic.tag, []) %}
+    {% if posts %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="mb-3">
+                <span class="badge bg-primary">#{{ topic.tag }}</span>
+                <small class="text-muted ms-2">Top Discussions</small>
+            </h4>
+            
+            {% for post in posts %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex">
+                        <div class="me-3">
+                            {% if post.is_anonymous %}
+                            <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center" 
+                                 style="width: 40px; height: 40px;">
+                                <i class="fas fa-user-secret text-white"></i>
+                            </div>
+                            {% else %}
+                            <div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center" 
+                                 style="width: 40px; height: 40px;">
+                                <i class="fas fa-user-md text-white"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between mb-2">
+                                <div>
+                                    <h6 class="mb-0">
+                                        {{ post.get_display_name() }}
+                                        {% if post.is_anonymous %}
+                                        <span class="badge bg-secondary ms-1">Anonymous</span>
+                                        {% elif post.author.is_verified %}
+                                        <i class="fas fa-check-circle text-primary ms-1"></i>
+                                        {% endif %}
+                                    </h6>
+                                    <small class="text-muted">{{ post.created_at.strftime('%B %d at %I:%M %p') }}</small>
+                                </div>
+                                {% if post.post_type != 'general' %}
+                                <span class="badge bg-{{ 'warning' if post.post_type == 'question' else 'info' if post.post_type == 'insight' else 'success' }}">
+                                    {{ post.post_type.title() }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            
+                            <p class="mb-2">{{ post.content[:200] }}{% if post.content|length > 200 %}...{% endif %}</p>
+                            
+                            {% if post.tags %}
+                            <div class="mb-2">
+                                {% for tag in post.tags.split(',')[:3] %}
+                                <span class="badge bg-light text-dark me-1">#{{ tag.strip() }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            
+                            <div class="d-flex gap-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-heart text-danger"></i> {{ post.likes_count() }}
+                                </small>
+                                <small class="text-muted">
+                                    <i class="fas fa-comment"></i> {{ post.comments_count() }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            
+            <div class="text-center mb-3">
+                <a href="{{ url_for('view_tag', tag_name=topic.tag) }}" class="btn btn-outline-primary">
+                    View All #{{ topic.tag }} Posts
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+
+    <!-- Info Card -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-lightbulb text-primary me-2"></i>How Trending Works</h5>
+                    <p class="mb-0">
+                        Topics trend based on recent mentions and engagement. Use relevant hashtags in your posts to join trending conversations!
+                        Popular topics include <strong>#retirement</strong>, <strong>#studentloans</strong>, <strong>#taxplanning</strong>, 
+                        <strong>#realestate</strong>, and <strong>#stockmarket</strong>.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
