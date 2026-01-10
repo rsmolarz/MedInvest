@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}{{ module.title }} - MedLearn Invest{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Module Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}" class="text-decoration-none">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('modules') }}" class="text-decoration-none">Modules</a></li>
+                    <li class="breadcrumb-item active">{{ module.title }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h2 class="card-title mb-0">{{ module.title }}</h2>
+                        <span class="badge bg-light text-dark">{{ module.difficulty_level }}</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="module-content">
+                        {{ module.content|safe }}
+                    </div>
+                    
+                    {% if not progress.completed %}
+                        <div class="mt-4 p-3 bg-light rounded">
+                            <h5 class="text-primary">Ready to complete this module?</h5>
+                            <p class="text-muted mb-3">Mark this module as completed once you've finished reading and understanding the content.</p>
+                            <form method="POST" action="{{ url_for('complete_module', module_id=module.id) }}">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-check me-2"></i>Mark as Completed
+                                </button>
+                            </form>
+                        </div>
+                    {% else %}
+                        <div class="mt-4 p-3 bg-success text-white rounded">
+                            <h5><i class="fas fa-check-circle me-2"></i>Module Completed!</h5>
+                            <p class="mb-0">
+                                You completed this module on {{ progress.completion_date.strftime('%B %d, %Y at %I:%M %p') }}
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Module Info -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i>Module Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Category:</strong>
+                        </div>
+                        <div class="col-6">
+                            <span class="badge bg-primary">{{ module.category }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Difficulty:</strong>
+                        </div>
+                        <div class="col-6">
+                            <span class="badge bg-{{ 'success' if module.difficulty_level == 'Beginner' else 'warning text-dark' if module.difficulty_level == 'Intermediate' else 'danger' }}">
+                                {{ module.difficulty_level }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Duration:</strong>
+                        </div>
+                        <div class="col-6">
+                            {{ module.estimated_duration }} minutes
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-6">
+                            <strong>Status:</strong>
+                        </div>
+                        <div class="col-6">
+                            {% if progress.completed %}
+                                <span class="text-success"><i class="fas fa-check-circle me-1"></i>Completed</span>
+                            {% else %}
+                                <span class="text-warning"><i class="fas fa-clock me-1"></i>In Progress</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Navigation -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-compass me-2"></i>Navigation</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('modules') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Modules
+                        </a>
+                        
+                        <a href="{{ url_for('forums') }}" class="btn btn-outline-info">
+                            <i class="fas fa-comments me-2"></i>Discuss in Forums
+                        </a>
+                        
+                        {% if progress.completed %}
+                            <a href="{{ url_for('modules') }}" class="btn btn-primary">
+                                <i class="fas fa-forward me-2"></i>Next Module
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.module-content h3 {
+    color: var(--bs-primary);
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+
+.module-content ul {
+    margin-bottom: 1.5rem;
+}
+
+.module-content p {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+</style>
+{% endblock %}

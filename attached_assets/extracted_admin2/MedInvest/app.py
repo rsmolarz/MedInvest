@@ -1,0 +1,57 @@
+import os
+import logging
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import DeclarativeBase
+from werkzeug.middleware.proxy_fix import ProxyFix
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+
+class Base(DeclarativeBase):
+    pass
+
+db = SQLAlchemy(model_class=Base)
+
+# Create the app
+app = Flask(__name__)
+app.secret_key = os.environ.get("SESSION_SECRET", "fallback-secret-for-development-only")
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+# Configure the database
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///medlearn.db")
+
+# Configure database options
+engine_options = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True,
+}
+
+# Deployment environment detection and optimization
+if os.environ.get("REPLIT_DEPLOYMENT") or os.environ.get("GOOGLE_CLOUD_PROJECT"):
+    app.config["DEBUG"] = False
+    app.config["TESTING"] = False
+    # Optimize for deployment
+    engine_options.update({
+        "pool_size": 5,
+        "max_overflow": 10,
+        "pool_timeout": 30
+    })
+
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = engine_options
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+# Initialize the app with the extension
+db.init_app(app)
+
+with app.app_context():
+    # Import models so SQLAlchemy has the metadata. Use Alembic migrations to
+    # create/alter tables in real deployments.
+    import models  # noqa: F401
+
+    # Development convenience: allow automatic table creation only when
+    # explicitly enabled. This avoids racing/overwriting schemas when Alembic
+    # is used.
+    if os.environ.get("AUTO_CREATE_DB") == "1":
+        db.create_all()
+        logging.info("Database tables created (AUTO_CREATE_DB=1)")
