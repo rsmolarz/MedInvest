@@ -507,6 +507,10 @@ class AiJob(db.Model):
     deal_id = db.Column(db.Integer, db.ForeignKey('deal_details.id'))
     input_text = db.Column(db.Text)
 
+    # Idempotency & de-duplication
+    # If the client supplies an idempotency_key, we guarantee the same request
+    # will return the same queued/running job (until completion) rather than
+    # enqueue duplicates.
     idempotency_key = db.Column(db.String(120))
     request_fingerprint = db.Column(db.String(64), index=True)
 
@@ -521,4 +525,9 @@ class AiJob(db.Model):
     created_by = db.relationship('User', foreign_keys=[created_by_id])
     post = db.relationship('Post', foreign_keys=[post_id])
     deal = db.relationship('DealDetails', foreign_keys=[deal_id])
+
+    __table_args__ = (
+        # Best-effort uniqueness for idempotent requests (NULLs allowed)
+        db.Index('ix_ai_jobs_creator_type_fingerprint', 'created_by_id', 'job_type', 'request_fingerprint'),
+    )
 

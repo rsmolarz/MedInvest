@@ -32,6 +32,7 @@ def _fingerprint(
 def _check_rate_limit(created_by_id: int) -> None:
     """DB-based rate limit. Raises ValueError if exceeded."""
     cutoff = datetime.utcnow().timestamp() - AI_RATE_LIMIT_WINDOW_SECONDS
+    # created_at is datetime; compare via Python by filtering with datetime
     from datetime import datetime as _dt
 
     cutoff_dt = _dt.utcfromtimestamp(cutoff)
@@ -111,6 +112,7 @@ def enqueue_ai_job(
 def _notify_ai_complete(job: AiJob) -> None:
     """Create notification events when AI job completes."""
     try:
+        # Always notify the requestor
         msg = "AI analysis complete" if job.job_type == "analyze_deal" else "AI summary complete"
         related_post_id = None
         if job.deal_id:
@@ -143,6 +145,7 @@ def _notify_ai_complete(job: AiJob) -> None:
                 )
                 db.session.add(n2)
     except Exception:
+        # Never fail the job on notification issues
         return
 
 
@@ -150,6 +153,7 @@ def _job_input_text(job: AiJob) -> str:
     if job.input_text:
         return job.input_text
 
+    # Derive from post / deal if present
     if job.deal_id:
         deal: DealDetails | None = DealDetails.query.get(job.deal_id)
         if not deal:
@@ -212,6 +216,7 @@ def process_job(job_id: int) -> AiJob:
                 job.output_json = json.dumps(result)
 
                 if job.deal_id and job.output_text:
+                    # Persist as an analysis snapshot tied to the deal
                     analysis = DealAnalysis(
                         deal_id=job.deal_id,
                         created_by_id=job.created_by_id,
