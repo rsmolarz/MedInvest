@@ -7,7 +7,13 @@ from datetime import datetime, timedelta
 from functools import wraps
 from app import db
 from models import (User, Post, Room, ExpertAMA, AMAStatus, InvestmentDeal, 
-                   DealStatus, Course, Event, SubscriptionTier)
+                   DealStatus, Course, Event, SubscriptionTier, AdAdvertiser, 
+                   AdCampaign, AdCreative, AdImpression, AdClick)
+import json
+import hmac
+import hashlib
+import base64
+import os
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -245,3 +251,119 @@ def manage_rooms():
     
     rooms = Room.query.order_by(Room.category, Room.name).all()
     return render_template('admin/rooms.html', rooms=rooms)
+
+
+# ============================================================================
+# ADS ADMIN CRUD ENDPOINTS
+# ============================================================================
+
+@admin_bp.route('/ads/advertisers', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def ads_admin_advertisers():
+    """Admin: List or create advertisers."""
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        advertiser = AdAdvertiser(
+            name=data.get('name', ''),
+            category=data.get('category', 'other'),
+            compliance_status=data.get('compliance_status', 'active')
+        )
+        db.session.add(advertiser)
+        db.session.commit()
+        return jsonify({
+            "id": advertiser.id,
+            "name": advertiser.name,
+            "category": advertiser.category,
+            "compliance_status": advertiser.compliance_status
+        }), 201
+    
+    advertisers = AdAdvertiser.query.order_by(AdAdvertiser.id.desc()).limit(200).all()
+    return jsonify([{
+        "id": a.id,
+        "name": a.name,
+        "category": a.category,
+        "compliance_status": a.compliance_status,
+        "created_at": a.created_at.isoformat() if a.created_at else None
+    } for a in advertisers])
+
+
+@admin_bp.route('/ads/campaigns', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def ads_admin_campaigns():
+    """Admin: List or create campaigns."""
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        campaign = AdCampaign(
+            advertiser_id=data.get('advertiser_id'),
+            name=data.get('name', ''),
+            start_at=datetime.fromisoformat(data.get('start_at')) if data.get('start_at') else datetime.utcnow(),
+            end_at=datetime.fromisoformat(data.get('end_at')) if data.get('end_at') else datetime.utcnow() + timedelta(days=30),
+            daily_budget=data.get('daily_budget', 0),
+            targeting_json=json.dumps(data.get('targeting_json', {}))
+        )
+        db.session.add(campaign)
+        db.session.commit()
+        return jsonify({
+            "id": campaign.id,
+            "advertiser_id": campaign.advertiser_id,
+            "name": campaign.name,
+            "start_at": campaign.start_at.isoformat() if campaign.start_at else None,
+            "end_at": campaign.end_at.isoformat() if campaign.end_at else None
+        }), 201
+    
+    campaigns = AdCampaign.query.order_by(AdCampaign.id.desc()).limit(200).all()
+    return jsonify([{
+        "id": c.id,
+        "advertiser_id": c.advertiser_id,
+        "name": c.name,
+        "start_at": c.start_at.isoformat() if c.start_at else None,
+        "end_at": c.end_at.isoformat() if c.end_at else None,
+        "daily_budget": c.daily_budget,
+        "targeting_json": c.targeting_json
+    } for c in campaigns])
+
+
+@admin_bp.route('/ads/creatives', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def ads_admin_creatives():
+    """Admin: List or create creatives."""
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        creative = AdCreative(
+            campaign_id=data.get('campaign_id'),
+            format=data.get('format', 'feed'),
+            headline=data.get('headline', ''),
+            body=data.get('body', ''),
+            image_url=data.get('image_url'),
+            cta_text=data.get('cta_text', 'Learn more'),
+            landing_url=data.get('landing_url', ''),
+            disclaimer_text=data.get('disclaimer_text', ''),
+            is_active=True
+        )
+        db.session.add(creative)
+        db.session.commit()
+        return jsonify({
+            "id": creative.id,
+            "campaign_id": creative.campaign_id,
+            "format": creative.format,
+            "headline": creative.headline,
+            "is_active": creative.is_active
+        }), 201
+    
+    creatives = AdCreative.query.order_by(AdCreative.id.desc()).limit(200).all()
+    return jsonify([{
+        "id": c.id,
+        "campaign_id": c.campaign_id,
+        "format": c.format,
+        "headline": c.headline,
+        "body": c.body,
+        "image_url": c.image_url,
+        "cta_text": c.cta_text,
+        "landing_url": c.landing_url,
+        "disclaimer_text": c.disclaimer_text,
+        "is_active": c.is_active,
+        "created_at": c.created_at.isoformat() if c.created_at else None
+    } for c in creatives])

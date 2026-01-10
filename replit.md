@@ -6,6 +6,22 @@ The platform features two main architectures: a primary Flask-based web applicat
 
 ## Recent Changes (January 10, 2026)
 
+✓ Internal Ad Serving System:
+- **Models**: AdAdvertiser, AdCampaign, AdCreative, AdImpression, AdClick
+- **Public Endpoints**:
+  - GET /ads/serve - Serve targeted ads based on placement, keywords, specialty
+  - POST /ads/impression - Log ad impression with idempotency guard
+  - GET /ads/click/{token} - Signed click redirect with tracking
+- **Admin CRUD Endpoints**:
+  - GET|POST /admin/ads/advertisers
+  - GET|POST /admin/ads/campaigns
+  - GET|POST /admin/ads/creatives
+- **Frontend Components** (Next.js/React):
+  - FeedSponsoredCard.tsx - Full-width feed placement
+  - SidebarSponsoredCard.tsx - Sidebar placement
+  - adsClient.ts - fetchAd, logAdImpression, adClickHref utilities
+- **Targeting JSON** supports: specialty, role, state, placement, keywords_any, exclude_user_ids
+
 ✓ Modular Blueprint Architecture Migration:
 - Migrated from monolithic routes.py to 13 modular blueprints in routes/ folder
 - Blueprints: auth, main, rooms, ama, deals, subscription, courses, events, mentorship, referral, portfolio, ai, admin, errors
