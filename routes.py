@@ -2,8 +2,10 @@ from flask import render_template, request, redirect, url_for, flash, session, j
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash
 from app import app, db
-from models import User, Module, UserProgress, ForumTopic, ForumPost, PortfolioTransaction, Resource, Post, Comment, Like, Follow, Notification, Group, GroupMembership, Connection, DealDetails, DealAnalysis, AiJob
-from datetime import datetime
+from models import User, Module, UserProgress, ForumTopic, ForumPost, PortfolioTransaction, Resource, Post, Comment, Like, Follow, Notification, Group, GroupMembership, Connection, DealDetails, DealAnalysis, AiJob, ReputationEvent, Invite, Digest, DigestItem
+from datetime import datetime, timedelta
+import json
+import math
 import logging
 import os
 from markupsafe import Markup
@@ -1493,3 +1495,399 @@ def _notify_relevant_physicians(deal: DealDetails, post: Post):
         db.session.commit()
     except Exception as e:
         logging.error(f"Failed to notify physicians: {e}")
+
+
+# Signal score functions
+
+def _exp_decay(age_days: float, halflife_days: float = 7.0) -> float:
+    return math.exp(-age_days / max(halflife_days, 0.1))
+
+
+def compute_deal_signal_score(deal: DealDetails) -> float:
+    post = Post.query.get(deal.post_id)
+    endorsements = ReputationEvent.query.filter_by(related_post_id=deal.post_id, event_type='post_upvote').count()
+    comment_count = Comment.query.filter_by(post_id=deal.post_id).count()
+    author_rep = 0
+    if post and post.author:
+        author_rep = int(post.author.reputation_score or 0)
+    age_days = 0.0
+    if deal.created_at:
+        age_days = (datetime.utcnow() - deal.created_at).total_seconds() / 86400.0
+    score = (10.0 * endorsements) + (2.0 * comment_count) + (0.1 * author_rep)
+    return float(score) * _exp_decay(age_days, 7.0)
+
+
+def compute_comment_impact_score(c: Comment) -> float:
+    endorsements = ReputationEvent.query.filter_by(related_post_id=c.post_id, event_type='comment_upvote').count()
+    author_rep = int(c.author.reputation_score or 0) if c.author else 0
+    age_days = 0.0
+    if c.created_at:
+        age_days = (datetime.utcnow() - c.created_at).total_seconds() / 86400.0
+    score = (5.0 * endorsements) + (3.0 * math.log1p(max(author_rep, 0)))
+    return float(score) * _exp_decay(age_days, 7.0)
+
+
+# Deals API
+
+@app.route('/api/deals', methods=['GET', 'POST'])
+@login_required
+@require_verified
+def api_deals():
+    if request.method == 'GET':
+        asset_class = (request.args.get('asset_class') or '').strip() or None
+        status = (request.args.get('status') or '').strip() or None
+        sort = (request.args.get('sort') or '').strip() or 'new'
+
+        q = DealDetails.query
+        if sort == 'trending':
+            deals = q.all()
+            scored = [(d, compute_deal_signal_score(d)) for d in deals]
+            scored.sort(key=lambda x: x[1], reverse=True)
+            offset = int(request.args.get('offset') or 0)
+            limit = int(request.args.get('limit') or 25)
+            scored_page = scored[offset:offset+limit]
+            return jsonify({'results': [
+                {
+                    'id': d.id,
+                    'post_id': d.post_id,
+                    'asset_class': d.asset_class,
+                    'strategy': d.strategy,
+                    'location': d.location,
+                    'time_horizon_months': d.time_horizon_months,
+                    'thesis': d.thesis,
+                    'status': d.status,
+                    'created_at': d.created_at.isoformat() if d.created_at else None,
+                    'signal_score': s,
+                } for d, s in scored_page
+            ]}), 200
+
+        if asset_class:
+            q = q.filter(DealDetails.asset_class == asset_class)
+        if status:
+            q = q.filter(DealDetails.status == status)
+        deals = q.order_by(DealDetails.created_at.desc()).limit(50).all()
+
+        out = []
+        for d in deals:
+            p = Post.query.get(d.post_id) if d.post_id else None
+            out.append({
+                'deal_id': d.id,
+                'post_id': d.post_id,
+                'asset_class': d.asset_class,
+                'strategy': d.strategy,
+                'location': d.location,
+                'time_horizon_months': d.time_horizon_months,
+                'target_irr': d.target_irr,
+                'target_multiple': d.target_multiple,
+                'minimum_investment': d.minimum_investment,
+                'sponsor_name': d.sponsor_name,
+                'status': d.status,
+                'thesis': d.thesis,
+                'post_content': (p.content if p else None),
+                'created_at': d.created_at.isoformat() if d.created_at else None,
+            })
+        return jsonify({'deals': out}), 200
+
+    data = request.get_json(silent=True) or {}
+    asset_class = (data.get('asset_class') or '').strip()
+    thesis = (data.get('thesis') or '').strip()
+    post_content = (data.get('post_content') or '').strip() or thesis
+
+    if not asset_class:
+        return jsonify({'error': 'missing_asset_class'}), 400
+    if not thesis:
+        return jsonify({'error': 'missing_thesis'}), 400
+
+    strategy = (data.get('strategy') or '').strip() or None
+    location = (data.get('location') or '').strip() or None
+    sponsor_name = (data.get('sponsor_name') or '').strip() or None
+    sponsor_track_record = (data.get('sponsor_track_record') or '').strip() or None
+    key_risks = (data.get('key_risks') or '').strip() or None
+    diligence_needed = (data.get('diligence_needed') or '').strip() or None
+    status = (data.get('status') or 'open').strip().lower()
+    if status not in ('open', 'closed', 'pass'):
+        return jsonify({'error': 'invalid_status'}), 400
+
+    def _to_int(v):
+        try:
+            return int(v) if v is not None and v != '' else None
+        except Exception:
+            return None
+
+    def _to_float(v):
+        try:
+            return float(v) if v is not None and v != '' else None
+        except Exception:
+            return None
+
+    time_horizon_months = _to_int(data.get('time_horizon_months'))
+    minimum_investment = _to_int(data.get('minimum_investment'))
+    target_irr = _to_float(data.get('target_irr'))
+    target_multiple = _to_float(data.get('target_multiple'))
+
+    post = Post(
+        author_id=current_user.id,
+        content=post_content,
+        post_type='deal',
+        visibility=(data.get('visibility') or 'physicians'),
+        group_id=data.get('group_id') or None,
+    )
+    db.session.add(post)
+    db.session.flush()
+
+    deal = DealDetails(
+        post_id=post.id,
+        asset_class=asset_class,
+        strategy=strategy,
+        location=location,
+        time_horizon_months=time_horizon_months,
+        target_irr=target_irr,
+        target_multiple=target_multiple,
+        minimum_investment=minimum_investment,
+        sponsor_name=sponsor_name,
+        sponsor_track_record=sponsor_track_record,
+        thesis=thesis,
+        key_risks=key_risks,
+        diligence_needed=diligence_needed,
+        status=status,
+    )
+    db.session.add(deal)
+    db.session.commit()
+    return jsonify({'status': 'created', 'deal_id': deal.id, 'post_id': post.id}), 201
+
+
+@app.route('/api/deals/<int:deal_id>', methods=['GET'])
+@login_required
+@require_verified
+def api_deal_get(deal_id: int):
+    deal = DealDetails.query.get_or_404(deal_id)
+    post = Post.query.get(deal.post_id) if deal.post_id else None
+    analyses = DealAnalysis.query.filter_by(deal_id=deal.id).order_by(DealAnalysis.created_at.desc()).limit(10).all()
+    return jsonify({
+        'deal': {
+            'id': deal.id,
+            'post_id': deal.post_id,
+            'asset_class': deal.asset_class,
+            'strategy': deal.strategy,
+            'location': deal.location,
+            'time_horizon_months': deal.time_horizon_months,
+            'target_irr': deal.target_irr,
+            'target_multiple': deal.target_multiple,
+            'minimum_investment': deal.minimum_investment,
+            'sponsor_name': deal.sponsor_name,
+            'sponsor_track_record': deal.sponsor_track_record,
+            'thesis': deal.thesis,
+            'key_risks': deal.key_risks,
+            'diligence_needed': deal.diligence_needed,
+            'status': deal.status,
+            'created_at': deal.created_at.isoformat() if deal.created_at else None,
+        },
+        'post': {
+            'id': post.id if post else None,
+            'content': post.content if post else None,
+            'author_id': post.author_id if post else None,
+            'created_at': post.created_at.isoformat() if post and post.created_at else None,
+        },
+        'analyses': [
+            {
+                'id': a.id,
+                'provider': a.provider,
+                'model': a.model,
+                'output_text': a.output_text,
+                'created_at': a.created_at.isoformat() if a.created_at else None,
+            } for a in analyses
+        ]
+    }), 200
+
+
+# Invites API
+
+@app.route('/api/invites', methods=['GET', 'POST'])
+@login_required
+@require_verified
+def api_invites():
+    if request.method == 'GET':
+        invites = Invite.query.filter_by(inviter_user_id=current_user.id).order_by(Invite.created_at.desc()).limit(200).all()
+        return jsonify({
+            'invite_credits': int(getattr(current_user, 'invite_credits', 0) or 0),
+            'results': [{
+                'id': i.id,
+                'code': i.code,
+                'invitee_email': i.invitee_email,
+                'status': i.status,
+                'created_at': i.created_at.isoformat() if i.created_at else None,
+                'expires_at': i.expires_at.isoformat() if i.expires_at else None,
+                'accepted_at': i.accepted_at.isoformat() if i.accepted_at else None,
+            } for i in invites]
+        }), 200
+
+    if (current_user.invite_credits or 0) <= 0 and (current_user.role != 'admin'):
+        return jsonify({'error': 'no_invites_remaining'}), 403
+
+    data = request.get_json(silent=True) or {}
+    invitee_email = (data.get('invitee_email') or '').strip() or None
+
+    i = Invite(
+        code=Invite.new_code(),
+        inviter_user_id=current_user.id,
+        invitee_email=invitee_email,
+        status='issued',
+        expires_at=datetime.utcnow() + timedelta(days=14),
+    )
+    db.session.add(i)
+    if current_user.role != 'admin':
+        current_user.invite_credits = (current_user.invite_credits or 0) - 1
+    db.session.commit()
+
+    return jsonify({
+        'id': i.id,
+        'code': i.code,
+        'invitee_email': i.invitee_email,
+        'status': i.status,
+        'expires_at': i.expires_at.isoformat() if i.expires_at else None,
+        'invite_credits': int(current_user.invite_credits or 0),
+    }), 201
+
+
+@app.route('/api/invites/accept', methods=['POST'])
+def api_invites_accept():
+    data = request.get_json(silent=True) or {}
+    code = (data.get('code') or '').strip().upper()
+    if not code:
+        return jsonify({'error': 'missing_code'}), 400
+
+    inv = Invite.query.filter_by(code=code).first()
+    if not inv:
+        return jsonify({'error': 'invalid_code'}), 404
+    if inv.status != 'issued':
+        return jsonify({'error': 'invite_not_active', 'status': inv.status}), 400
+    if inv.expires_at and inv.expires_at < datetime.utcnow():
+        inv.status = 'expired'
+        db.session.commit()
+        return jsonify({'error': 'invite_expired'}), 400
+
+    inv.status = 'accepted'
+    inv.accepted_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify({'ok': True, 'invite_id': inv.id}), 200
+
+
+# Digests API
+
+def generate_weekly_digest(period_days: int = 7) -> Digest:
+    end = datetime.utcnow()
+    start = end - timedelta(days=period_days)
+
+    deals = DealDetails.query.filter(DealDetails.created_at >= start).all()
+    deal_scored = [(d, compute_deal_signal_score(d)) for d in deals]
+    deal_scored.sort(key=lambda x: x[1], reverse=True)
+    top_deals = deal_scored[:3]
+
+    comments = Comment.query.filter(Comment.created_at >= start).all()
+    comment_scored = [(c, compute_comment_impact_score(c)) for c in comments]
+    comment_scored.sort(key=lambda x: x[1], reverse=True)
+    top_comments = comment_scored[:3]
+
+    digest = Digest(period_start=start, period_end=end)
+    db.session.add(digest)
+    db.session.flush()
+
+    rank = 1
+    for d, s in top_deals:
+        db.session.add(DigestItem(digest_id=digest.id, item_type='deal', entity_id=d.id, score=s, rank=rank))
+        rank += 1
+
+    rank = 1
+    for c, s in top_comments:
+        db.session.add(DigestItem(digest_id=digest.id, item_type='comment', entity_id=c.id, score=s, rank=rank))
+        rank += 1
+
+    summary_payload = {
+        "summary": "Top deals and discussions from the past week. Open the digest to review details.",
+    }
+    db.session.add(DigestItem(digest_id=digest.id, item_type='summary', entity_id=None, score=0.0, rank=1, payload_json=json.dumps(summary_payload)))
+
+    db.session.commit()
+    return digest
+
+
+@app.route('/api/digests/latest', methods=['GET'])
+@login_required
+@require_verified
+def api_digest_latest():
+    d = Digest.query.order_by(Digest.created_at.desc()).first()
+    if not d:
+        return jsonify({'error': 'no_digest'}), 404
+    return api_digest_get(d.id)
+
+
+@app.route('/api/digests/<int:digest_id>', methods=['GET'])
+@login_required
+@require_verified
+def api_digest_get(digest_id: int):
+    d = Digest.query.get_or_404(digest_id)
+    items = DigestItem.query.filter_by(digest_id=d.id).order_by(DigestItem.item_type.asc(), DigestItem.rank.asc()).all()
+    return jsonify({
+        'digest': {
+            'id': d.id,
+            'period_start': d.period_start.isoformat() if d.period_start else None,
+            'period_end': d.period_end.isoformat() if d.period_end else None,
+            'created_at': d.created_at.isoformat() if d.created_at else None,
+        },
+        'items': [{
+            'id': it.id,
+            'item_type': it.item_type,
+            'entity_id': it.entity_id,
+            'score': it.score,
+            'rank': it.rank,
+            'payload': json.loads(it.payload_json) if it.payload_json else None,
+            'created_at': it.created_at.isoformat() if it.created_at else None,
+        } for it in items]
+    }), 200
+
+
+# Analytics Dashboard API (Admin-only)
+
+@app.route('/api/admin/analytics/overview', methods=['GET'])
+@login_required
+@require_roles('admin')
+def api_admin_analytics_overview():
+    now = datetime.utcnow()
+    week_ago = now - timedelta(days=7)
+    
+    verified_wau = User.query.filter(
+        User.verification_status == 'verified',
+        User.last_seen >= week_ago
+    ).count()
+    
+    deal_wau = db.session.query(db.func.count(db.distinct(Post.author_id))).filter(
+        Post.post_type == 'deal',
+        Post.created_at >= week_ago
+    ).scalar() or 0
+    
+    pending_verifications = User.query.filter(User.verification_status == 'pending').count()
+    
+    invites_issued_7d = Invite.query.filter(Invite.created_at >= week_ago).count()
+    invites_accepted_7d = Invite.query.filter(
+        Invite.status == 'accepted',
+        Invite.accepted_at >= week_ago
+    ).count()
+    
+    deals_created_7d = DealDetails.query.filter(DealDetails.created_at >= week_ago).count()
+    
+    ai_jobs_7d = AiJob.query.filter(AiJob.created_at >= week_ago).count()
+    ai_jobs_completed_7d = AiJob.query.filter(
+        AiJob.status == 'done',
+        AiJob.finished_at >= week_ago
+    ).count()
+    
+    return jsonify({
+        'verified_wau': verified_wau,
+        'deal_wau': deal_wau,
+        'pending_verifications': pending_verifications,
+        'invites_issued_7d': invites_issued_7d,
+        'invites_accepted_7d': invites_accepted_7d,
+        'deals_created_7d': deals_created_7d,
+        'ai_jobs_7d': ai_jobs_7d,
+        'ai_jobs_completed_7d': ai_jobs_completed_7d,
+    }), 200

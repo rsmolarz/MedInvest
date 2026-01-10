@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import secrets
+import string
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
@@ -35,6 +36,9 @@ class User(UserMixin, db.Model):
     account_active = db.Column(db.Boolean, default=True)
     # Reputation score (cached). Always derived from ReputationEvent stream.
     reputation_score = db.Column(db.Integer, default=0)
+    # Invite-only growth
+    invite_credits = db.Column(db.Integer, default=2)
+    invite_id = db.Column(db.Integer, db.ForeignKey('invites.id'))
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -60,6 +64,8 @@ class User(UserMixin, db.Model):
     received_connections = db.relationship('Connection', foreign_keys='Connection.addressee_id', backref=db.backref('addressee', lazy='joined'), lazy='dynamic', cascade='all, delete-orphan')
     dm_participations = db.relationship('DirectMessageParticipant', back_populates='user', lazy='dynamic', cascade='all, delete-orphan')
     reputation_events = db.relationship('ReputationEvent', back_populates='user', lazy='dynamic', cascade='all, delete-orphan')
+    invites_sent = db.relationship('Invite', back_populates='inviter', lazy='dynamic', foreign_keys='Invite.inviter_user_id')
+    invite = db.relationship('Invite', foreign_keys=[invite_id])
     
     # Following relationships
     following = db.relationship('Follow', 
@@ -338,6 +344,57 @@ class Notification(db.Model):
     recipient = db.relationship('User', foreign_keys=[recipient_id])
     sender = db.relationship('User', foreign_keys=[sender_id])
     related_post = db.relationship('Post')
+
+
+# Invite-only growth
+
+class Invite(db.Model):
+    __tablename__ = 'invites'
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(32), unique=True, nullable=False, index=True)
+    inviter_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    invitee_email = db.Column(db.String(255))
+    status = db.Column(db.String(20), default='issued', index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=False, index=True)
+    accepted_at = db.Column(db.DateTime)
+
+    inviter = db.relationship('User', back_populates='invites_sent', foreign_keys=[inviter_user_id])
+
+    @staticmethod
+    def new_code() -> str:
+        alphabet = string.ascii_uppercase + string.digits
+        return ''.join(secrets.choice(alphabet) for _ in range(10))
+
+
+# Weekly Digest (retention)
+
+class Digest(db.Model):
+    __tablename__ = 'digests'
+
+    id = db.Column(db.Integer, primary_key=True)
+    period_start = db.Column(db.DateTime, nullable=False, index=True)
+    period_end = db.Column(db.DateTime, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    items = db.relationship('DigestItem', back_populates='digest', lazy='dynamic')
+
+
+class DigestItem(db.Model):
+    __tablename__ = 'digest_items'
+
+    id = db.Column(db.Integer, primary_key=True)
+    digest_id = db.Column(db.Integer, db.ForeignKey('digests.id'), nullable=False, index=True)
+    item_type = db.Column(db.String(20), nullable=False, index=True)
+    entity_id = db.Column(db.Integer)
+    score = db.Column(db.Float, default=0.0)
+    rank = db.Column(db.Integer)
+    payload_json = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    digest = db.relationship('Digest', back_populates='items')
+
 
 # Community models (Groups, Connections, Messaging, Reputation)
 

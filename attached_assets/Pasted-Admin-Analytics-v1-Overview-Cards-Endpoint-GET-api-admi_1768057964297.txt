@@ -1,0 +1,218 @@
+Admin Analytics v1 — Overview Cards
+Endpoint
+GET /api/admin/analytics/overview
+
+
+Auth
+
+Admin role required (use centralized authorization)
+
+Cache
+
+5 minutes (this endpoint will be hit a lot)
+
+Metrics (precise definitions)
+
+Verified WAU
+
+Unique verified physicians active in last 7 days
+
+“Active” = any of: post, comment, endorsement, deal view
+
+Deal WAU
+
+Unique verified physicians who created or commented on a deal in last 7 days
+
+Time-to-First-Value (p50)
+
+Median hours from verification approved → first deal post OR first comment
+
+Measures onboarding friction
+
+Verification SLA
+
+p50 / p95 hours from verification submitted → approved
+
+Measures trust throughput
+
+Invites (7d)
+
+Issued
+
+Accepted
+
+Conversion %
+
+Response (UI-ready)
+{
+  "verified_wau": 124,
+  "deal_wau": 47,
+  "time_to_first_value_hours_p50": 18.6,
+  "verification_sla_hours": {
+    "p50": 6.2,
+    "p95": 22.8
+  },
+  "invites_7d": {
+    "issued": 86,
+    "accepted": 41,
+    "conversion_pct": 47.7
+  },
+  "window": {
+    "start": "2026-01-02T00:00:00Z",
+    "end": "2026-01-09T00:00:00Z"
+  }
+}
+
+Backend Implementation (FastAPI / SQLAlchemy)
+Router
+@router.get("/admin/analytics/overview")
+def analytics_overview(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    decision = can(current_user, Actions.ADMIN_VIEW_ANALYTICS, None)
+    if not decision.allowed:
+        raise deny_response(decision.reason)
+
+    now = datetime.utcnow()
+    window_start = now - timedelta(days=7)
+
+    # 1) Verified WAU
+    verified_wau = db.execute(text("""
+        SELECT COUNT(DISTINCT ua.user_id)
+        FROM user_activity ua
+        JOIN users u ON u.id = ua.user_id
+        WHERE u.is_verified_physician = TRUE
+          AND ua.created_at >= :start
+    """), {"start": window_start}).scalar()
+
+    # 2) Deal WAU
+    deal_wau = db.execute(text("""
+        SELECT COUNT(DISTINCT u.id)
+        FROM users u
+        LEFT JOIN posts p ON p.author_id = u.id AND p.post_type = 'deal'
+        LEFT JOIN comments c ON c.author_id = u.id
+        WHERE u.is_verified_physician = TRUE
+          AND (
+            (p.created_at >= :start)
+            OR (c.created_at >= :start)
+          )
+    """), {"start": window_start}).scalar()
+
+    # 3) Time to First Value (p50)
+    ttfv = db.execute(text("""
+        SELECT
+          PERCENTILE_CONT(0.5)
+          WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (first_action_at - verified_at))/3600)
+        FROM (
+          SELECT
+            u.id,
+            u.verified_at,
+            MIN(x.created_at) AS first_action_at
+          FROM users u
+          JOIN (
+            SELECT author_id AS user_id, created_at FROM posts
+            UNION ALL
+            SELECT author_id AS user_id, created_at FROM comments
+          ) x ON x.user_id = u.id
+          WHERE u.verified_at IS NOT NULL
+          GROUP BY u.id, u.verified_at
+        ) t
+        WHERE first_action_at IS NOT NULL
+    """)).scalar()
+
+    # 4) Verification SLA p50 / p95
+    sla = db.execute(text("""
+        SELECT
+          PERCENTILE_CONT(0.5)
+            WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (verified_at - verification_submitted_at))/3600) AS p50,
+          PERCENTILE_CONT(0.95)
+            WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (verified_at - verification_submitted_at))/3600) AS p95
+        FROM users
+        WHERE verified_at IS NOT NULL
+          AND verification_submitted_at IS NOT NULL
+    """)).fetchone()
+
+    # 5) Invites 7d
+    invites = db.execute(text("""
+        SELECT
+          COUNT(*) FILTER (WHERE status IN ('issued','accepted')) AS issued,
+          COUNT(*) FILTER (WHERE status = 'accepted') AS accepted
+        FROM invites
+        WHERE created_at >= :start
+    """), {"start": window_start}).fetchone()
+
+    conversion = (
+        (invites.accepted / invites.issued * 100)
+        if invites.issued else 0
+    )
+
+    return {
+        "verified_wau": verified_wau or 0,
+        "deal_wau": deal_wau or 0,
+        "time_to_first_value_hours_p50": round(ttfv or 0, 1),
+        "verification_sla_hours": {
+            "p50": round(sla.p50 or 0, 1),
+            "p95": round(sla.p95 or 0, 1)
+        },
+        "invites_7d": {
+            "issued": invites.issued or 0,
+            "accepted": invites.accepted or 0,
+            "conversion_pct": round(conversion, 1)
+        },
+        "window": {
+            "start": window_start.isoformat() + "Z",
+            "end": now.isoformat() + "Z"
+        }
+    }
+
+Notes
+
+Uses Postgres percentiles (PERCENTILE_CONT)
+
+If you don’t yet have user_activity, replace with a UNION over posts/comments/views (fine for v1)
+
+Minimal Next.js Admin UI (Cards Only)
+Route
+/admin/analytics
+
+Component
+export default async function AnalyticsOverview() {
+  const data = await fetch("/api/admin/analytics/overview", { cache: "no-store" })
+    .then(r => r.json());
+
+  const Card = ({ label, value }: any) => (
+    <div className="rounded-xl border p-4">
+      <div className="text-sm text-muted-foreground">{label}</div>
+      <div className="text-3xl font-semibold mt-1">{value}</div>
+    </div>
+  );
+
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <Card label="Verified WAU" value={data.verified_wau} />
+      <Card label="Deal WAU" value={data.deal_wau} />
+      <Card label="TTFV (p50 hrs)" value={data.time_to_first_value_hours_p50} />
+      <Card label="Verification SLA p50" value={`${data.verification_sla_hours.p50}h`} />
+      <Card label="Verification SLA p95" value={`${data.verification_sla_hours.p95}h`} />
+      <Card
+        label="Invites (7d)"
+        value={`${data.invites_7d.accepted}/${data.invites_7d.issued} (${data.invites_7d.conversion_pct}%)`}
+      />
+    </div>
+  );
+}
+
+Acceptance Criteria (ship/no-ship)
+
+Endpoint returns in <200ms on realistic data
+
+Numbers change day-to-day (no static feel)
+
+Admin can answer in 30 seconds:
+
+“Are we growing?”
+
+“Is verification the bottleneck?”
+
+“Are doctors actually posting deals?”
