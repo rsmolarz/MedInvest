@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Portfolio - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2 mb-0"><i class="fas fa-chart-pie me-2 text-primary"></i>Portfolio Tracker</h1>
+        <button class="btn btn-primary" onclick="syncPortfolio()"><i class="fas fa-sync me-1"></i>Sync Portfolio</button>
+    </div>
+    
+    {% if latest %}
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="opacity-75">Total Value</h6>
+                    <h2>${{ '{:,.0f}'.format(latest.total_value) }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h6>Asset Allocation</h6>
+                    <div class="row">
+                        <div class="col">Stocks<br><strong>${{ '{:,.0f}'.format(latest.stocks or 0) }}</strong></div>
+                        <div class="col">Bonds<br><strong>${{ '{:,.0f}'.format(latest.bonds or 0) }}</strong></div>
+                        <div class="col">Real Estate<br><strong>${{ '{:,.0f}'.format(latest.real_estate or 0) }}</strong></div>
+                        <div class="col">Cash<br><strong>${{ '{:,.0f}'.format(latest.cash or 0) }}</strong></div>
+                        <div class="col">Crypto<br><strong>${{ '{:,.0f}'.format(latest.crypto or 0) }}</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">Portfolio Value Over Time</h5></div>
+                <div class="card-body">
+                    <canvas id="portfolioChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">Quick Actions</h5></div>
+                <div class="card-body">
+                    <a href="{{ url_for('portfolio.analysis') }}" class="btn btn-outline-primary w-100 mb-2">View Analysis</a>
+                    <button class="btn btn-outline-secondary w-100" data-bs-toggle="modal" data-bs-target="#updateModal">Manual Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-chart-pie fa-4x text-muted mb-4"></i>
+            <h4>No Portfolio Data</h4>
+            <p class="text-muted">Sync your portfolio to get started with tracking and analysis.</p>
+            <button class="btn btn-primary" onclick="syncPortfolio()"><i class="fas fa-sync me-1"></i>Sync Now</button>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="modal fade" id="updateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Update Portfolio</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="mb-2"><label>Stocks ($)</label><input type="number" id="upStocks" class="form-control"></div>
+                <div class="mb-2"><label>Bonds ($)</label><input type="number" id="upBonds" class="form-control"></div>
+                <div class="mb-2"><label>Real Estate ($)</label><input type="number" id="upRE" class="form-control"></div>
+                <div class="mb-2"><label>Cash ($)</label><input type="number" id="upCash" class="form-control"></div>
+                <div class="mb-2"><label>Crypto ($)</label><input type="number" id="upCrypto" class="form-control"></div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-primary" onclick="updatePortfolio()">Save</button></div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+function syncPortfolio() {
+    fetch('{{ url_for("portfolio.sync_portfolio") }}', {method: 'POST'})
+        .then(r => r.json()).then(d => { alert(d.message); location.reload(); });
+}
+function updatePortfolio() {
+    fetch('{{ url_for("portfolio.update_portfolio") }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            stocks: document.getElementById('upStocks').value || 0,
+            bonds: document.getElementById('upBonds').value || 0,
+            real_estate: document.getElementById('upRE').value || 0,
+            cash: document.getElementById('upCash').value || 0,
+            crypto: document.getElementById('upCrypto').value || 0
+        })
+    }).then(r => r.json()).then(d => location.reload());
+}
+{% if snapshots %}
+new Chart(document.getElementById('portfolioChart'), {
+    type: 'line',
+    data: {
+        labels: [{% for s in snapshots %}'{{ s.snapshot_date }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{label: 'Total Value', data: [{% for s in snapshots %}{{ s.total_value or 0 }}{% if not loop.last %},{% endif %}{% endfor %}], borderColor: '#2563eb', fill: false}]
+    },
+    options: {responsive: true}
+});
+{% endif %}
+</script>
+{% endblock %}
+{% endblock %}

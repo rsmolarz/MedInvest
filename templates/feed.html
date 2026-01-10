@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Feed - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <!-- Main Feed -->
+        <div class="col-lg-8">
+            <!-- Create Post -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form action="{{ url_for('main.create_post') }}" method="POST">
+                        <textarea name="content" class="form-control mb-3" rows="3" 
+                                  placeholder="Share an investment insight, ask a question, or start a discussion..."></textarea>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="form-check">
+                                <input type="checkbox" name="is_anonymous" class="form-check-input" id="anonymous">
+                                <label class="form-check-label" for="anonymous">
+                                    <i class="fas fa-user-secret me-1"></i>Post Anonymously
+                                </label>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-1"></i>Post
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Posts -->
+            {% for post in posts.items %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <div>
+                            {% if post.is_anonymous %}
+                            <strong><i class="fas fa-user-secret me-1 text-muted"></i>{{ post.anonymous_name or 'Anonymous' }}</strong>
+                            {% else %}
+                            <a href="{{ url_for('main.profile', user_id=post.author.id) }}" class="text-decoration-none">
+                                <strong>{{ post.author.full_name }}</strong>
+                                {% if post.author.is_premium %}<i class="fas fa-crown text-warning ms-1"></i>{% endif %}
+                            </a>
+                            {% endif %}
+                            {% if post.room %}
+                            <span class="text-muted ms-2">in <a href="{{ url_for('rooms.view_room', slug=post.room.slug) }}">{{ post.room.name }}</a></span>
+                            {% endif %}
+                        </div>
+                        <small class="text-muted">{{ post.created_at.strftime('%b %d') }}</small>
+                    </div>
+                    {% if post.title %}
+                    <h5 class="card-title">{{ post.title }}</h5>
+                    {% endif %}
+                    <p class="card-text">{{ post.content }}</p>
+                    <div class="d-flex gap-3 align-items-center">
+                        <form action="{{ url_for('main.vote_post', post_id=post.id) }}" method="POST" class="d-inline">
+                            <input type="hidden" name="vote_type" value="1">
+                            <button type="submit" class="btn btn-sm {{ 'btn-primary' if user_votes.get(post.id) == 1 else 'btn-outline-primary' }}">
+                                <i class="fas fa-arrow-up me-1"></i>{{ post.upvotes }}
+                            </button>
+                        </form>
+                        <a href="{{ url_for('rooms.view_post', post_id=post.id) }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-comment me-1"></i>{{ post.comment_count }}
+                        </a>
+                        <form action="{{ url_for('main.bookmark_post', post_id=post.id) }}" method="POST" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-bookmark"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                    <h5>No posts yet</h5>
+                    <p class="text-muted">Be the first to share something!</p>
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Pagination -->
+            {% if posts.pages > 1 %}
+            <nav class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if posts.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.feed', page=posts.prev_num) }}">Previous</a>
+                    </li>
+                    {% endif %}
+                    {% if posts.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.feed', page=posts.next_num) }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- User Stats -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">Your Stats</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <h5 class="mb-0 text-primary">{{ current_user.points }}</h5>
+                            <small class="text-muted">Points</small>
+                        </div>
+                        <div class="col-4">
+                            <h5 class="mb-0 text-success">{{ current_user.level }}</h5>
+                            <small class="text-muted">Level</small>
+                        </div>
+                        <div class="col-4">
+                            <h5 class="mb-0 text-warning">{{ current_user.login_streak }}</h5>
+                            <small class="text-muted">Streak</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trending -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-fire text-danger me-2"></i>Trending</h6>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for topic in trending %}
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <i class="fas fa-hashtag text-muted me-1"></i>{{ topic }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Quick Links -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Quick Links</h6>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{{ url_for('rooms.list_rooms') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-comments me-2"></i>Browse Rooms
+                    </a>
+                    <a href="{{ url_for('ama.list_amas') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-video me-2"></i>Upcoming AMAs
+                    </a>
+                    <a href="{{ url_for('deals.list_deals') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-handshake me-2"></i>Investment Deals
+                    </a>
+                    <a href="{{ url_for('ai.chat') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-robot me-2"></i>Ask AI
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

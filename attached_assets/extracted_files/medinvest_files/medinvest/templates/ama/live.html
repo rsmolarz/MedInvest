@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Live: {{ ama.title }} - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card bg-dark text-white mb-4">
+                <div class="card-body text-center py-5">
+                    <span class="badge bg-danger mb-3"><i class="fas fa-circle"></i> LIVE</span>
+                    <h2>{{ ama.title }}</h2>
+                    <p class="lead">with {{ ama.expert_name }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header"><h6 class="mb-0">Live Q&A</h6></div>
+                <div class="card-body" style="max-height:500px;overflow-y:auto;">
+                    {% for q in questions %}
+                    <div class="mb-3 p-2 {% if q.is_answered %}bg-success bg-opacity-10{% endif %} rounded">
+                        <small class="text-muted">{% if q.is_anonymous %}Anonymous{% else %}{{ q.user.full_name }}{% endif %}</small>
+                        <p class="mb-1">{{ q.question }}</p>
+                        <span class="badge bg-light text-dark"><i class="fas fa-arrow-up"></i> {{ q.upvotes }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="card-footer">
+                    <form id="liveQ">
+                        <div class="input-group">
+                            <input type="text" id="liveQuestion" class="form-control" placeholder="Ask a question...">
+                            <button class="btn btn-primary" type="submit">Send</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

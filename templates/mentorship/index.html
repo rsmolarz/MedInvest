@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Mentorship - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="h2 mb-4"><i class="fas fa-users me-2 text-primary"></i>Mentorship Program</h1>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header"><h5 class="mb-0">Find a Mentor</h5></div>
+                <div class="card-body">
+                    <p class="text-muted">Connect with experienced physician investors who can guide your journey.</p>
+                    <div class="row g-3">
+                        {% for mentor in mentors %}
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style="width:40px;height:40px;">
+                                            {{ mentor.first_name[0] }}
+                                        </div>
+                                        <div>
+                                            <strong>{{ mentor.full_name }}</strong>
+                                            {% if mentor.is_verified %}<i class="fas fa-check-circle text-success ms-1"></i>{% endif %}
+                                            <br><small class="text-muted">{{ (mentor.specialty or 'Physician')|replace('_', ' ')|title }}</small>
+                                        </div>
+                                    </div>
+                                    <p class="small mb-2"><i class="fas fa-star text-warning me-1"></i>{{ mentor.points }} points • Level {{ mentor.level }}</p>
+                                    <button class="btn btn-outline-primary btn-sm w-100" onclick="requestMentor({{ mentor.id }})">Request Mentorship</button>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="col-12"><p class="text-muted">No mentors available at this time</p></div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header"><h6 class="mb-0">Your Mentorships</h6></div>
+                <div class="list-group list-group-flush">
+                    {% for m in as_mentee %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span>{{ m.mentor.full_name }}</span>
+                            <span class="badge bg-{{ 'success' if m.status.value == 'active' else 'warning' }}">{{ m.status.value }}</span>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="list-group-item text-muted">No active mentorships</div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header"><h6 class="mb-0">Mentorship Requests</h6></div>
+                <div class="list-group list-group-flush">
+                    {% for m in as_mentor %}
+                    {% if m.status.value == 'pending' %}
+                    <div class="list-group-item">
+                        <p class="mb-1"><strong>{{ m.mentee.full_name }}</strong></p>
+                        <p class="small text-muted mb-2">{{ m.focus_areas or 'General guidance' }}</p>
+                        <button class="btn btn-success btn-sm me-1" onclick="acceptMentorship({{ m.id }})">Accept</button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="declineMentorship({{ m.id }})">Decline</button>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+function requestMentor(id) {
+    const focus = prompt('What areas would you like mentorship in?');
+    if(focus !== null) {
+        fetch('/mentorship/request/' + id, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({focus_areas: focus})
+        }).then(r => r.json()).then(d => { alert(d.message); location.reload(); });
+    }
+}
+function acceptMentorship(id) {
+    fetch('/mentorship/' + id + '/accept', {method: 'POST'}).then(r => r.json()).then(d => location.reload());
+}
+function declineMentorship(id) {
+    fetch('/mentorship/' + id + '/decline', {method: 'POST'}).then(r => r.json()).then(d => location.reload());
+}
+</script>
+{% endblock %}
+{% endblock %}

@@ -180,6 +180,17 @@ class User(UserMixin, db.Model):
         return False
     
     @property
+    def is_admin(self):
+        return self.role == 'admin'
+    
+    def add_points(self, amount):
+        """Add points and update level (1 level per 500 points)"""
+        if self.points is None:
+            self.points = 0
+        self.points += amount
+        self.level = (self.points // 500) + 1
+    
+    @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
     
@@ -319,13 +330,20 @@ class Post(db.Model):
     group_id = db.Column(db.Integer, db.ForeignKey('groups.id'))
     room_id = db.Column(db.Integer, db.ForeignKey('investment_rooms.id'))
     visibility = db.Column(db.String(20), default='physicians')  # public, physicians, group
+    title = db.Column(db.String(200))
     content = db.Column(db.Text, nullable=False)
     image_url = db.Column(db.String(500))
     post_type = db.Column(db.String(20), default='general')  # general, question, insight, achievement, deal
     tags = db.Column(db.String(500))  # Comma-separated tags
     is_published = db.Column(db.Boolean, default=True)
     is_anonymous = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    anonymous_name = db.Column(db.String(50))  # e.g., "Anonymous Cardiologist"
+    upvotes = db.Column(db.Integer, default=0)
+    downvotes = db.Column(db.Integer, default=0)
+    comment_count = db.Column(db.Integer, default=0)
+    view_count = db.Column(db.Integer, default=0)
+    is_pinned = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
@@ -333,6 +351,21 @@ class Post(db.Model):
     group = db.relationship('Group', back_populates='posts')
     comments = db.relationship('Comment', back_populates='post', lazy='dynamic', cascade='all, delete-orphan')
     likes = db.relationship('Like', back_populates='post', lazy='dynamic', cascade='all, delete-orphan')
+    
+    @property
+    def user_id(self):
+        """Alias for author_id for blueprint compatibility"""
+        return self.author_id
+    
+    @property
+    def score(self):
+        return self.upvotes - self.downvotes
+    
+    @property
+    def display_author(self):
+        if self.is_anonymous:
+            return self.anonymous_name or "Anonymous"
+        return self.author.full_name
     
     def likes_count(self):
         return self.likes.count()
@@ -1459,4 +1492,43 @@ class PortfolioSnapshot(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     user = db.relationship('User', backref='portfolio_snapshots')
+
+
+# =============================================================================
+# COMPATIBILITY ALIASES AND ADDITIONAL MODELS FOR NEW BLUEPRINTS
+# =============================================================================
+
+# Alias for blueprint compatibility
+Room = InvestmentRoom
+
+
+class PostVote(db.Model):
+    """Vote on a post (upvote/downvote) for new blueprint compatibility"""
+    __tablename__ = 'post_votes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    vote_type = db.Column(db.Integer)  # 1 = upvote, -1 = downvote
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    post = db.relationship('Post', backref='votes')
+    user = db.relationship('User', backref='post_votes')
+    
+    __table_args__ = (db.UniqueConstraint('post_id', 'user_id', name='unique_post_vote'),)
+
+
+class Bookmark(db.Model):
+    """User bookmarks for posts"""
+    __tablename__ = 'bookmarks'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref='bookmarks')
+    post = db.relationship('Post', backref='bookmarks')
+    
+    __table_args__ = (db.UniqueConstraint('user_id', 'post_id', name='unique_bookmark'),)
 

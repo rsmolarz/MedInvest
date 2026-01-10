@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Expert AMAs - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="h2 mb-4"><i class="fas fa-video me-2 text-primary"></i>Expert AMAs</h1>
+    
+    {% if live %}
+    <div class="alert alert-danger">
+        <h5><i class="fas fa-circle text-danger me-2"></i>Live Now!</h5>
+        {% for ama in live %}
+        <div class="d-flex justify-content-between align-items-center">
+            <span><strong>{{ ama.title }}</strong> with {{ ama.expert_name }}</span>
+            <a href="{{ url_for('ama.live_ama', ama_id=ama.id) }}" class="btn btn-danger btn-sm">Join Live</a>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <h4 class="mt-4 mb-3">Upcoming AMAs</h4>
+    <div class="row g-4">
+        {% for ama in upcoming %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    {% if ama.is_premium_only %}<span class="badge bg-warning mb-2"><i class="fas fa-crown"></i> Premium</span>{% endif %}
+                    <h5 class="card-title">{{ ama.title }}</h5>
+                    <p class="text-muted small">{{ ama.expert_name }} - {{ ama.expert_title }}</p>
+                    <p class="small">{{ ama.description[:100] }}...</p>
+                    <p class="mb-2"><i class="fas fa-calendar me-2"></i>{{ ama.scheduled_for.strftime('%b %d, %Y at %I:%M %p') }}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">{{ ama.participant_count }} registered</small>
+                        <a href="{{ url_for('ama.view_ama', ama_id=ama.id) }}" class="btn btn-outline-primary btn-sm">
+                            {% if ama.id in user_registrations %}Registered{% else %}Details{% endif %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12"><p class="text-muted">No upcoming AMAs scheduled</p></div>
+        {% endfor %}
+    </div>
+    
+    <h4 class="mt-5 mb-3">Past AMAs</h4>
+    <div class="row g-4">
+        {% for ama in past %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ ama.title }}</h5>
+                    <p class="text-muted small">{{ ama.expert_name }}</p>
+                    <p class="small">{{ ama.scheduled_for.strftime('%b %d, %Y') }} • {{ ama.question_count }} questions</p>
+                    <a href="{{ url_for('ama.view_ama', ama_id=ama.id) }}" class="btn btn-outline-secondary btn-sm">
+                        {% if ama.recording_url %}Watch Recording{% else %}View Q&A{% endif %}
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

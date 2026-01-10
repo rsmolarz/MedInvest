@@ -1,0 +1,94 @@
+✅ Add the dedicated single-report endpoint
+
+This is a high-leverage, correctness fix for admin workflows.
+
+Backend: add endpoint
+
+Add this to your admin reports router (where the list + resolve endpoints live).
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from app.auth.dependencies import get_current_user
+from app.db.session import get_db
+from app.models.content_report import ContentReport
+from app.authorization import can, Actions, deny_response
+
+router = APIRouter()
+
+@router.get("/api/admin/reports/{report_id}")
+def get_report(
+    report_id: int,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    decision = can(current_user, Actions.ADMIN_REVIEW_REPORTS, None)
+    if not decision.allowed:
+        raise deny_response(decision.reason)
+
+    report = (
+        db.query(ContentReport)
+        .filter(ContentReport.id == report_id)
+        .first()
+    )
+
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    return report.to_dict(include_content=True)
+
+Why this is correct
+
+Single responsibility: one report, one query
+
+Authorization enforced centrally
+
+UI-friendly shape via to_dict(include_content=True)
+
+Future-proof (easy to add comments, audit history later)
+
+✅ Confirm how to call it (correct usage)
+curl
+curl -X GET http://localhost:8000/api/admin/reports/123 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+httpie
+http GET :8000/api/admin/reports/123 \
+  Authorization:"Bearer YOUR_JWT_TOKEN"
+
+Browser (cookie/session auth only)
+http://localhost:8000/api/admin/reports/123
+
+✅ Update the Reports UI (small but important)
+Before (suboptimal)
+
+Fetch /api/admin/reports?status=open
+
+Scan list
+
+Find matching ID
+
+After (correct)
+
+In
+frontend/app/admin/reports/[reportId]/page.tsx
+
+const report = await fetch(
+  `/api/admin/reports/${params.reportId}`,
+  { credentials: "include" }
+).then(res => {
+  if (!res.ok) throw new Error("Report not found");
+  return res.json();
+});
+
+Result
+
+One request
+
+One object
+
+Faster UI
+
+Less backend load
+
+Cleaner code

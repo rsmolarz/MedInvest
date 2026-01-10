@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Manage Users - Admin{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="h2 mb-4">Manage Users</h1>
+    
+    <form class="mb-4">
+        <div class="input-group">
+            <input type="text" name="search" class="form-control" placeholder="Search by name or email..." value="{{ search }}">
+            <button class="btn btn-primary" type="submit">Search</button>
+        </div>
+    </form>
+    
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead><tr><th>User</th><th>Email</th><th>Specialty</th><th>Status</th><th>Points</th><th>Actions</th></tr></thead>
+                <tbody>
+                    {% for user in users.items %}
+                    <tr>
+                        <td>{{ user.full_name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ (user.specialty or '-')|replace('_', ' ')|title }}</td>
+                        <td>
+                            {% if user.is_premium %}<span class="badge bg-warning">Premium</span>{% endif %}
+                            {% if user.is_verified %}<span class="badge bg-success">Verified</span>{% endif %}
+                            {% if user.is_admin %}<span class="badge bg-danger">Admin</span>{% endif %}
+                        </td>
+                        <td>{{ user.points }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-success" onclick="toggleVerified({{ user.id }})">Verify</button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="toggleAdmin({{ user.id }})">Admin</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+function toggleVerified(id) { fetch('/admin/users/' + id + '/toggle-verified', {method:'POST'}).then(()=>location.reload()); }
+function toggleAdmin(id) { if(confirm('Toggle admin?')) fetch('/admin/users/' + id + '/toggle-admin', {method:'POST'}).then(()=>location.reload()); }
+</script>
+{% endblock %}
+{% endblock %}

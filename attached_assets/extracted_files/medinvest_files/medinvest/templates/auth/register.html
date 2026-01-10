@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Sign Up - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <h2 class="fw-bold text-primary">
+                            <i class="fas fa-chart-line me-2"></i>Join MedInvest
+                        </h2>
+                        <p class="text-muted">Create your free physician account</p>
+                    </div>
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">First Name</label>
+                                <input type="text" name="first_name" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Last Name</label>
+                                <input type="text" name="last_name" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" name="password" class="form-control" required minlength="8">
+                            <small class="text-muted">Minimum 8 characters</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Specialty</label>
+                            <select name="specialty" class="form-select" required>
+                                <option value="">Select your specialty...</option>
+                                <option value="anesthesiology">Anesthesiology</option>
+                                <option value="cardiology">Cardiology</option>
+                                <option value="dermatology">Dermatology</option>
+                                <option value="emergency_medicine">Emergency Medicine</option>
+                                <option value="family_medicine">Family Medicine</option>
+                                <option value="internal_medicine">Internal Medicine</option>
+                                <option value="neurology">Neurology</option>
+                                <option value="orthopedics">Orthopedics</option>
+                                <option value="pediatrics">Pediatrics</option>
+                                <option value="psychiatry">Psychiatry</option>
+                                <option value="radiology">Radiology</option>
+                                <option value="surgery">Surgery</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Referral Code (optional)</label>
+                            <input type="text" name="referral_code" class="form-control" 
+                                   value="{{ referral_code }}" placeholder="Enter code for bonus points">
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="terms" required>
+                            <label class="form-check-label" for="terms">
+                                I agree to the Terms of Service and Privacy Policy
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg w-100">Create Account</button>
+                    </form>
+                    <hr>
+                    <p class="text-center mb-0">
+                        Already have an account? <a href="{{ url_for('auth.login') }}">Login</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

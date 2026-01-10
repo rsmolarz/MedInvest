@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Portfolio Analysis - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="h2 mb-4"><i class="fas fa-analytics me-2 text-primary"></i>Portfolio Analysis</h1>
+    
+    {% if has_data %}
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header"><h5 class="mb-0">Asset Allocation</h5></div>
+                <div class="card-body">
+                    <canvas id="allocationChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header"><h5 class="mb-0">Allocation Breakdown</h5></div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr><td>Stocks</td><td class="text-end">{{ '{:.1f}'.format(allocation.stocks) }}%</td></tr>
+                        <tr><td>Bonds</td><td class="text-end">{{ '{:.1f}'.format(allocation.bonds) }}%</td></tr>
+                        <tr><td>Real Estate</td><td class="text-end">{{ '{:.1f}'.format(allocation.real_estate) }}%</td></tr>
+                        <tr><td>Cash</td><td class="text-end">{{ '{:.1f}'.format(allocation.cash) }}%</td></tr>
+                        <tr><td>Crypto</td><td class="text-end">{{ '{:.1f}'.format(allocation.crypto) }}%</td></tr>
+                        <tr><td>Other</td><td class="text-end">{{ '{:.1f}'.format(allocation.other) }}%</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header"><h5 class="mb-0">Recommendations</h5></div>
+        <div class="card-body">
+            {% for rec in recommendations %}
+            <div class="alert alert-{{ rec.type }} mb-2">
+                <strong>{{ rec.title }}</strong><br>{{ rec.message }}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <p class="text-muted">No portfolio data available. Please sync your portfolio first.</p>
+            <a href="{{ url_for('portfolio.index') }}" class="btn btn-primary">Go to Portfolio</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% block extra_js %}
+{% if has_data %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+new Chart(document.getElementById('allocationChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Stocks', 'Bonds', 'Real Estate', 'Cash', 'Crypto', 'Other'],
+        datasets: [{
+            data: [{{ allocation.stocks }}, {{ allocation.bonds }}, {{ allocation.real_estate }}, {{ allocation.cash }}, {{ allocation.crypto }}, {{ allocation.other }}],
+            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#6b7280', '#8b5cf6', '#ec4899']
+        }]
+    }
+});
+</script>
+{% endif %}
+{% endblock %}
+{% endblock %}
