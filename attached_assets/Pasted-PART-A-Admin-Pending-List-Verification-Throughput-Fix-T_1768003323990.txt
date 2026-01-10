@@ -1,0 +1,260 @@
+PART A — Admin Pending List (Verification Throughput Fix)
+
+This is the bottleneck. Fix this and everything downstream accelerates.
+
+1️⃣ Backend: Single Admin Pending List Endpoint
+Endpoint
+GET /api/admin/verification/pending
+
+Authorization
+
+Admin role required
+
+Uses your centralized authorization (can(user, Actions.ADMIN_REVIEW_VERIFICATION, None))
+
+Query params
+?limit=25
+&offset=0
+&search=smith
+
+Response (tight, UI-ready)
+{
+  "total": 3,
+  "results": [
+    {
+      "user_id": 42,
+      "full_name": "Jane Smith, MD",
+      "email": "jane@example.com",
+      "npi_number": "1234567890",
+      "license_state": "TX",
+      "specialty": "ENT",
+      "submitted_at": "2026-01-07T14:22:11Z"
+    }
+  ]
+}
+
+Implementation (FastAPI-style example)
+@router.get("/admin/verification/pending")
+def pending_verifications(
+    limit: int = 25,
+    offset: int = 0,
+    search: str | None = None,
+    current_user: User = Depends(get_current_user)
+):
+    decision = can(current_user, Actions.ADMIN_REVIEW_VERIFICATION, None)
+    if not decision.allowed:
+        raise deny_response(decision.reason)
+
+    q = db.query(User).filter(
+        User.verification_status == "pending"
+    )
+
+    if search:
+        q = q.filter(
+            User.full_name.ilike(f"%{search}%") |
+            User.email.ilike(f"%{search}%") |
+            User.npi_number.ilike(f"%{search}%")
+        )
+
+    total = q.count()
+
+    users = (
+        q.order_by(User.verification_submitted_at.asc())
+         .limit(limit)
+         .offset(offset)
+         .all()
+    )
+
+    return {
+        "total": total,
+        "results": [
+            {
+                "user_id": u.id,
+                "full_name": u.full_name,
+                "email": u.email,
+                "npi_number": u.npi_number,
+                "license_state": u.license_state,
+                "specialty": u.specialty,
+                "submitted_at": u.verification_submitted_at
+            }
+            for u in users
+        ]
+    }
+
+2️⃣ Admin UI: Pending Verification Page (Exact Spec)
+Route
+/admin/verification
+
+Layout
+
+Table view (default)
+
+Name	Specialty	State	NPI	Submitted	Actions
+Jane Smith, MD	ENT	TX	1234567890	Jan 7	[Review]
+Actions
+
+Review → /admin/verification/{user_id}
+
+Review Screen
+
+Route
+
+/admin/verification/{user_id}
+
+
+Panels
+
+User Snapshot
+
+Name
+
+Email
+
+Specialty
+
+Account age
+
+Verification Data
+
+NPI
+
+License state
+
+Admin Notes
+
+Textarea (required if rejecting)
+
+Actions
+
+✅ Approve
+
+❌ Reject
+
+Calls
+POST /api/admin/verification/{user_id}/approve
+POST /api/admin/verification/{user_id}/reject
+
+UX rule (important)
+
+After approve/reject → auto-advance to next pending user
+(this doubles throughput)
+
+PART B — “AI Analyst” Button on Deal Detail
+
+This is where the product becomes meaningfully differentiated.
+
+3️⃣ Backend: Job Creation (already exists, now wire it cleanly)
+Create Job
+POST /api/ai/jobs
+
+
+Payload
+
+{
+  "job_type": "analyze_deal",
+  "deal_id": 123
+}
+
+
+Rules
+
+Verified physicians only
+
+One active job per deal at a time (prevent spam)
+
+Response
+
+{
+  "job_id": "ai_9f3a",
+  "status": "queued"
+}
+
+4️⃣ Backend: Poll Job Status
+GET /api/ai/jobs/{job_id}
+
+
+Response:
+
+{
+  "job_id": "ai_9f3a",
+  "status": "done",
+  "result_ref": {
+    "deal_analysis_id": 55
+  }
+}
+
+5️⃣ Backend: Deal Detail (already extended)
+GET /api/deals/{deal_id}
+
+
+Now returns:
+
+{
+  "deal": {...},
+  "analyses": [
+    {
+      "id": 55,
+      "summary": "...",
+      "key_risks": ["..."],
+      "missing_info": ["..."],
+      "diligence_questions": ["..."],
+      "created_at": "2026-01-08T10:31:00Z"
+    }
+  ]
+}
+
+6️⃣ Deal Detail UI: Exact Behavior
+Section: “AI Analyst”
+
+Button: Run AI Analysis
+
+State machine:
+
+Idle → Queued → Processing → Done
+
+While processing:
+
+Spinner + text: “Analyzing deal structure and risk…”
+
+When done
+
+Render a read-only analyst card:
+
+🧠 Summary
+
+⚠️ Key Risks
+
+❓ Missing Information
+
+📋 Diligence Questions
+
+Timestamp + version label (“AI Analyst v1”)
+
+UX rule (critical)
+
+AI output is never editable
+
+New run = new version (auditability + trust)
+
+Why this is the correct next move
+Admin Pending List
+
+Removes human bottleneck
+
+Makes trust scalable
+
+Enables controlled growth
+
+AI Analyst Button
+
+Immediate “aha” moment for doctors
+
+Converts lurkers → contributors
+
+Differentiates you from:
+
+Doximity (no analysis)
+
+LinkedIn (no structure)
+
+Slack/Discord (no persistence)

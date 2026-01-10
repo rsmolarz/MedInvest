@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Review Verification - {{ user.full_name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('admin_verification_list') }}">Pending Verifications</a></li>
+            <li class="breadcrumb-item active">{{ user.full_name }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-user me-2"></i>User Snapshot</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Name:</strong> {{ user.full_name }}</p>
+                            <p><strong>Email:</strong> {{ user.email }}</p>
+                            <p><strong>Specialty:</strong> {{ user.specialty or '-' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Hospital:</strong> {{ user.hospital_affiliation or '-' }}</p>
+                            <p><strong>Account Created:</strong> 
+                                {% if user.created_at %}
+                                {{ user.created_at.strftime('%b %d, %Y') }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </p>
+                            <p><strong>Status:</strong> 
+                                <span class="badge bg-warning">{{ user.verification_status }}</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-id-card me-2"></i>Verification Data</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>NPI Number:</strong> <code class="fs-5">{{ user.npi_number or '-' }}</code></p>
+                            <p><strong>License State:</strong> {{ user.license_state or '-' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Medical License:</strong> {{ user.medical_license or '-' }}</p>
+                            <p><strong>Submitted:</strong> 
+                                {% if user.verification_submitted_at %}
+                                {{ user.verification_submitted_at.strftime('%b %d, %Y at %I:%M %p') }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-gavel me-2"></i>Admin Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Admin Notes</strong> (required for rejection)</label>
+                        <textarea id="admin-notes" class="form-control" rows="4" placeholder="Add notes about this verification..."></textarea>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button id="btn-approve" class="btn btn-success btn-lg">
+                            <i class="fas fa-check me-2"></i>Approve
+                        </button>
+                        <button id="btn-reject" class="btn btn-danger btn-lg">
+                            <i class="fas fa-times me-2"></i>Reject
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const userId = {{ user.id }};
+    const btnApprove = document.getElementById('btn-approve');
+    const btnReject = document.getElementById('btn-reject');
+    const notesField = document.getElementById('admin-notes');
+
+    btnApprove.addEventListener('click', async function() {
+        btnApprove.disabled = true;
+        btnApprove.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Approving...';
+        
+        try {
+            const response = await fetch(`/api/admin/verification/${userId}/approve`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+            const data = await response.json();
+            
+            if (response.ok) {
+                if (data.next_user_id) {
+                    window.location.href = `/admin/verification/${data.next_user_id}`;
+                } else {
+                    window.location.href = '/admin/verification';
+                }
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+                btnApprove.disabled = false;
+                btnApprove.innerHTML = '<i class="fas fa-check me-2"></i>Approve';
+            }
+        } catch (err) {
+            alert('Network error');
+            btnApprove.disabled = false;
+            btnApprove.innerHTML = '<i class="fas fa-check me-2"></i>Approve';
+        }
+    });
+
+    btnReject.addEventListener('click', async function() {
+        const notes = notesField.value.trim();
+        if (!notes) {
+            alert('Please provide notes explaining the rejection reason.');
+            notesField.focus();
+            return;
+        }
+        
+        btnReject.disabled = true;
+        btnReject.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Rejecting...';
+        
+        try {
+            const response = await fetch(`/api/admin/verification/${userId}/reject`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({notes: notes})
+            });
+            const data = await response.json();
+            
+            if (response.ok) {
+                if (data.next_user_id) {
+                    window.location.href = `/admin/verification/${data.next_user_id}`;
+                } else {
+                    window.location.href = '/admin/verification';
+                }
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+                btnReject.disabled = false;
+                btnReject.innerHTML = '<i class="fas fa-times me-2"></i>Reject';
+            }
+        } catch (err) {
+            alert('Network error');
+            btnReject.disabled = false;
+            btnReject.innerHTML = '<i class="fas fa-times me-2"></i>Reject';
+        }
+    });
+});
+</script>
+{% endblock %}

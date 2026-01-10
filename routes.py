@@ -2,7 +2,7 @@ from flask import render_template, request, redirect, url_for, flash, session, j
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash
 from app import app, db
-from models import User, Module, UserProgress, ForumTopic, ForumPost, PortfolioTransaction, Resource, Post, Comment, Like, Follow, Notification, Group, GroupMembership, Connection
+from models import User, Module, UserProgress, ForumTopic, ForumPost, PortfolioTransaction, Resource, Post, Comment, Like, Follow, Notification, Group, GroupMembership, Connection, DealDetails, DealAnalysis, AiJob
 from datetime import datetime
 import logging
 import os
@@ -16,6 +16,8 @@ import requests
 
 from access_control import require_verified, require_roles
 from ai_service import summarize_text, analyze_deal
+from authorization import can, Actions, deny_response
+from ai_jobs import enqueue_ai_job, process_job
 
 
 def get_sendgrid_credentials():
@@ -994,31 +996,6 @@ def api_verification_submit():
     return jsonify({'status': 'submitted', 'verification_status': current_user.verification_status}), 200
 
 
-@app.route('/api/admin/verification/<int:user_id>/approve', methods=['POST'])
-@login_required
-@require_roles('admin')
-def api_admin_verification_approve(user_id: int):
-    user = User.query.get_or_404(user_id)
-    user.verification_status = 'verified'
-    user.is_verified = True
-    user.verified_at = datetime.utcnow()
-    db.session.commit()
-    return jsonify({'status': 'approved', 'user_id': user_id}), 200
-
-
-@app.route('/api/admin/verification/<int:user_id>/reject', methods=['POST'])
-@login_required
-@require_roles('admin')
-def api_admin_verification_reject(user_id: int):
-    user = User.query.get_or_404(user_id)
-    data = request.get_json(silent=True) or {}
-    user.verification_status = 'rejected'
-    user.is_verified = False
-    user.verification_notes = (data.get('notes') or '').strip() or None
-    db.session.commit()
-    return jsonify({'status': 'rejected', 'user_id': user_id}), 200
-
-
 # ----------------------
 # Doctor-only groups (community graph)
 # ----------------------
@@ -1114,3 +1091,275 @@ def api_ai_deal_analyze():
     if not text:
         return jsonify({'error': 'missing_text'}), 400
     return jsonify(analyze_deal(text)), 200
+
+
+# ----------------------
+# Admin Verification Endpoints
+# ----------------------
+
+@app.route('/api/admin/verification/pending')
+@login_required
+def api_admin_verification_pending():
+    decision = can(current_user, Actions.ADMIN_REVIEW_VERIFICATION, None)
+    if not decision.allowed:
+        return deny_response(decision.reason)
+    
+    limit = request.args.get('limit', 25, type=int)
+    offset = request.args.get('offset', 0, type=int)
+    search = request.args.get('search', '', type=str).strip()
+    
+    q = User.query.filter(User.verification_status == 'pending')
+    
+    if search:
+        search_pattern = f"%{search}%"
+        q = q.filter(
+            db.or_(
+                (User.first_name + ' ' + User.last_name).ilike(search_pattern),
+                User.email.ilike(search_pattern),
+                User.npi_number.ilike(search_pattern)
+            )
+        )
+    
+    total = q.count()
+    users = q.order_by(User.verification_submitted_at.asc()).limit(limit).offset(offset).all()
+    
+    return jsonify({
+        'total': total,
+        'results': [
+            {
+                'user_id': u.id,
+                'full_name': u.full_name,
+                'email': u.email,
+                'npi_number': u.npi_number,
+                'license_state': u.license_state,
+                'specialty': u.specialty,
+                'submitted_at': u.verification_submitted_at.isoformat() if u.verification_submitted_at else None
+            }
+            for u in users
+        ]
+    })
+
+
+@app.route('/api/admin/verification/<int:user_id>')
+@login_required
+def api_admin_verification_detail(user_id: int):
+    decision = can(current_user, Actions.ADMIN_REVIEW_VERIFICATION, None)
+    if not decision.allowed:
+        return deny_response(decision.reason)
+    
+    user = User.query.get_or_404(user_id)
+    return jsonify({
+        'user_id': user.id,
+        'full_name': user.full_name,
+        'email': user.email,
+        'specialty': user.specialty,
+        'npi_number': user.npi_number,
+        'license_state': user.license_state,
+        'medical_license': user.medical_license,
+        'hospital_affiliation': user.hospital_affiliation,
+        'verification_status': user.verification_status,
+        'verification_notes': user.verification_notes,
+        'submitted_at': user.verification_submitted_at.isoformat() if user.verification_submitted_at else None,
+        'created_at': user.created_at.isoformat() if user.created_at else None
+    })
+
+
+@app.route('/api/admin/verification/<int:user_id>/approve', methods=['POST'])
+@login_required
+def api_admin_verification_approve(user_id: int):
+    decision = can(current_user, Actions.ADMIN_REVIEW_VERIFICATION, None)
+    if not decision.allowed:
+        return deny_response(decision.reason)
+    
+    user = User.query.get_or_404(user_id)
+    user.verification_status = 'verified'
+    user.is_verified = True
+    user.verified_at = datetime.utcnow()
+    db.session.commit()
+    
+    next_user = User.query.filter(
+        User.verification_status == 'pending',
+        User.id != user_id
+    ).order_by(User.verification_submitted_at.asc()).first()
+    
+    return jsonify({
+        'status': 'approved',
+        'user_id': user_id,
+        'next_user_id': next_user.id if next_user else None
+    })
+
+
+@app.route('/api/admin/verification/<int:user_id>/reject', methods=['POST'])
+@login_required
+def api_admin_verification_reject(user_id: int):
+    decision = can(current_user, Actions.ADMIN_REVIEW_VERIFICATION, None)
+    if not decision.allowed:
+        return deny_response(decision.reason)
+    
+    data = request.get_json(silent=True) or {}
+    notes = (data.get('notes') or '').strip()
+    
+    user = User.query.get_or_404(user_id)
+    user.verification_status = 'rejected'
+    user.is_verified = False
+    user.verification_notes = notes or user.verification_notes
+    db.session.commit()
+    
+    next_user = User.query.filter(
+        User.verification_status == 'pending',
+        User.id != user_id
+    ).order_by(User.verification_submitted_at.asc()).first()
+    
+    return jsonify({
+        'status': 'rejected',
+        'user_id': user_id,
+        'next_user_id': next_user.id if next_user else None
+    })
+
+
+# Admin verification UI routes
+@app.route('/admin/verification')
+@login_required
+def admin_verification_list():
+    decision = can(current_user, Actions.ADMIN_REVIEW_VERIFICATION, None)
+    if not decision.allowed:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    pending_users = User.query.filter(User.verification_status == 'pending').order_by(User.verification_submitted_at.asc()).all()
+    return render_template('admin/verification_list.html', pending_users=pending_users)
+
+
+@app.route('/admin/verification/<int:user_id>')
+@login_required
+def admin_verification_review(user_id: int):
+    decision = can(current_user, Actions.ADMIN_REVIEW_VERIFICATION, None)
+    if not decision.allowed:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    user = User.query.get_or_404(user_id)
+    return render_template('admin/verification_review.html', user=user)
+
+
+# ----------------------
+# AI Jobs API Endpoints
+# ----------------------
+
+@app.route('/api/ai/jobs', methods=['POST'])
+@login_required
+@require_verified
+def api_ai_jobs_create():
+    data = request.get_json(silent=True) or {}
+    job_type = (data.get('job_type') or '').strip()
+    deal_id = data.get('deal_id')
+    post_id = data.get('post_id')
+    input_text = (data.get('input_text') or '').strip() or None
+    
+    if job_type not in ('summarize_thread', 'analyze_deal'):
+        return jsonify({'error': 'invalid_job_type'}), 400
+    
+    if job_type == 'analyze_deal':
+        if not deal_id:
+            return jsonify({'error': 'deal_id_required'}), 400
+        existing = AiJob.query.filter(
+            AiJob.deal_id == deal_id,
+            AiJob.status.in_(['queued', 'running'])
+        ).first()
+        if existing:
+            return jsonify({'error': 'job_in_progress', 'job_id': existing.id}), 409
+    
+    job = enqueue_ai_job(
+        job_type=job_type,
+        created_by_id=current_user.id,
+        input_text=input_text,
+        post_id=post_id,
+        deal_id=deal_id
+    )
+    
+    return jsonify({'job_id': job.id, 'status': job.status}), 201
+
+
+@app.route('/api/ai/jobs/<int:job_id>')
+@login_required
+def api_ai_jobs_status(job_id: int):
+    job = AiJob.query.get_or_404(job_id)
+    
+    is_admin = getattr(current_user, 'role', '') == 'admin'
+    if job.created_by_id != current_user.id and not is_admin:
+        return jsonify({'error': 'forbidden'}), 403
+    
+    result_ref = None
+    if job.status == 'done':
+        if job.deal_id:
+            analysis = DealAnalysis.query.filter_by(deal_id=job.deal_id).order_by(DealAnalysis.created_at.desc()).first()
+            if analysis:
+                result_ref = {'deal_analysis_id': analysis.id}
+    
+    return jsonify({
+        'job_id': job.id,
+        'status': job.status,
+        'job_type': job.job_type,
+        'error': job.error,
+        'result_ref': result_ref,
+        'created_at': job.created_at.isoformat() if job.created_at else None,
+        'finished_at': job.finished_at.isoformat() if job.finished_at else None
+    })
+
+
+@app.route('/api/ai/jobs/<int:job_id>/run', methods=['POST'])
+@login_required
+def api_ai_jobs_run(job_id: int):
+    decision = can(current_user, Actions.ADMIN_REVIEW_VERIFICATION, None)
+    if not decision.allowed:
+        return deny_response(decision.reason)
+    
+    job = process_job(job_id)
+    return jsonify({'job_id': job.id, 'status': job.status, 'error': job.error})
+
+
+# ----------------------
+# Deals API Endpoints
+# ----------------------
+
+@app.route('/api/deals/<int:deal_id>')
+@login_required
+@require_verified
+def api_deal_detail(deal_id: int):
+    deal = DealDetails.query.get_or_404(deal_id)
+    post = Post.query.get(deal.post_id) if deal.post_id else None
+    
+    analyses_query = DealAnalysis.query.filter_by(deal_id=deal.id).order_by(DealAnalysis.created_at.desc()).limit(10).all()
+    analyses = [
+        {
+            'id': a.id,
+            'summary': a.output_text,
+            'provider': a.provider,
+            'model': a.model,
+            'created_at': a.created_at.isoformat() if a.created_at else None
+        }
+        for a in analyses_query
+    ]
+    
+    return jsonify({
+        'deal': {
+            'id': deal.id,
+            'post_id': deal.post_id,
+            'asset_class': deal.asset_class,
+            'strategy': deal.strategy,
+            'location': deal.location,
+            'time_horizon_months': deal.time_horizon_months,
+            'target_irr': deal.target_irr,
+            'target_multiple': deal.target_multiple,
+            'minimum_investment': deal.minimum_investment,
+            'sponsor_name': deal.sponsor_name,
+            'sponsor_track_record': deal.sponsor_track_record,
+            'thesis': deal.thesis,
+            'key_risks': deal.key_risks,
+            'diligence_needed': deal.diligence_needed,
+            'status': deal.status,
+            'created_at': deal.created_at.isoformat() if deal.created_at else None,
+            'post_content': post.content if post else None
+        },
+        'analyses': analyses
+    })

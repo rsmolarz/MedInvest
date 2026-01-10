@@ -32,6 +32,7 @@ class Actions:
     ACCESS_PHYSICIAN_AREA = "access_physician_area"
     SUBMIT_VERIFICATION = "submit_verification"
     REVIEW_VERIFICATION = "review_verification"  # approve/reject
+    ADMIN_REVIEW_VERIFICATION = "admin_review_verification"  # list pending, approve/reject
 
     VIEW_POST = "view_post"
     CREATE_POST = "create_post"
@@ -119,7 +120,7 @@ def can(user: Any, action: str, resource: Optional[Any] = None, **ctx: Any) -> D
         # Any authenticated user may submit verification.
         return Decision(True, "ok")
 
-    if action in {Actions.REVIEW_VERIFICATION, Actions.MODERATE}:
+    if action in {Actions.REVIEW_VERIFICATION, Actions.ADMIN_REVIEW_VERIFICATION, Actions.MODERATE}:
         # Non-admin needs explicit roles.
         if _has_role(user, {"admin"}):
             return Decision(True, "ok")
