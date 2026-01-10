@@ -1,11 +1,43 @@
 from datetime import datetime, timedelta
 import secrets
 import string
+from enum import Enum
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
 import pyotp
 
+
+# =============================================================================
+# ENUMS
+# =============================================================================
+
+class SubscriptionTier(Enum):
+    FREE = 'free'
+    PREMIUM = 'premium'
+
+class DealStatus(Enum):
+    DRAFT = 'draft'
+    REVIEW = 'review'
+    ACTIVE = 'active'
+    CLOSED = 'closed'
+    REJECTED = 'rejected'
+
+class AMAStatus(Enum):
+    SCHEDULED = 'scheduled'
+    LIVE = 'live'
+    ENDED = 'ended'
+    CANCELLED = 'cancelled'
+
+class MentorshipStatus(Enum):
+    PENDING = 'pending'
+    ACTIVE = 'active'
+    COMPLETED = 'completed'
+
+
+# =============================================================================
+# MODELS
+# =============================================================================
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -42,6 +74,15 @@ class User(UserMixin, db.Model):
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
     # Admin permissions
     can_review_verifications = db.Column(db.Boolean, default=False)
+    # Subscription & gamification
+    subscription_tier = db.Column(db.String(20), default='free')
+    subscription_ends_at = db.Column(db.DateTime)
+    points = db.Column(db.Integer, default=0)
+    level = db.Column(db.Integer, default=1)
+    login_streak = db.Column(db.Integer, default=0)
+    referral_code = db.Column(db.String(10), unique=True)
+    referred_by_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    last_login = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -121,6 +162,22 @@ class User(UserMixin, db.Model):
     def clear_reset_token(self):
         self.password_reset_token = None
         self.password_reset_expires = None
+    
+    def generate_referral_code(self):
+        chars = string.ascii_uppercase + string.digits
+        while True:
+            code = ''.join(secrets.choice(chars) for _ in range(8))
+            existing = User.query.filter_by(referral_code=code).first()
+            if not existing:
+                self.referral_code = code
+                break
+    
+    @property
+    def is_premium(self):
+        if self.subscription_tier == 'premium':
+            if self.subscription_ends_at is None or self.subscription_ends_at > datetime.utcnow():
+                return True
+        return False
     
     @property
     def full_name(self):
@@ -1383,4 +1440,23 @@ class PointTransaction(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', backref='point_transactions')
+
+
+class PortfolioSnapshot(db.Model):
+    """Periodic snapshots of user portfolio value"""
+    __tablename__ = 'portfolio_snapshots'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    snapshot_date = db.Column(db.Date, nullable=False)
+    total_value = db.Column(db.Float)
+    cash = db.Column(db.Float, default=0)
+    stocks = db.Column(db.Float, default=0)
+    bonds = db.Column(db.Float, default=0)
+    real_estate = db.Column(db.Float, default=0)
+    crypto = db.Column(db.Float, default=0)
+    other = db.Column(db.Float, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref='portfolio_snapshots')
 
