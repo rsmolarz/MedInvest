@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}Portfolio Simulator - MedLearn Invest{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-6 fw-bold text-primary mb-2">Portfolio Simulator</h1>
+            <p class="lead text-muted">Practice investing with virtual transactions to build your confidence</p>
+        </div>
+    </div>
+    
+    <!-- Portfolio Summary -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0"><i class="fas fa-chart-pie me-2"></i>Portfolio Summary</h5>
+                </div>
+                <div class="card-body">
+                    {% if portfolio_summary %}
+                        <div class="row">
+                            {% for symbol, data in portfolio_summary.items() %}
+                                {% if data.quantity > 0 %}
+                                <div class="col-md-3 mb-3">
+                                    <div class="card border">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title text-primary">{{ symbol }}</h5>
+                                            <p class="card-text">
+                                                <strong>{{ data.quantity }}</strong> shares<br>
+                                                <small class="text-muted">Avg Cost: ${{ (data.total_cost / data.quantity)|round(2) }}</small>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Investments Yet</h5>
+                            <p class="text-muted">Start by making your first virtual investment below!</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Transaction -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-plus me-2"></i>Add Virtual Transaction</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('add_transaction') }}">
+                        <div class="mb-3">
+                            <label for="symbol" class="form-label">Stock Symbol</label>
+                            <input type="text" class="form-control" id="symbol" name="symbol" placeholder="e.g., AAPL, GOOGL" required>
+                            <div class="form-text">Enter the stock ticker symbol</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="transaction_type" class="form-label">Transaction Type</label>
+                            <select class="form-select" id="transaction_type" name="transaction_type" required>
+                                <option value="">Select transaction type</option>
+                                <option value="BUY">Buy</option>
+                                <option value="SELL">Sell</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="quantity" class="form-label">Quantity</label>
+                            <input type="number" class="form-control" id="quantity" name="quantity" min="1" required>
+                            <div class="form-text">Number of shares</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="price" class="form-label">Price per Share ($)</label>
+                            <input type="number" class="form-control" id="price" name="price" step="0.01" min="0" required>
+                            <div class="form-text">Current market price</div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-paper-plane me-2"></i>Execute Transaction
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Portfolio Tips -->
+        <div class="col-md-6">
+            <div class="card bg-light">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-lightbulb me-2"></i>Investment Tips</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li><strong>Diversify:</strong> Don't put all your money in one stock</li>
+                        <li><strong>Research:</strong> Understand the companies you invest in</li>
+                        <li><strong>Long-term thinking:</strong> Consider your investment timeline</li>
+                        <li><strong>Dollar-cost averaging:</strong> Invest regularly over time</li>
+                        <li><strong>Risk tolerance:</strong> Match investments to your comfort level</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Transaction History -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-history me-2"></i>Transaction History</h5>
+                </div>
+                <div class="card-body">
+                    {% if transactions %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Symbol</th>
+                                        <th>Type</th>
+                                        <th>Quantity</th>
+                                        <th>Price</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in transactions %}
+                                    <tr>
+                                        <td>{{ transaction.transaction_date.strftime('%m/%d/%Y') }}</td>
+                                        <td><strong>{{ transaction.symbol }}</strong></td>
+                                        <td>
+                                            <span class="badge bg-{{ 'success' if transaction.transaction_type == 'BUY' else 'danger' }}">
+                                                {{ transaction.transaction_type }}
+                                            </span>
+                                        </td>
+                                        <td>{{ transaction.quantity }}</td>
+                                        <td>${{ transaction.price }}</td>
+                                        <td>${{ transaction.total_amount }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Transactions Yet</h5>
+                            <p class="text-muted">Your virtual investment history will appear here once you start trading.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Disclaimer -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h6><i class="fas fa-info-circle me-2"></i>Important Disclaimer</h6>
+                <p class="mb-0">
+                    This is a virtual portfolio simulator for educational purposes only. No real money is involved. 
+                    Always consult with a qualified financial advisor before making actual investment decisions.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    
+    form.addEventListener('submit', function(e) {
+        const symbol = document.getElementById('symbol').value.toUpperCase();
+        const quantity = parseInt(document.getElementById('quantity').value);
+        const price = parseFloat(document.getElementById('price').value);
+        
+        if (quantity <= 0) {
+            e.preventDefault();
+            alert('Quantity must be greater than 0');
+            return;
+        }
+        
+        if (price <= 0) {
+            e.preventDefault();
+            alert('Price must be greater than 0');
+            return;
+        }
+        
+        // Set the symbol to uppercase
+        document.getElementById('symbol').value = symbol;
+    });
+});
+</script>
+{% endblock %}
