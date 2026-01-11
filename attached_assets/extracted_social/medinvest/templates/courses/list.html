@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Courses - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="h2 mb-4"><i class="fas fa-graduation-cap me-2 text-primary"></i>Courses</h1>
+    <p class="text-muted mb-4">Learn investing fundamentals from physician finance experts</p>
+    
+    <div class="row g-4">
+        {% for course in courses %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100">
+                {% if course.is_featured %}<div class="card-header bg-warning text-dark"><i class="fas fa-star me-1"></i>Featured</div>{% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ course.title }}</h5>
+                    <p class="text-muted small">by {{ course.instructor_name }}</p>
+                    <p class="small">{{ course.description[:100] }}...</p>
+                    <div class="d-flex justify-content-between text-muted small mb-3">
+                        <span><i class="fas fa-book me-1"></i>{{ course.total_modules }} modules</span>
+                        <span><i class="fas fa-clock me-1"></i>{{ course.total_duration_minutes }} min</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="h5 mb-0">${{ '{:.0f}'.format(course.price) }}</span>
+                        <a href="{{ url_for('courses.view_course', course_id=course.id) }}" class="btn btn-primary btn-sm">
+                            {% if course.id in user_enrollments %}Continue{% else %}View Course{% endif %}
+                        </a>
+                    </div>
+                </div>
+                <div class="card-footer bg-white">
+                    <small class="text-muted">{{ course.enrolled_count }} enrolled</small>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12"><p class="text-muted text-center">No courses available yet</p></div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

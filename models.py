@@ -342,6 +342,8 @@ class Post(db.Model):
     downvotes = db.Column(db.Integer, default=0)
     comment_count = db.Column(db.Integer, default=0)
     view_count = db.Column(db.Integer, default=0)
+    share_count = db.Column(db.Integer, default=0)
+    media_count = db.Column(db.Integer, default=0)
     is_pinned = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -351,6 +353,7 @@ class Post(db.Model):
     group = db.relationship('Group', back_populates='posts')
     comments = db.relationship('Comment', back_populates='post', lazy='dynamic', cascade='all, delete-orphan')
     likes = db.relationship('Like', back_populates='post', lazy='dynamic', cascade='all, delete-orphan')
+    media = db.relationship('PostMedia', back_populates='post', lazy='dynamic', order_by='PostMedia.order_index', cascade='all, delete-orphan')
     
     @property
     def user_id(self):
@@ -383,6 +386,44 @@ class Post(db.Model):
             location = self.author.location or 'USA'
             return f"{specialty} • {location}"
         return self.author.full_name
+    
+    @property
+    def has_media(self):
+        return self.media_count > 0
+    
+    @property
+    def first_media(self):
+        return self.media.first()
+    
+    @property
+    def all_media(self):
+        return self.media.order_by(PostMedia.order_index).all()
+
+
+class PostMedia(db.Model):
+    """Media attachments for posts (images and videos)"""
+    __tablename__ = 'post_media'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'), nullable=False)
+    
+    media_type = db.Column(db.String(20), nullable=False)  # 'image' or 'video'
+    file_path = db.Column(db.String(500), nullable=False)
+    filename = db.Column(db.String(255))
+    
+    thumbnail_path = db.Column(db.String(500))
+    video_thumbnail = db.Column(db.String(500))
+    duration_seconds = db.Column(db.Integer)  # Max 60 seconds for short videos
+    
+    file_size = db.Column(db.Integer)  # In bytes
+    width = db.Column(db.Integer)
+    height = db.Column(db.Integer)
+    
+    order_index = db.Column(db.Integer, default=0)  # For carousel ordering
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    post = db.relationship('Post', back_populates='media')
 
 
 class Comment(db.Model):

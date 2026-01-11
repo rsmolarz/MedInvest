@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Manage Deals - Admin{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="h2 mb-4">Manage Deals</h1>
+    
+    {% if pending %}
+    <h4>Pending Review ({{ pending|length }})</h4>
+    <div class="row g-3 mb-5">
+        {% for deal in pending %}
+        <div class="col-md-6">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <h5>{{ deal.title }}</h5>
+                    <p class="small text-muted">{{ deal.deal_type }} • ${{ '{:,.0f}'.format(deal.minimum_investment) }} min</p>
+                    <p class="small">{{ deal.description[:100] }}...</p>
+                    <button class="btn btn-success btn-sm" onclick="approveDeal({{ deal.id }})">Approve</button>
+                    <button class="btn btn-danger btn-sm" onclick="rejectDeal({{ deal.id }})">Reject</button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <h4>Active Deals ({{ active|length }})</h4>
+    <div class="row g-3">
+        {% for deal in active %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6>{{ deal.title }}</h6>
+                    <p class="small text-muted mb-2">{{ deal.interest_count }} interested • {{ deal.view_count }} views</p>
+                    <button class="btn btn-sm {{ 'btn-warning' if deal.is_featured else 'btn-outline-warning' }}" onclick="toggleFeatured({{ deal.id }})">
+                        <i class="fas fa-star"></i> {{ 'Featured' if deal.is_featured else 'Feature' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+function approveDeal(id) { fetch('/admin/deals/' + id + '/approve', {method:'POST'}).then(()=>location.reload()); }
+function rejectDeal(id) { if(confirm('Reject?')) fetch('/admin/deals/' + id + '/reject', {method:'POST'}).then(()=>location.reload()); }
+function toggleFeatured(id) { fetch('/admin/deals/' + id + '/feature', {method:'POST'}).then(()=>location.reload()); }
+</script>
+{% endblock %}
+{% endblock %}

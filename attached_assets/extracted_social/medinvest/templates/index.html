@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedInvest - Investment Community for Physicians</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .hero {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            min-height: 85vh;
+        }
+        .feature-icon {
+            width: 64px;
+            height: 64px;
+            background: #e0f2fe;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-transparent position-absolute w-100" style="z-index: 1000;">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">
+                <i class="fas fa-chart-line me-2"></i>MedInvest
+            </a>
+            <div class="ms-auto">
+                <a href="{{ url_for('auth.login') }}" class="btn btn-outline-light me-2">Login</a>
+                <a href="{{ url_for('auth.register') }}" class="btn btn-light">Sign Up Free</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero text-white d-flex align-items-center">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h1 class="display-4 fw-bold mb-4">
+                        Build Wealth.<br>
+                        Connect with Peers.<br>
+                        Invest Smarter.
+                    </h1>
+                    <p class="lead mb-4 opacity-90">
+                        The exclusive investment community built for physicians, by physicians. 
+                        Anonymous discussions, vetted deals, and expert guidance.
+                    </p>
+                    <div class="d-flex gap-3 mb-4">
+                        <a href="{{ url_for('auth.register') }}" class="btn btn-light btn-lg">
+                            <i class="fas fa-user-plus me-2"></i>Join Free
+                        </a>
+                        <a href="#features" class="btn btn-outline-light btn-lg">Learn More</a>
+                    </div>
+                    <div class="d-flex gap-4 mt-4">
+                        <div class="stat-card text-center">
+                            <div class="h3 fw-bold mb-0">10,000+</div>
+                            <small class="opacity-75">Physician Members</small>
+                        </div>
+                        <div class="stat-card text-center">
+                            <div class="h3 fw-bold mb-0">$50M+</div>
+                            <small class="opacity-75">Deal Flow</small>
+                        </div>
+                        <div class="stat-card text-center">
+                            <div class="h3 fw-bold mb-0">14</div>
+                            <small class="opacity-75">Specialty Rooms</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-5">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="fw-bold">Everything You Need to Build Wealth</h2>
+                <p class="text-muted">Tools and community designed for busy physicians</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center p-4">
+                            <div class="feature-icon mx-auto mb-3">
+                                <i class="fas fa-user-secret text-primary fa-lg"></i>
+                            </div>
+                            <h5>Anonymous Discussions</h5>
+                            <p class="text-muted">Share and learn without revealing your identity. Discuss sensitive financial topics freely.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center p-4">
+                            <div class="feature-icon mx-auto mb-3">
+                                <i class="fas fa-comments text-primary fa-lg"></i>
+                            </div>
+                            <h5>14 Specialty Rooms</h5>
+                            <p class="text-muted">Join discussions tailored to your specialty, career stage, and investment interests.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center p-4">
+                            <div class="feature-icon mx-auto mb-3">
+                                <i class="fas fa-handshake text-primary fa-lg"></i>
+                            </div>
+                            <h5>Vetted Deal Flow</h5>
+                            <p class="text-muted">Access investment opportunities reviewed for physician investors. Syndications, funds, and more.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center p-4">
+                            <div class="feature-icon mx-auto mb-3">
+                                <i class="fas fa-video text-primary fa-lg"></i>
+                            </div>
+                            <h5>Expert AMAs</h5>
+                            <p class="text-muted">Live Q&A sessions with financial experts, successful physician investors, and industry leaders.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center p-4">
+                            <div class="feature-icon mx-auto mb-3">
+                                <i class="fas fa-graduation-cap text-primary fa-lg"></i>
+                            </div>
+                            <h5>Courses & Education</h5>
+                            <p class="text-muted">Learn investing fundamentals, tax strategies, and wealth building from curated courses.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center p-4">
+                            <div class="feature-icon mx-auto mb-3">
+                                <i class="fas fa-robot text-primary fa-lg"></i>
+                            </div>
+                            <h5>AI Assistant</h5>
+                            <p class="text-muted">Get instant answers to your financial questions from our AI trained on physician finance.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-5 bg-primary text-white">
+        <div class="container text-center">
+            <h2 class="fw-bold mb-3">Ready to Take Control of Your Financial Future?</h2>
+            <p class="lead mb-4 opacity-90">Join thousands of physicians already building wealth together.</p>
+            <a href="{{ url_for('auth.register') }}" class="btn btn-light btn-lg">
+                <i class="fas fa-user-plus me-2"></i>Create Free Account
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-4 bg-dark text-white">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0"><i class="fas fa-chart-line me-2"></i>MedInvest © 2024</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0 text-muted">Not financial advice. Consult a professional.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

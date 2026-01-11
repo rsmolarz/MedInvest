@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Manage Subscription - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="h2 mb-4">Manage Subscription</h1>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5>Current Plan</h5>
+                    {% if current_user.is_premium %}
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="badge bg-warning fs-5 me-3"><i class="fas fa-crown me-1"></i>Premium</span>
+                        <span class="text-muted">
+                            {% if current_user.subscription_ends_at %}
+                            Renews {{ current_user.subscription_ends_at.strftime('%B %d, %Y') }}
+                            {% endif %}
+                        </span>
+                    </div>
+                    <h6>Your Benefits:</h6>
+                    <ul>
+                        <li>Access to all premium rooms</li>
+                        <li>Premium-only AMAs</li>
+                        <li>Priority deal flow</li>
+                        <li>Advanced AI features</li>
+                        <li>Portfolio analytics</li>
+                    </ul>
+                    <hr>
+                    <button class="btn btn-outline-danger" onclick="cancelSubscription()">Cancel Subscription</button>
+                    {% else %}
+                    <p class="text-muted">You're on the Free plan</p>
+                    <a href="{{ url_for('subscription.pricing') }}" class="btn btn-primary">Upgrade to Premium</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+function cancelSubscription() {
+    if(confirm('Are you sure you want to cancel your subscription?')) {
+        fetch('{{ url_for("subscription.cancel_subscription") }}', {method: 'POST'})
+            .then(r => r.json()).then(d => { alert(d.message); location.reload(); });
+    }
+}
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Manage Rooms - Admin{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="h2 mb-4">Manage Rooms</h1>
+    
+    <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">Create New Room</h5></div>
+        <div class="card-body">
+            <form method="POST">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Slug</label>
+                        <input type="text" name="slug" class="form-control" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Category</label>
+                        <select name="category" class="form-select">
+                            <option value="Strategy">Strategy</option>
+                            <option value="Specialty">Specialty</option>
+                            <option value="Career Stage">Career Stage</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea name="description" class="form-control" rows="2"></textarea>
+                </div>
+                <div class="form-check mb-3">
+                    <input type="checkbox" name="is_premium_only" class="form-check-input" id="roomPremium">
+                    <label class="form-check-label" for="roomPremium">Premium Only</label>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Room</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Name</th><th>Category</th><th>Members</th><th>Premium</th></tr></thead>
+            <tbody>
+                {% for room in rooms %}
+                <tr>
+                    <td>{{ room.name }}</td>
+                    <td>{{ room.category }}</td>
+                    <td>{{ room.member_count }}</td>
+                    <td>{% if room.is_premium_only %}<span class="badge bg-warning">Yes</span>{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

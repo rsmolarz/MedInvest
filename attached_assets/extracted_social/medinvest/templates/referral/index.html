@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Referral Program - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="h2 mb-4"><i class="fas fa-gift me-2 text-primary"></i>Referral Program</h1>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-body text-center py-5">
+                    <h4>Your Referral Code</h4>
+                    <div class="display-4 fw-bold text-primary my-4" id="refCode">{{ referral_code }}</div>
+                    <button class="btn btn-outline-primary" onclick="navigator.clipboard.writeText('{{ referral_code }}'); alert('Copied!');">
+                        <i class="fas fa-copy me-1"></i>Copy Code
+                    </button>
+                    <hr class="my-4">
+                    <h6>Share Your Link</h6>
+                    <div class="input-group">
+                        <input type="text" class="form-control" value="{{ referral_link }}" readonly id="refLink">
+                        <button class="btn btn-primary" onclick="navigator.clipboard.writeText(document.getElementById('refLink').value); alert('Link copied!');">Copy</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">How It Works</h5></div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width:60px;height:60px;">1</div>
+                            <h6>Share</h6>
+                            <p class="small text-muted">Share your referral code with physician colleagues</p>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width:60px;height:60px;">2</div>
+                            <h6>They Join</h6>
+                            <p class="small text-muted">They sign up using your code and get 50 bonus points</p>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width:60px;height:60px;">3</div>
+                            <h6>You Earn</h6>
+                            <p class="small text-muted">You get 100 points per referral, plus bonuses for premium conversions</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header"><h6 class="mb-0">Your Stats</h6></div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <h3 class="text-primary">{{ stats.total_referrals }}</h3>
+                            <small class="text-muted">Total Referrals</small>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <h3 class="text-success">{{ stats.activated }}</h3>
+                            <small class="text-muted">Activated</small>
+                        </div>
+                        <div class="col-6">
+                            <h3 class="text-warning">{{ stats.premium_conversions }}</h3>
+                            <small class="text-muted">Went Premium</small>
+                        </div>
+                        <div class="col-6">
+                            <h3 class="text-info">${{ '{:.0f}'.format(stats.total_rewards) }}</h3>
+                            <small class="text-muted">Total Rewards</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

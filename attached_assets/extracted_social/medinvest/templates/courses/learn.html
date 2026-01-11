@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ course.title }} - Learn{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-lg-3">
+            <div class="card">
+                <div class="card-header"><h6 class="mb-0">{{ course.title }}</h6></div>
+                <div class="list-group list-group-flush">
+                    {% for module in modules %}
+                    <a href="{{ url_for('courses.learn', course_id=course.id, module=module.id) }}" 
+                       class="list-group-item list-group-item-action {% if current_module and current_module.id == module.id %}active{% endif %}">
+                        <div class="d-flex justify-content-between">
+                            <span>{{ loop.index }}. {{ module.title[:20] }}...</span>
+                            {% if module.id in (enrollment.completed_modules or []) %}
+                            <i class="fas fa-check text-success"></i>
+                            {% endif %}
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="mt-3">
+                <div class="progress">
+                    <div class="progress-bar bg-success" style="width: {{ enrollment.progress_percent }}%"></div>
+                </div>
+                <small class="text-muted">{{ enrollment.progress_percent|int }}% complete</small>
+            </div>
+        </div>
+        
+        <div class="col-lg-9">
+            {% if current_module %}
+            <div class="card">
+                <div class="card-body">
+                    <h3>{{ current_module.title }}</h3>
+                    <p class="text-muted">{{ current_module.duration_minutes }} minutes</p>
+                    
+                    {% if current_module.video_url %}
+                    <div class="ratio ratio-16x9 mb-4 bg-dark rounded">
+                        <div class="d-flex align-items-center justify-content-center text-white">
+                            <i class="fas fa-play-circle fa-4x"></i>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="content">
+                        {{ current_module.content or current_module.description or 'Content coming soon.' }}
+                    </div>
+                    
+                    <hr>
+                    <button class="btn btn-success" onclick="completeModule({{ current_module.id }})">
+                        <i class="fas fa-check me-2"></i>Mark as Complete
+                    </button>
+                </div>
+            </div>
+            {% else %}
+            <div class="card"><div class="card-body text-center py-5">Select a module to begin</div></div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+function completeModule(moduleId) {
+    fetch('{{ url_for("courses.complete_module", course_id=course.id, module_id=0) }}'.replace('0', moduleId), {method: 'POST'})
+        .then(r => r.json())
+        .then(d => { if(d.success) location.reload(); });
+}
+</script>
+{% endblock %}
+{% endblock %}
