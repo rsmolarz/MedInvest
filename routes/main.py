@@ -80,14 +80,14 @@ def create_post():
     is_anonymous = request.form.get('is_anonymous') == 'on'
     media_data = request.form.get('media_files', '[]')
     
-    if not content:
-        flash('Post content cannot be empty', 'error')
-        return redirect(request.referrer or url_for('main.feed'))
-    
     try:
         media_files = json.loads(media_data) if media_data else []
     except:
         media_files = []
+    
+    if not content and not media_files:
+        flash('Post must have content or media', 'error')
+        return redirect(request.referrer or url_for('main.feed'))
     
     if len(media_files) == 0:
         post_type = 'text'

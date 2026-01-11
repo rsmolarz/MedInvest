@@ -4,7 +4,25 @@ MedInvest is a Facebook-like social media platform designed specifically for med
 
 The platform features two main architectures: a primary Flask-based web application for the educational content and user interface, and a FastAPI scaffold for potential future investment deal management and financial integrations.
 
-## Recent Changes (January 10, 2026)
+## Recent Changes (January 11, 2026)
+
+✓ Full Social Media Capability Added:
+- **PostMedia model**: Image and video attachments for posts (carousel galleries supported)
+- **Media upload routes** (routes/media.py):
+  - POST /media/upload - Single file upload (images up to 10MB, videos up to 50MB)
+  - POST /media/upload/multiple - Gallery upload (up to 10 files)
+  - GET /media/uploads/<path> - Serve uploaded files
+- **Enhanced post creation**:
+  - Form and AJAX endpoints support media attachments
+  - Posts can be text-only, image, video, or gallery type
+  - Media-only posts allowed (no text required)
+- **Enhanced feed template** (templates/feed.html):
+  - Drag-and-drop media upload interface
+  - Image/video gallery display with lightbox viewer
+  - Post type badges for media posts
+- **New Post fields**: media_count, share_count
+
+## Changes (January 10, 2026)
 
 ✓ Internal Ad Serving System:
 - **Models**: AdAdvertiser, AdCampaign, AdCreative, AdImpression, AdClick
