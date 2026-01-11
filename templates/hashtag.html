@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}#{{ hashtag.name }} - MedInvest{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hashtag-header { background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; border-radius: 12px; }
+    .mention-link { color: #2563eb; text-decoration: none; font-weight: 500; }
+    .mention-link:hover { text-decoration: underline; }
+    .hashtag-link { color: #7c3aed; text-decoration: none; font-weight: 500; }
+    .hashtag-link:hover { text-decoration: underline; }
+    .post-media-single img { max-height: 400px; object-fit: cover; border-radius: 12px; width: 100%; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Hashtag Header -->
+            <div class="hashtag-header p-4 mb-4">
+                <h1 class="display-5 mb-2">#{{ hashtag.name }}</h1>
+                <p class="mb-0 opacity-75">
+                    <i class="fas fa-file-alt me-2"></i>{{ hashtag.post_count }} posts
+                </p>
+            </div>
+            
+            <!-- Posts -->
+            {% for post in posts.items %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <!-- Post Header -->
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="rounded-circle bg-{% if post.is_anonymous %}secondary{% else %}primary{% endif %} text-white d-flex align-items-center justify-content-center" style="width:40px;height:40px;">
+                                {% if post.is_anonymous %}
+                                <i class="fas fa-user-secret"></i>
+                                {% else %}
+                                {{ post.author.first_name[0] }}{{ post.author.last_name[0] }}
+                                {% endif %}
+                            </div>
+                            <div>
+                                {% if post.is_anonymous %}
+                                <strong>{{ post.anonymous_name or 'Anonymous' }}</strong>
+                                {% else %}
+                                <a href="{{ url_for('main.profile', user_id=post.author.id) }}" class="text-decoration-none text-dark">
+                                    <strong>{{ post.author.full_name }}</strong>
+                                </a>
+                                {% if post.author.is_verified %}<i class="fas fa-check-circle text-primary ms-1"></i>{% endif %}
+                                {% endif %}
+                                <br>
+                                <small class="text-muted">{{ post.created_at.strftime('%b %d at %I:%M %p') }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Post Content with clickable mentions/hashtags -->
+                    <div class="card-text mb-2">{{ render_content(post.content) }}</div>
+                    
+                    <!-- Post Media -->
+                    {% if post.has_media %}
+                    <div class="post-media mb-3">
+                        {% set media_list = post.all_media %}
+                        {% if media_list|length == 1 %}
+                        <div class="post-media-single">
+                            {% if media_list[0].media_type == 'video' %}
+                            <video controls class="w-100" style="border-radius:12px;">
+                                <source src="{{ media_list[0].file_path }}" type="video/mp4">
+                            </video>
+                            {% else %}
+                            <img src="{{ media_list[0].file_path }}" alt="" class="img-fluid">
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Post Actions -->
+                    <div class="d-flex border-top pt-2">
+                        <form action="{{ url_for('main.vote_post', post_id=post.id) }}" method="POST" class="flex-fill">
+                            <input type="hidden" name="vote_type" value="1">
+                            <button type="submit" class="btn btn-light w-100 {{ 'text-primary fw-bold' if user_votes.get(post.id) == 1 else '' }}">
+                                <i class="fas fa-thumbs-up me-1"></i>{{ post.upvotes }}
+                            </button>
+                        </form>
+                        <a href="{{ url_for('rooms.view_post', post_id=post.id) }}" class="btn btn-light flex-fill">
+                            <i class="fas fa-comment me-1"></i>{{ post.comment_count }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-hashtag fa-3x text-muted mb-3"></i>
+                    <h5>No posts yet</h5>
+                    <p class="text-muted">Be the first to post with #{{ hashtag.name }}</p>
+                    <a href="{{ url_for('main.feed') }}" class="btn btn-primary">Go to Feed</a>
+                </div>
+            </div>
+            {% endfor %}
+            
+            <!-- Pagination -->
+            {% if posts.pages > 1 %}
+            <nav class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if posts.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.hashtag_page', tag_name=hashtag.name, page=posts.prev_num) }}">Previous</a>
+                    </li>
+                    {% endif %}
+                    {% if posts.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.hashtag_page', tag_name=hashtag.name, page=posts.next_num) }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">Related Hashtags</h6>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for h in related_hashtags %}
+                    <a href="{{ url_for('main.hashtag_page', tag_name=h.name) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <span class="hashtag-link">#{{ h.name }}</span>
+                        <small class="text-muted">{{ h.post_count }} posts</small>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body text-center">
+                    <p class="mb-2">Want to join the conversation?</p>
+                    <a href="{{ url_for('main.feed') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Create Post
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

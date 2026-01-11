@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Manage AMAs - Admin{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="h2 mb-4">Manage AMAs</h1>
+    
+    <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">Create New AMA</h5></div>
+        <div class="card-body">
+            <form method="POST">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Title</label>
+                        <input type="text" name="title" class="form-control" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Scheduled For</label>
+                        <input type="datetime-local" name="scheduled_for" class="form-control" required>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Expert Name</label>
+                        <input type="text" name="expert_name" class="form-control" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Expert Title</label>
+                        <input type="text" name="expert_title" class="form-control">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Duration (min)</label>
+                        <input type="number" name="duration_minutes" class="form-control" value="60">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea name="description" class="form-control" rows="2"></textarea>
+                </div>
+                <div class="form-check mb-3">
+                    <input type="checkbox" name="is_premium_only" class="form-check-input" id="premium">
+                    <label class="form-check-label" for="premium">Premium Only</label>
+                </div>
+                <button type="submit" class="btn btn-primary">Create AMA</button>
+            </form>
+        </div>
+    </div>
+    
+    <h4>All AMAs</h4>
+    <div class="table-responsive">
+        <table class="table">
+            <thead><tr><th>Title</th><th>Expert</th><th>Date</th><th>Status</th><th>Participants</th></tr></thead>
+            <tbody>
+                {% for ama in amas %}
+                <tr>
+                    <td>{{ ama.title }}</td>
+                    <td>{{ ama.expert_name }}</td>
+                    <td>{{ ama.scheduled_for.strftime('%b %d, %Y %I:%M %p') }}</td>
+                    <td><span class="badge bg-{{ 'success' if ama.status.value == 'live' else 'secondary' }}">{{ ama.status.value }}</span></td>
+                    <td>{{ ama.participant_count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

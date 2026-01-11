@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Pricing - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <h1 class="display-5 fw-bold">Choose Your Plan</h1>
+        <p class="lead text-muted">Unlock premium features to accelerate your wealth building</p>
+    </div>
+    
+    <div class="row justify-content-center g-4">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center p-4">
+                    <h4>Free</h4>
+                    <div class="display-4 fw-bold my-4">$0<small class="fs-6 text-muted">/mo</small></div>
+                    <ul class="list-unstyled mb-4">
+                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Access to public rooms</li>
+                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>View deal listings</li>
+                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Basic AI assistant</li>
+                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Community feed</li>
+                        <li class="py-2 text-muted"><i class="fas fa-times me-2"></i>Premium rooms</li>
+                        <li class="py-2 text-muted"><i class="fas fa-times me-2"></i>Premium AMAs</li>
+                    </ul>
+                    <button class="btn btn-outline-secondary w-100" disabled>Current Plan</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card h-100 border-primary">
+                <div class="card-header bg-primary text-white text-center py-3">
+                    <span class="badge bg-warning">Most Popular</span>
+                </div>
+                <div class="card-body text-center p-4">
+                    <h4>Premium Monthly</h4>
+                    <div class="display-4 fw-bold my-4">$29<small class="fs-6 text-muted">/mo</small></div>
+                    <ul class="list-unstyled mb-4">
+                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Everything in Free</li>
+                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>All premium rooms</li>
+                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Premium AMAs</li>
+                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Deal flow alerts</li>
+                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Advanced AI features</li>
+                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Portfolio analytics</li>
+                    </ul>
+                    <a href="{{ url_for('subscription.checkout', plan='monthly') }}" class="btn btn-primary w-100">Get Started</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white text-center py-3">
+                    <span>Save $99/year</span>
+                </div>
+                <div class="card-body text-center p-4">
+                    <h4>Premium Annual</h4>
+                    <div class="display-4 fw-bold my-4">$249<small class="fs-6 text-muted">/yr</small></div>
+                    <ul class="list-unstyled mb-4">
+                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Everything in Monthly</li>
+                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>2 months free</li>
+                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Priority support</li>
+                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Early event access</li>
+                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Exclusive webinars</li>
+                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Annual member badge</li>
+                    </ul>
+                    <a href="{{ url_for('subscription.checkout', plan='yearly') }}" class="btn btn-success w-100">Best Value</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

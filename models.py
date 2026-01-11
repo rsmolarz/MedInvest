@@ -35,6 +35,22 @@ class MentorshipStatus(Enum):
     COMPLETED = 'completed'
 
 
+class NotificationType(Enum):
+    MENTION = 'mention'
+    LIKE = 'like'
+    COMMENT = 'comment'
+    FOLLOW = 'follow'
+    REPLY = 'reply'
+    AMA_REMINDER = 'ama_reminder'
+    AMA_ANSWER = 'ama_answer'
+    DEAL_ALERT = 'deal_alert'
+    MENTORSHIP_REQUEST = 'mentorship_request'
+    MENTORSHIP_ACCEPTED = 'mentorship_accepted'
+    REFERRAL_SIGNUP = 'referral_signup'
+    LEVEL_UP = 'level_up'
+    SYSTEM = 'system'
+
+
 # =============================================================================
 # MODELS
 # =============================================================================
@@ -475,18 +491,22 @@ class Notification(db.Model):
     __tablename__ = 'notifications'
     
     id = db.Column(db.Integer, primary_key=True)
-    recipient_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    sender_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    notification_type = db.Column(db.String(50), nullable=False)  # like, comment, follow, mention
-    message = db.Column(db.String(500), nullable=False)
-    related_post_id = db.Column(db.Integer, db.ForeignKey('posts.id'))
-    is_read = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    actor_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    notification_type = db.Column(db.String(50), nullable=False)
+    title = db.Column(db.String(200))
+    message = db.Column(db.Text)
+    url = db.Column(db.String(500))
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'))
+    comment_id = db.Column(db.Integer, db.ForeignKey('comments.id'))
+    is_read = db.Column(db.Boolean, default=False, index=True)
+    read_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     
     # Relationships
-    recipient = db.relationship('User', foreign_keys=[recipient_id])
-    sender = db.relationship('User', foreign_keys=[sender_id])
-    related_post = db.relationship('Post')
+    user = db.relationship('User', foreign_keys=[user_id], backref='notifications')
+    actor = db.relationship('User', foreign_keys=[actor_id])
+    post = db.relationship('Post')
 
 
 # Invite-only growth
@@ -1484,7 +1504,10 @@ class Hashtag(db.Model):
     name = db.Column(db.String(100), nullable=False, unique=True)  # without #
     post_count = db.Column(db.Integer, default=0)
     weekly_count = db.Column(db.Integer, default=0)
+    posts_today = db.Column(db.Integer, default=0)
+    posts_this_week = db.Column(db.Integer, default=0)
     last_used = db.Column(db.DateTime)
+    last_used_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
@@ -1715,3 +1738,20 @@ class AdClick(db.Model):
     creative = db.relationship('AdCreative', back_populates='clicks')
     user = db.relationship('User', backref='ad_clicks')
 
+
+# =============================================================================
+# MENTIONS
+# =============================================================================
+
+class Mention(db.Model):
+    __tablename__ = 'mentions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    mentioned_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    mentioning_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'))
+    comment_id = db.Column(db.Integer, db.ForeignKey('comments.id'))
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

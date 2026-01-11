@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}{{ user.full_name }} - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" 
+                         style="width:100px;height:100px;font-size:2rem;">
+                        {{ user.first_name[0] }}{{ user.last_name[0] }}
+                    </div>
+                    <h4>{{ user.full_name }}</h4>
+                    <p class="text-muted">{{ (user.specialty or 'Physician')|replace('_', ' ')|title }}</p>
+                    {% if user.is_premium %}
+                    <span class="badge bg-warning"><i class="fas fa-crown me-1"></i>Premium</span>
+                    {% endif %}
+                    {% if user.is_verified %}
+                    <span class="badge bg-success"><i class="fas fa-check me-1"></i>Verified</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h6 class="mb-0">Stats</h6></div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <h5 class="text-primary">{{ user.points }}</h5>
+                            <small class="text-muted">Points</small>
+                        </div>
+                        <div class="col-4">
+                            <h5 class="text-success">{{ user.level }}</h5>
+                            <small class="text-muted">Level</small>
+                        </div>
+                        <div class="col-4">
+                            <h5 class="text-warning">{{ user.login_streak }}</h5>
+                            <small class="text-muted">Streak</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            {% if user.id == current_user.id %}
+            <div class="card mb-4">
+                <div class="card-header"><h5 class="mb-0">Edit Profile</h5></div>
+                <div class="card-body">
+                    <form action="{{ url_for('main.edit_profile') }}" method="POST">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">First Name</label>
+                                <input type="text" name="first_name" class="form-control" value="{{ user.first_name }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Last Name</label>
+                                <input type="text" name="last_name" class="form-control" value="{{ user.last_name }}">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Bio</label>
+                            <textarea name="bio" class="form-control" rows="3">{{ user.bio or '' }}</textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">Recent Posts</h5></div>
+                <div class="list-group list-group-flush">
+                    {% for post in posts %}
+                    <a href="{{ url_for('rooms.view_post', post_id=post.id) }}" class="list-group-item list-group-item-action">
+                        <p class="mb-1">{{ post.content[:100] }}{% if post.content|length > 100 %}...{% endif %}</p>
+                        <small class="text-muted">{{ post.created_at.strftime('%b %d, %Y') }} • {{ post.upvotes }} upvotes</small>
+                    </a>
+                    {% else %}
+                    <div class="list-group-item text-muted">No public posts yet</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

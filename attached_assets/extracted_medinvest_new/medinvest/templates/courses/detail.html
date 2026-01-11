@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}{{ course.title }} - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <h1>{{ course.title }}</h1>
+            <p class="lead text-muted">by {{ course.instructor_name }}</p>
+            <p>{{ course.description }}</p>
+            
+            <h4 class="mt-4">Curriculum</h4>
+            <div class="list-group">
+                {% for module in modules %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ loop.index }}. {{ module.title }}</strong>
+                        <br><small class="text-muted">{{ module.duration_minutes }} minutes</small>
+                    </div>
+                    {% if enrollment %}
+                    <span class="badge bg-{% if module.id in (enrollment.completed_modules or []) %}success{% else %}secondary{% endif %}">
+                        {% if module.id in (enrollment.completed_modules or []) %}Completed{% else %}Pending{% endif %}
+                    </span>
+                    {% else %}
+                    <i class="fas fa-lock text-muted"></i>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card sticky-top" style="top:80px;">
+                <div class="card-body text-center">
+                    <div class="display-4 fw-bold mb-3">${{ '{:.0f}'.format(course.price) }}</div>
+                    <p class="text-muted">{{ course.total_modules }} modules • {{ course.total_duration_minutes }} minutes</p>
+                    {% if enrollment %}
+                    <div class="progress mb-3">
+                        <div class="progress-bar bg-success" style="width: {{ enrollment.progress_percent }}%"></div>
+                    </div>
+                    <p>{{ enrollment.progress_percent|int }}% complete</p>
+                    <a href="{{ url_for('courses.learn', course_id=course.id) }}" class="btn btn-primary btn-lg w-100">Continue Learning</a>
+                    {% else %}
+                    <button class="btn btn-primary btn-lg w-100" onclick="enrollCourse()">Enroll Now</button>
+                    {% endif %}
+                    <p class="mt-3 mb-0 text-muted small">{{ course.enrolled_count }} students enrolled</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+function enrollCourse() {
+    fetch('{{ url_for("courses.enroll_course", course_id=course.id) }}', {method: 'POST'})
+        .then(r => r.json())
+        .then(d => { if(d.success) window.location.href = d.redirect; else alert(d.error); });
+}
+</script>
+{% endblock %}
+{% endblock %}

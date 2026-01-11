@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Bookmarks - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="h2 mb-4"><i class="fas fa-bookmark me-2"></i>Your Bookmarks</h1>
+    
+    {% for post in posts %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between mb-2">
+                <strong>{{ post.display_author }}</strong>
+                <small class="text-muted">{{ post.created_at.strftime('%b %d') }}</small>
+            </div>
+            <p>{{ post.content[:200] }}{% if post.content|length > 200 %}...{% endif %}</p>
+            <a href="{{ url_for('rooms.view_post', post_id=post.id) }}" class="btn btn-outline-primary btn-sm">View Post</a>
+        </div>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-bookmark fa-3x text-muted mb-3"></i>
+            <h5>No bookmarks yet</h5>
+            <p class="text-muted">Bookmark posts to save them for later</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
