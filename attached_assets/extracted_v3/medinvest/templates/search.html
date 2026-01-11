@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}Search{% if query %}: {{ query }}{% endif %} - MedInvest{% endblock %}
+
+{% block extra_css %}
+<style>
+    .mention-link { color: #2563eb; text-decoration: none; font-weight: 500; }
+    .mention-link:hover { text-decoration: underline; }
+    .hashtag-link { color: #7c3aed; text-decoration: none; font-weight: 500; }
+    .hashtag-link:hover { text-decoration: underline; }
+    .search-tabs .nav-link.active { border-bottom: 3px solid #2563eb; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Search Box -->
+            <form action="{{ url_for('main.search') }}" method="GET" class="mb-4">
+                <div class="input-group input-group-lg">
+                    <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" name="q" class="form-control border-start-0" 
+                           placeholder="Search posts, people, or hashtags..." 
+                           value="{{ query }}" autofocus>
+                    <button class="btn btn-primary" type="submit">Search</button>
+                </div>
+            </form>
+            
+            {% if query %}
+            <!-- Search Tabs -->
+            <ul class="nav nav-tabs search-tabs mb-4">
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if search_type == 'all' else '' }}" 
+                       href="{{ url_for('main.search', q=query, type='all') }}">All</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if search_type == 'posts' else '' }}" 
+                       href="{{ url_for('main.search', q=query, type='posts') }}">
+                        Posts {% if results.posts %}<span class="badge bg-secondary">{{ results.posts|length }}</span>{% endif %}
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if search_type == 'users' else '' }}" 
+                       href="{{ url_for('main.search', q=query, type='users') }}">
+                        People {% if results.users %}<span class="badge bg-secondary">{{ results.users|length }}</span>{% endif %}
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if search_type == 'hashtags' else '' }}" 
+                       href="{{ url_for('main.search', q=query, type='hashtags') }}">
+                        Hashtags {% if results.hashtags %}<span class="badge bg-secondary">{{ results.hashtags|length }}</span>{% endif %}
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- Results -->
+            {% if search_type in ['all', 'users'] and results.users %}
+            <h5 class="mb-3">People</h5>
+            <div class="row g-3 mb-4">
+                {% for user in results.users[:6] %}
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width:50px;height:50px;">
+                                    {{ user.first_name[0] }}{{ user.last_name[0] }}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <a href="{{ url_for('main.profile', user_id=user.id) }}" class="text-decoration-none">
+                                        <strong>{{ user.full_name }}</strong>
+                                        {% if user.is_verified %}<i class="fas fa-check-circle text-primary"></i>{% endif %}
+                                        {% if user.is_premium %}<i class="fas fa-crown text-warning"></i>{% endif %}
+                                    </a>
+                                    <br>
+                                    <small class="text-muted">{{ (user.specialty or 'Physician')|replace('_', ' ')|title }}</small>
+                                </div>
+                                <button class="btn btn-outline-primary btn-sm" onclick="followUser({{ user.id }}, this)">
+                                    Follow
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            {% if search_type in ['all', 'hashtags'] and results.hashtags %}
+            <h5 class="mb-3">Hashtags</h5>
+            <div class="d-flex flex-wrap gap-2 mb-4">
+                {% for hashtag in results.hashtags %}
+                <a href="{{ url_for('main.hashtag_page', tag_name=hashtag.name) }}" 
+                   class="btn btn-outline-primary">
+                    #{{ hashtag.name }}
+                    <span class="badge bg-primary ms-1">{{ hashtag.post_count }}</span>
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            {% if search_type in ['all', 'posts'] and results.posts %}
+            <h5 class="mb-3">Posts</h5>
+            {% for post in results.posts %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <div class="rounded-circle bg-{% if post.is_anonymous %}secondary{% else %}primary{% endif %} text-white d-flex align-items-center justify-content-center" style="width:35px;height:35px;">
+                            {% if post.is_anonymous %}
+                            <i class="fas fa-user-secret"></i>
+                            {% else %}
+                            {{ post.author.first_name[0] }}
+                            {% endif %}
+                        </div>
+                        <div>
+                            {% if post.is_anonymous %}
+                            <strong>{{ post.anonymous_name or 'Anonymous' }}</strong>
+                            {% else %}
+                            <strong>{{ post.author.full_name }}</strong>
+                            {% endif %}
+                            <small class="text-muted ms-2">{{ post.created_at.strftime('%b %d') }}</small>
+                        </div>
+                    </div>
+                    <p class="mb-2">{{ render_content(post.content[:200]) }}{% if post.content|length > 200 %}...{% endif %}</p>
+                    <a href="{{ url_for('rooms.view_post', post_id=post.id) }}" class="btn btn-outline-primary btn-sm">View Post</a>
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+            
+            {% if not results.posts and not results.users and not results.hashtags %}
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h5>No results found</h5>
+                    <p class="text-muted">Try a different search term</p>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% else %}
+            <!-- Empty State -->
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h5>Search MedInvest</h5>
+                    <p class="text-muted">Find posts, people, or hashtags</p>
+                    <div class="mt-4">
+                        <small class="text-muted">Try searching for:</small>
+                        <div class="d-flex flex-wrap justify-content-center gap-2 mt-2">
+                            <a href="{{ url_for('main.search', q='backdoor roth') }}" class="btn btn-outline-secondary btn-sm">Backdoor Roth</a>
+                            <a href="{{ url_for('main.search', q='real estate') }}" class="btn btn-outline-secondary btn-sm">Real Estate</a>
+                            <a href="{{ url_for('main.search', q='#FIRE') }}" class="btn btn-outline-secondary btn-sm">#FIRE</a>
+                            <a href="{{ url_for('main.search', q='index funds') }}" class="btn btn-outline-secondary btn-sm">Index Funds</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function followUser(userId, btn) {
+    fetch(`/user/${userId}/follow`, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                if (data.following) {
+                    btn.classList.remove('btn-outline-primary');
+                    btn.classList.add('btn-primary');
+                    btn.textContent = 'Following';
+                } else {
+                    btn.classList.remove('btn-primary');
+                    btn.classList.add('btn-outline-primary');
+                    btn.textContent = 'Follow';
+                }
+            }
+        });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Submit Deal - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header"><h4 class="mb-0">Submit Investment Deal</h4></div>
+                <div class="card-body">
+                    <p class="text-muted">Submit your deal for review. Our team will evaluate and contact you.</p>
+                    <form method="POST">
+                        <h5 class="mt-4">Deal Information</h5>
+                        <div class="mb-3">
+                            <label class="form-label">Deal Title *</label>
+                            <input type="text" name="title" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Deal Type *</label>
+                            <select name="deal_type" class="form-select" required>
+                                <option value="">Select type...</option>
+                                <option value="real_estate">Real Estate</option>
+                                <option value="fund">Fund</option>
+                                <option value="syndicate">Syndicate</option>
+                                <option value="practice">Practice Opportunity</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description *</label>
+                            <textarea name="description" class="form-control" rows="4" required></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Minimum Investment ($) *</label>
+                                <input type="number" name="minimum_investment" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Target Raise ($)</label>
+                                <input type="number" name="target_raise" class="form-control">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Projected Return</label>
+                                <input type="text" name="projected_return" class="form-control" placeholder="e.g., 12-15% IRR">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Investment Term</label>
+                                <input type="text" name="investment_term" class="form-control" placeholder="e.g., 5 years">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Location</label>
+                            <input type="text" name="location" class="form-control">
+                        </div>
+                        
+                        <h5 class="mt-4">Sponsor Information</h5>
+                        <div class="mb-3">
+                            <label class="form-label">Sponsor Name *</label>
+                            <input type="text" name="sponsor_name" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Sponsor Bio</label>
+                            <textarea name="sponsor_bio" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Contact Email *</label>
+                            <input type="email" name="sponsor_contact" class="form-control" required>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-lg">Submit for Review</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}AI Assistant - MedInvest{% endblock %}
+
+{% block extra_css %}
+<style>
+.chat-container { height: calc(100vh - 250px); overflow-y: auto; }
+.chat-message { max-width: 80%; margin-bottom: 1rem; }
+.chat-message.user { margin-left: auto; }
+.chat-message .bubble { padding: 1rem; border-radius: 1rem; }
+.chat-message.user .bubble { background: #2563eb; color: white; border-bottom-right-radius: 0; }
+.chat-message.ai .bubble { background: #f1f5f9; border-bottom-left-radius: 0; }
+.suggestion-btn { font-size: 0.85rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-robot me-2 text-primary"></i>MedInvest AI Assistant</h5>
+                </div>
+                <div class="card-body chat-container" id="chatContainer">
+                    <div class="chat-message ai">
+                        <div class="bubble">
+                            <p class="mb-0">Hello! I'm your MedInvest AI assistant, trained to help physicians with financial questions. I can help with:</p>
+                            <ul class="mb-0 mt-2">
+                                <li>Tax strategies (Backdoor Roth, tax-loss harvesting)</li>
+                                <li>Investment planning</li>
+                                <li>Student loan strategies</li>
+                                <li>Retirement planning</li>
+                                <li>Insurance decisions</li>
+                            </ul>
+                            <p class="mb-0 mt-2">What would you like to know?</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="mb-3">
+                        <button class="btn btn-outline-secondary btn-sm suggestion-btn me-1 mb-1" onclick="askQuestion('How does backdoor Roth IRA work?')">Backdoor Roth</button>
+                        <button class="btn btn-outline-secondary btn-sm suggestion-btn me-1 mb-1" onclick="askQuestion('Explain PSLF for physicians')">PSLF</button>
+                        <button class="btn btn-outline-secondary btn-sm suggestion-btn me-1 mb-1" onclick="askQuestion('Best index funds for beginners?')">Index Funds</button>
+                        <button class="btn btn-outline-secondary btn-sm suggestion-btn me-1 mb-1" onclick="askQuestion('Do I need disability insurance?')">Disability Insurance</button>
+                    </div>
+                    <form id="chatForm" class="d-flex gap-2">
+                        <input type="text" id="questionInput" class="form-control" placeholder="Ask a financial question..." autofocus>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i></button>
+                    </form>
+                </div>
+            </div>
+            <p class="text-muted small text-center mt-3">
+                <i class="fas fa-info-circle me-1"></i>AI responses are for educational purposes only. Always consult a qualified financial advisor.
+            </p>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+const chatContainer = document.getElementById('chatContainer');
+const chatForm = document.getElementById('chatForm');
+const questionInput = document.getElementById('questionInput');
+
+function addMessage(content, isUser) {
+    const div = document.createElement('div');
+    div.className = `chat-message ${isUser ? 'user' : 'ai'}`;
+    div.innerHTML = `<div class="bubble">${content.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div>`;
+    chatContainer.appendChild(div);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+function askQuestion(question) {
+    questionInput.value = question;
+    chatForm.dispatchEvent(new Event('submit'));
+}
+
+chatForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const question = questionInput.value.trim();
+    if (!question) return;
+    
+    addMessage(question, true);
+    questionInput.value = '';
+    
+    // Show typing indicator
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'chat-message ai';
+    typingDiv.id = 'typing';
+    typingDiv.innerHTML = '<div class="bubble"><i class="fas fa-circle-notch fa-spin"></i> Thinking...</div>';
+    chatContainer.appendChild(typingDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+    
+    try {
+        const response = await fetch('{{ url_for("ai.ask_ai") }}', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({question})
+        });
+        const data = await response.json();
+        document.getElementById('typing').remove();
+        
+        if (data.success) {
+            addMessage(data.response, false);
+        } else {
+            addMessage('Sorry, I encountered an error. Please try again.', false);
+        }
+    } catch (error) {
+        document.getElementById('typing').remove();
+        addMessage('Sorry, I encountered an error. Please try again.', false);
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}

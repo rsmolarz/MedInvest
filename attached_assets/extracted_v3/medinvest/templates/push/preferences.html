@@ -1,0 +1,549 @@
+{% extends "base.html" %}
+{% block title %}Notification Settings - MedInvest{% endblock %}
+
+{% block extra_css %}
+<style>
+    .toggle-switch { position: relative; width: 50px; height: 26px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; cursor: pointer; inset: 0; background: #ccc; border-radius: 26px; transition: 0.3s; }
+    .toggle-slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; }
+    input:checked + .toggle-slider { background: #2563eb; }
+    input:checked + .toggle-slider:before { transform: translateX(24px); }
+    
+    .notification-category { border-bottom: 1px solid #eee; padding: 1.5rem 0; }
+    .notification-category:last-child { border-bottom: none; }
+    .notification-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; }
+    .notification-item:not(:last-child) { border-bottom: 1px solid #f5f5f5; }
+    
+    .device-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem; }
+    .permission-banner { background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h2 class="mb-4"><i class="fas fa-bell me-2"></i>Notification Settings</h2>
+            
+            <!-- Push Permission Banner -->
+            <div id="pushBanner" class="permission-banner" style="display:none;">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="fas fa-bell fa-2x"></i>
+                    <div class="flex-grow-1">
+                        <h5 class="mb-1">Enable Push Notifications</h5>
+                        <p class="mb-0 opacity-75">Get instant alerts for mentions, likes, and important updates</p>
+                    </div>
+                    <button class="btn btn-light btn-lg" onclick="requestPushPermission()">
+                        <i class="fas fa-check me-2"></i>Enable
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Push Status -->
+            <div id="pushStatus" class="alert" style="display:none;">
+                <span id="pushStatusText"></span>
+            </div>
+            
+            <form method="POST" id="prefsForm">
+                <!-- Master Switches -->
+                <div class="card mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Master Controls</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="notification-item">
+                            <div>
+                                <strong><i class="fas fa-mobile-alt me-2 text-primary"></i>Push Notifications</strong>
+                                <p class="text-muted mb-0 small">Receive instant notifications in your browser</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" name="push_enabled" id="pushEnabled" 
+                                       {{ 'checked' if prefs.push_enabled else '' }}
+                                       onchange="togglePushSection()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="notification-item">
+                            <div>
+                                <strong><i class="fas fa-envelope me-2 text-success"></i>Email Notifications</strong>
+                                <p class="text-muted mb-0 small">Receive notifications via email</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" name="email_enabled" id="emailEnabled"
+                                       {{ 'checked' if prefs.email_enabled else '' }}
+                                       onchange="toggleEmailSection()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Push Notification Types -->
+                <div class="card mb-4" id="pushSection">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-mobile-alt me-2"></i>Push Notification Types</h5>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="testPush()">
+                            <i class="fas fa-paper-plane me-1"></i>Send Test
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="notification-category">
+                            <h6 class="text-muted mb-3">Social</h6>
+                            
+                            <div class="notification-item">
+                                <div>
+                                    <strong>Mentions</strong>
+                                    <p class="text-muted mb-0 small">When someone @mentions you</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="push_mentions" {{ 'checked' if prefs.push_mentions else '' }}>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="notification-item">
+                                <div>
+                                    <strong>Likes</strong>
+                                    <p class="text-muted mb-0 small">When someone likes your post</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="push_likes" {{ 'checked' if prefs.push_likes else '' }}>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="notification-item">
+                                <div>
+                                    <strong>Comments</strong>
+                                    <p class="text-muted mb-0 small">When someone comments on your post</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="push_comments" {{ 'checked' if prefs.push_comments else '' }}>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="notification-item">
+                                <div>
+                                    <strong>Replies</strong>
+                                    <p class="text-muted mb-0 small">When someone replies to your comment</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="push_replies" {{ 'checked' if prefs.push_replies else '' }}>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="notification-item">
+                                <div>
+                                    <strong>New Followers</strong>
+                                    <p class="text-muted mb-0 small">When someone follows you</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="push_follows" {{ 'checked' if prefs.push_follows else '' }}>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="notification-category">
+                            <h6 class="text-muted mb-3">Content & Events</h6>
+                            
+                            <div class="notification-item">
+                                <div>
+                                    <strong>AMA Reminders</strong>
+                                    <p class="text-muted mb-0 small">Reminders for upcoming AMAs you registered for</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="push_ama_reminders" {{ 'checked' if prefs.push_ama_reminders else '' }}>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="notification-item">
+                                <div>
+                                    <strong>Deal Alerts</strong>
+                                    <p class="text-muted mb-0 small">New investment opportunities matching your interests</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="push_deal_alerts" {{ 'checked' if prefs.push_deal_alerts else '' }}>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="notification-item">
+                                <div>
+                                    <strong>Mentorship</strong>
+                                    <p class="text-muted mb-0 small">Mentorship requests and messages</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="push_mentorship" {{ 'checked' if prefs.push_mentorship else '' }}>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="notification-item">
+                                <div>
+                                    <strong>System Updates</strong>
+                                    <p class="text-muted mb-0 small">Important platform announcements</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="push_system" {{ 'checked' if prefs.push_system else '' }}>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Email Notification Types -->
+                <div class="card mb-4" id="emailSection">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fas fa-envelope me-2"></i>Email Notification Types</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="notification-item">
+                            <div>
+                                <strong>Mentions</strong>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" name="email_mentions" {{ 'checked' if prefs.email_mentions else '' }}>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="notification-item">
+                            <div>
+                                <strong>Likes</strong>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" name="email_likes" {{ 'checked' if prefs.email_likes else '' }}>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="notification-item">
+                            <div>
+                                <strong>Comments & Replies</strong>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" name="email_comments" {{ 'checked' if prefs.email_comments else '' }}>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="notification-item">
+                            <div>
+                                <strong>New Followers</strong>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" name="email_follows" {{ 'checked' if prefs.email_follows else '' }}>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="notification-item">
+                            <div>
+                                <strong>AMA & Event Reminders</strong>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" name="email_ama_reminders" {{ 'checked' if prefs.email_ama_reminders else '' }}>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="notification-item">
+                            <div>
+                                <strong>Deal Alerts</strong>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" name="email_deal_alerts" {{ 'checked' if prefs.email_deal_alerts else '' }}>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="notification-item">
+                            <div>
+                                <strong>Weekly Digest</strong>
+                                <p class="text-muted mb-0 small">Summary of top posts and activity</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" name="email_weekly_digest" {{ 'checked' if prefs.email_weekly_digest else '' }}>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quiet Hours -->
+                <div class="card mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fas fa-moon me-2"></i>Quiet Hours</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="notification-item mb-3">
+                            <div>
+                                <strong>Enable Quiet Hours</strong>
+                                <p class="text-muted mb-0 small">No push notifications during specified hours</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" name="quiet_hours_enabled" id="quietHoursEnabled"
+                                       {{ 'checked' if prefs.quiet_hours_enabled else '' }}
+                                       onchange="toggleQuietHours()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div id="quietHoursSettings" class="{{ '' if prefs.quiet_hours_enabled else 'd-none' }}">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label class="form-label">Start Time</label>
+                                    <select name="quiet_hours_start" class="form-select">
+                                        {% for hour in range(24) %}
+                                        <option value="{{ hour }}" {{ 'selected' if prefs.quiet_hours_start == hour else '' }}>
+                                            {{ '%02d:00'|format(hour) }} ({{ '%d %s'|format(hour if hour <= 12 else hour - 12, 'AM' if hour < 12 else 'PM') }})
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">End Time</label>
+                                    <select name="quiet_hours_end" class="form-select">
+                                        {% for hour in range(24) %}
+                                        <option value="{{ hour }}" {{ 'selected' if prefs.quiet_hours_end == hour else '' }}>
+                                            {{ '%02d:00'|format(hour) }} ({{ '%d %s'|format(hour if hour <= 12 else hour - 12, 'AM' if hour < 12 else 'PM') }})
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Timezone</label>
+                                    <select name="timezone" class="form-select">
+                                        <option value="America/New_York" {{ 'selected' if prefs.timezone == 'America/New_York' else '' }}>Eastern</option>
+                                        <option value="America/Chicago" {{ 'selected' if prefs.timezone == 'America/Chicago' else '' }}>Central</option>
+                                        <option value="America/Denver" {{ 'selected' if prefs.timezone == 'America/Denver' else '' }}>Mountain</option>
+                                        <option value="America/Los_Angeles" {{ 'selected' if prefs.timezone == 'America/Los_Angeles' else '' }}>Pacific</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Connected Devices -->
+                <div class="card mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fas fa-laptop me-2"></i>Connected Devices</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if subscriptions %}
+                        {% for sub in subscriptions %}
+                        <div class="device-card d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong><i class="fas fa-desktop me-2"></i>{{ sub.device_name or 'Unknown Device' }}</strong>
+                                <p class="text-muted mb-0 small">
+                                    Added {{ sub.created_at.strftime('%b %d, %Y') }}
+                                    {% if sub.last_used %}
+                                    • Last active {{ sub.last_used.strftime('%b %d') }}
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <button type="button" class="btn btn-outline-danger btn-sm" 
+                                    onclick="removeDevice({{ sub.id }})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-mobile-alt fa-2x mb-2"></i>
+                            <p class="mb-0">No devices connected</p>
+                            <button type="button" class="btn btn-primary mt-3" onclick="requestPushPermission()">
+                                <i class="fas fa-plus me-2"></i>Add This Device
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-save me-2"></i>Save Preferences
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Check push permission status on load
+document.addEventListener('DOMContentLoaded', function() {
+    checkPushSupport();
+    togglePushSection();
+    toggleEmailSection();
+});
+
+function checkPushSupport() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        document.getElementById('pushBanner').innerHTML = `
+            <div class="text-center">
+                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                <p class="mb-0">Push notifications are not supported in your browser</p>
+            </div>
+        `;
+        document.getElementById('pushBanner').style.display = 'block';
+        return;
+    }
+    
+    // Check current permission
+    if (Notification.permission === 'default') {
+        document.getElementById('pushBanner').style.display = 'block';
+    } else if (Notification.permission === 'denied') {
+        showPushStatus('Push notifications are blocked. Please enable them in your browser settings.', 'warning');
+    } else if (Notification.permission === 'granted') {
+        // Already granted - ensure we're subscribed
+        subscribeToPush();
+    }
+}
+
+async function requestPushPermission() {
+    try {
+        const permission = await Notification.requestPermission();
+        
+        if (permission === 'granted') {
+            await subscribeToPush();
+            document.getElementById('pushBanner').style.display = 'none';
+            showPushStatus('Push notifications enabled! You\'ll receive alerts on this device.', 'success');
+            
+            // Reload to show device in list
+            setTimeout(() => location.reload(), 1500);
+        } else if (permission === 'denied') {
+            showPushStatus('Push notifications were blocked. You can enable them in your browser settings.', 'warning');
+        }
+    } catch (error) {
+        console.error('Error requesting permission:', error);
+        showPushStatus('Error enabling push notifications. Please try again.', 'danger');
+    }
+}
+
+async function subscribeToPush() {
+    try {
+        // Register service worker
+        const registration = await navigator.serviceWorker.register('/static/sw.js');
+        await navigator.serviceWorker.ready;
+        
+        // Get VAPID public key
+        const response = await fetch('/push/vapid-public-key');
+        const { publicKey } = await response.json();
+        
+        // Subscribe to push
+        const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicKey)
+        });
+        
+        // Get device name
+        const deviceName = getDeviceName();
+        
+        // Send subscription to server
+        await fetch('/push/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                subscription: subscription.toJSON(),
+                deviceName: deviceName
+            })
+        });
+        
+        console.log('Push subscription successful');
+    } catch (error) {
+        console.error('Push subscription failed:', error);
+        throw error;
+    }
+}
+
+function getDeviceName() {
+    const ua = navigator.userAgent;
+    let browser = 'Browser';
+    let os = 'Device';
+    
+    if (ua.includes('Chrome')) browser = 'Chrome';
+    else if (ua.includes('Firefox')) browser = 'Firefox';
+    else if (ua.includes('Safari')) browser = 'Safari';
+    else if (ua.includes('Edge')) browser = 'Edge';
+    
+    if (ua.includes('Windows')) os = 'Windows';
+    else if (ua.includes('Mac')) os = 'Mac';
+    else if (ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
+    else if (ua.includes('Android')) os = 'Android';
+    else if (ua.includes('Linux')) os = 'Linux';
+    
+    return `${browser} on ${os}`;
+}
+
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
+    
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
+
+function showPushStatus(message, type) {
+    const status = document.getElementById('pushStatus');
+    const text = document.getElementById('pushStatusText');
+    
+    status.className = `alert alert-${type}`;
+    text.textContent = message;
+    status.style.display = 'block';
+}
+
+function togglePushSection() {
+    const enabled = document.getElementById('pushEnabled').checked;
+    document.getElementById('pushSection').style.opacity = enabled ? '1' : '0.5';
+    document.getElementById('pushSection').style.pointerEvents = enabled ? 'auto' : 'none';
+}
+
+function toggleEmailSection() {
+    const enabled = document.getElementById('emailEnabled').checked;
+    document.getElementById('emailSection').style.opacity = enabled ? '1' : '0.5';
+    document.getElementById('emailSection').style.pointerEvents = enabled ? 'auto' : 'none';
+}
+
+function toggleQuietHours() {
+    const enabled = document.getElementById('quietHoursEnabled').checked;
+    document.getElementById('quietHoursSettings').classList.toggle('d-none', !enabled);
+}
+
+async function removeDevice(subId) {
+    if (!confirm('Remove this device? It will no longer receive push notifications.')) {
+        return;
+    }
+    
+    try {
+        await fetch(`/push/subscriptions/${subId}`, { method: 'DELETE' });
+        location.reload();
+    } catch (error) {
+        alert('Error removing device. Please try again.');
+    }
+}
+
+async function testPush() {
+    try {
+        const response = await fetch('/push/test', { method: 'POST' });
+        const result = await response.json();
+        
+        if (result.sent > 0) {
+            alert('Test notification sent! Check your device.');
+        } else {
+            alert('No active subscriptions found. Please enable push notifications first.');
+        }
+    } catch (error) {
+        alert('Error sending test notification.');
+    }
+}
+</script>
+{% endblock %}

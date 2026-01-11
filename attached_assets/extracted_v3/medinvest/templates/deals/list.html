@@ -39,11 +39,11 @@
                             <strong class="text-success">{{ deal.projected_return }}</strong>
                         </div>
                     </div>
-                    {% if deal.target_raise and deal.current_raised is not none %}
+                    {% if deal.target_raise %}
                     <div class="progress mb-3" style="height: 8px;">
-                        <div class="progress-bar" style="width: {{ ((deal.current_raised or 0) / deal.target_raise * 100)|int }}%"></div>
+                        <div class="progress-bar" style="width: {{ (deal.current_raised / deal.target_raise * 100)|int }}%"></div>
                     </div>
-                    <small class="text-muted">${{ '{:,.0f}'.format(deal.current_raised or 0) }} / ${{ '{:,.0f}'.format(deal.target_raise) }} raised</small>
+                    <small class="text-muted">${{ '{:,.0f}'.format(deal.current_raised) }} / ${{ '{:,.0f}'.format(deal.target_raise) }} raised</small>
                     {% endif %}
                 </div>
                 <div class="card-footer bg-white">

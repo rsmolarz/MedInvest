@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ room.name }} - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('rooms.list_rooms') }}">Rooms</a></li>
+            <li class="breadcrumb-item active">{{ room.name }}</li>
+        </ol>
+    </nav>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form action="{{ url_for('rooms.create_room_post', slug=room.slug) }}" method="POST">
+                        <textarea name="content" class="form-control mb-3" rows="3" placeholder="Share with {{ room.name }}..."></textarea>
+                        <div class="d-flex justify-content-between">
+                            <div class="form-check">
+                                <input type="checkbox" name="is_anonymous" class="form-check-input" id="anon">
+                                <label class="form-check-label" for="anon">Anonymous</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Post</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <a href="?sort=new" class="btn btn-sm {{ 'btn-primary' if sort == 'new' else 'btn-outline-secondary' }}">New</a>
+                <a href="?sort=top" class="btn btn-sm {{ 'btn-primary' if sort == 'top' else 'btn-outline-secondary' }}">Top</a>
+            </div>
+            
+            {% for post in posts.items %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <strong>{{ post.display_author }}</strong>
+                        <small class="text-muted">{{ post.created_at.strftime('%b %d') }}</small>
+                    </div>
+                    <p>{{ post.content }}</p>
+                    <div class="d-flex gap-3">
+                        <span class="text-muted"><i class="fas fa-arrow-up"></i> {{ post.upvotes }}</span>
+                        <a href="{{ url_for('rooms.view_post', post_id=post.id) }}" class="text-muted">
+                            <i class="fas fa-comment"></i> {{ post.comment_count }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-muted text-center">No posts in this room yet. Be the first!</p>
+            {% endfor %}
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header"><h6 class="mb-0">{{ room.name }}</h6></div>
+                <div class="card-body">
+                    <p class="text-muted small">{{ room.description }}</p>
+                    <p><i class="fas fa-users me-2"></i>{{ room.member_count }} members</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

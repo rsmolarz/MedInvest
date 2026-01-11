@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Post - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-3">
+                        <strong>{{ post.display_author }}</strong>
+                        <small class="text-muted">{{ post.created_at.strftime('%B %d, %Y') }}</small>
+                    </div>
+                    {% if post.title %}<h4>{{ post.title }}</h4>{% endif %}
+                    <p class="lead">{{ post.content }}</p>
+                    <div class="d-flex gap-3">
+                        <span><i class="fas fa-arrow-up text-success"></i> {{ post.upvotes }}</span>
+                        <span><i class="fas fa-eye text-muted"></i> {{ post.view_count }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header"><h6 class="mb-0">Add Comment</h6></div>
+                <div class="card-body">
+                    <form action="{{ url_for('rooms.add_comment', post_id=post.id) }}" method="POST">
+                        <textarea name="content" class="form-control mb-3" rows="2" placeholder="Write a comment..." required></textarea>
+                        <div class="d-flex justify-content-between">
+                            <div class="form-check">
+                                <input type="checkbox" name="is_anonymous" class="form-check-input" id="anon">
+                                <label class="form-check-label" for="anon">Anonymous</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm">Comment</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <h5>Comments ({{ comments|length }})</h5>
+            {% for comment in comments %}
+            <div class="card mb-2">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <strong>{% if comment.is_anonymous %}Anonymous{% else %}{{ comment.author.full_name }}{% endif %}</strong>
+                        <small class="text-muted">{{ comment.created_at.strftime('%b %d') }}</small>
+                    </div>
+                    <p class="mb-0">{{ comment.content }}</p>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-muted">No comments yet</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Feed Preferences - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-sliders-h me-2"></i>Feed Preferences</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <!-- Feed Style -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Feed Style</label>
+                            <div class="list-group">
+                                <label class="list-group-item d-flex align-items-center">
+                                    <input type="radio" name="feed_style" value="algorithmic" class="form-check-input me-3"
+                                           {{ 'checked' if not prefs or prefs.feed_style == 'algorithmic' else '' }}>
+                                    <div>
+                                        <i class="fas fa-magic text-primary me-2"></i>
+                                        <strong>For You</strong>
+                                        <p class="mb-0 text-muted small">Personalized feed based on your interests, engagement, and who you follow</p>
+                                    </div>
+                                </label>
+                                <label class="list-group-item d-flex align-items-center">
+                                    <input type="radio" name="feed_style" value="chronological" class="form-check-input me-3"
+                                           {{ 'checked' if prefs and prefs.feed_style == 'chronological' else '' }}>
+                                    <div>
+                                        <i class="fas fa-clock text-secondary me-2"></i>
+                                        <strong>Recent</strong>
+                                        <p class="mb-0 text-muted small">See posts in chronological order, newest first</p>
+                                    </div>
+                                </label>
+                                <label class="list-group-item d-flex align-items-center">
+                                    <input type="radio" name="feed_style" value="following" class="form-check-input me-3"
+                                           {{ 'checked' if prefs and prefs.feed_style == 'following' else '' }}>
+                                    <div>
+                                        <i class="fas fa-user-friends text-success me-2"></i>
+                                        <strong>Following</strong>
+                                        <p class="mb-0 text-muted small">Only see posts from people you follow</p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Content Preferences -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Content Preferences</label>
+                            <div class="form-check">
+                                <input type="checkbox" name="show_anonymous" id="show_anonymous" class="form-check-input"
+                                       {{ 'checked' if not prefs or prefs.show_anonymous else '' }}>
+                                <label for="show_anonymous" class="form-check-label">Show anonymous posts</label>
+                            </div>
+                        </div>
+                        
+                        <!-- Algorithm Info -->
+                        <div class="alert alert-info">
+                            <h6 class="alert-heading"><i class="fas fa-info-circle me-2"></i>How the Algorithm Works</h6>
+                            <p class="mb-2 small">The "For You" feed uses a custom algorithm optimized for professional investment discussions:</p>
+                            <ul class="mb-0 small">
+                                <li><strong>Quality over virality:</strong> Long-form, thoughtful posts rank higher</li>
+                                <li><strong>Expertise matters:</strong> Verified physicians and high-level users get boosted</li>
+                                <li><strong>Specialty matching:</strong> Posts from your specialty appear more often</li>
+                                <li><strong>Longer relevance:</strong> Investment advice stays in your feed longer (48hr half-life vs 6hr on social media)</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Save Preferences</button>
+                            <a href="{{ url_for('main.feed') }}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

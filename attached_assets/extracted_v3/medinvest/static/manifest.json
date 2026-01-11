@@ -1,0 +1,17 @@
+{
+  "name": "MedInvest",
+  "short_name": "MedInvest",
+  "description": "Investment Community for Physicians",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
