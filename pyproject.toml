@@ -22,4 +22,5 @@ dependencies = [
     "sendgrid>=6.12.5",
     "alembic>=1.18.0",
     "requests>=2.32.4",
+    "google-genai>=1.57.0",
 ]

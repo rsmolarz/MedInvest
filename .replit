@@ -2,7 +2,7 @@ modules = ["python-3.11", "nodejs-20", "postgresql-16"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["freetype", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "tcl", "tk", "zlib", "unzip"]
+packages = ["freetype", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "tcl", "tk", "unzip", "zlib"]
 
 [workflows]
 runButton = "Project"
@@ -30,7 +30,7 @@ localPort = 5000
 externalPort = 80
 
 [agent]
-integrations = ["python_log_in_with_replit:1.0.0", "python_database:1.0.0", "styling_replit:1.0.0", "sendgrid:1.0.0"]
+integrations = ["python_log_in_with_replit:1.0.0", "python_database:1.0.0", "styling_replit:1.0.0", "sendgrid:1.0.0", "python_gemini_ai_integrations:1.0.0"]
 
 [deployment]
 run = ["gunicorn", "main:app"]

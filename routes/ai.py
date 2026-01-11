@@ -1,12 +1,48 @@
 """
-AI Routes - AI-powered financial assistant
+AI Routes - AI-powered financial assistant using Gemini
 """
 import os
+import logging
 from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required, current_user
 from app import db
 
+# Gemini AI Integration (uses Replit AI Integrations - no API key needed)
+from google import genai
+from google.genai import types
+
+AI_INTEGRATIONS_GEMINI_API_KEY = os.environ.get("AI_INTEGRATIONS_GEMINI_API_KEY")
+AI_INTEGRATIONS_GEMINI_BASE_URL = os.environ.get("AI_INTEGRATIONS_GEMINI_BASE_URL")
+
+gemini_client = None
+if AI_INTEGRATIONS_GEMINI_API_KEY and AI_INTEGRATIONS_GEMINI_BASE_URL:
+    gemini_client = genai.Client(
+        api_key=AI_INTEGRATIONS_GEMINI_API_KEY,
+        http_options={
+            'api_version': '',
+            'base_url': AI_INTEGRATIONS_GEMINI_BASE_URL   
+        }
+    )
+
 ai_bp = Blueprint('ai', __name__, url_prefix='/ai')
+
+SYSTEM_PROMPT = """You are MedInvest AI, a professional financial assistant for medical doctors. 
+
+Your expertise includes:
+- Tax strategies for high-income earners (backdoor Roth, mega backdoor Roth, tax-loss harvesting)
+- Investment strategies (index funds, real estate, alternative investments)
+- Student loan management (PSLF, refinancing, repayment strategies)
+- Retirement planning (401k, 403b, defined benefit plans)
+- Insurance (disability, malpractice, life insurance)
+- Practice ownership and transitions
+- Physician-specific financial challenges
+
+Guidelines:
+1. Provide helpful, educational information with a professional, expert tone
+2. Always clarify you're an AI assistant, not a licensed financial advisor
+3. Recommend consulting qualified professionals for personalized advice
+4. Be concise but thorough
+5. Use physician-relevant examples when possible"""
 
 
 @ai_bp.route('/')
@@ -19,55 +55,35 @@ def chat():
 @ai_bp.route('/ask', methods=['POST'])
 @login_required
 def ask_ai():
-    """Process AI question"""
+    """Process AI question using Gemini"""
     data = request.get_json()
     question = data.get('question', '').strip()
     
     if not question:
         return jsonify({'error': 'No question provided'}), 400
     
-    # Check for Anthropic API key
-    anthropic_key = os.environ.get('ANTHROPIC_API_KEY')
-    
-    if anthropic_key:
+    if gemini_client:
         try:
-            import anthropic
-            client = anthropic.Anthropic(api_key=anthropic_key)
+            # Add user context for personalization
+            context_prompt = f"{SYSTEM_PROMPT}\n\n"
+            if current_user.specialty:
+                context_prompt += f"User is a {current_user.specialty} physician"
+                if hasattr(current_user, 'years_of_experience') and current_user.years_of_experience:
+                    context_prompt += f" with {current_user.years_of_experience} years experience"
+                context_prompt += ".\n\n"
             
-            system_prompt = """You are MedInvest AI, a knowledgeable financial assistant specifically designed for physicians. 
-
-Your expertise includes:
-- Tax strategies for high-income earners (backdoor Roth, mega backdoor Roth, tax-loss harvesting)
-- Investment strategies (index funds, real estate, alternative investments)
-- Student loan management (PSLF, refinancing, repayment strategies)
-- Retirement planning (401k, 403b, defined benefit plans)
-- Insurance (disability, malpractice, life insurance)
-- Practice ownership and transitions
-- Physician-specific financial challenges
-
-Guidelines:
-1. Provide helpful, educational information
-2. Always clarify you're an AI assistant, not a financial advisor
-3. Recommend consulting qualified professionals for personalized advice
-4. Be concise but thorough
-5. Use physician-relevant examples when possible"""
-
-            message = client.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=1024,
-                system=system_prompt,
-                messages=[
-                    {"role": "user", "content": question}
-                ]
+            context_prompt += f"Question: {question}"
+            
+            response = gemini_client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=context_prompt
             )
-            
-            response_text = message.content[0].text
+            response_text = response.text or "I couldn't generate a response. Please try again."
             
         except Exception as e:
-            response_text = f"I apologize, but I'm having trouble connecting to the AI service. Error: {str(e)}"
-    
+            logging.error(f"Gemini API error: {e}")
+            response_text = get_fallback_response(question)
     else:
-        # Fallback responses without API key
         response_text = get_fallback_response(question)
     
     # Award points for using AI
@@ -78,6 +94,35 @@ Guidelines:
         'success': True,
         'response': response_text
     })
+
+
+@ai_bp.route('/api/chat', methods=['POST'])
+@login_required
+def chat_with_gemini():
+    """API endpoint for chat interface"""
+    data = request.get_json()
+    user_message = data.get('message', '').strip()
+    
+    if not user_message:
+        return jsonify({'error': 'No message provided'}), 400
+    
+    if gemini_client:
+        try:
+            context_prompt = f"{SYSTEM_PROMPT}\n\n"
+            if current_user.specialty:
+                context_prompt += f"User is a {current_user.specialty} physician.\n\n"
+            context_prompt += f"Question: {user_message}"
+            
+            response = gemini_client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=context_prompt
+            )
+            return jsonify({'response': response.text})
+        except Exception as e:
+            logging.error(f"Gemini API error: {e}")
+            return jsonify({'error': 'Failed to reach AI assistant'}), 500
+    else:
+        return jsonify({'response': get_fallback_response(user_message)})
 
 
 def get_fallback_response(question):

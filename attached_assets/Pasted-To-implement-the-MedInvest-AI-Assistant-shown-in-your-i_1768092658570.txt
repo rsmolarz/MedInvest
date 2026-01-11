@@ -1,0 +1,83 @@
+To implement the MedInvest AI Assistant shown in your image using Gemini, you need to connect your Flask backend to the Google Generative AI API and update your frontend to handle the chat interaction.
+
+Follow these steps to complete the integration:
+
+1. Update Project Dependencies
+Add the Google Generative AI SDK to your pyproject.toml or requirements.txt file:
+
+google-generativeai
+
+2. Configure the Gemini API
+Get an API key from Google AI Studio and add it to your Replit Secrets as GEMINI_API_KEY.
+
+3. Implement the Backend Logic
+In your routes.py file, set up the Gemini model and create a route to handle assistant requests:
+
+Python
+
+import google.generativeai as genai
+from flask import jsonify, request
+
+# Configure Gemini
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+
+# Initialize the model with a system instruction to match your image's persona
+model = genai.GenerativeModel(
+    model_name="gemini-1.5-flash",
+    system_instruction="You are the MedInvest AI Assistant. You are trained to help physicians with financial questions including tax strategies (Backdoor Roth, tax-loss harvesting), investment planning, student loan strategies, retirement planning, and insurance decisions."
+)
+
+@app.route('/api/chat', methods=['POST'])
+@login_required
+def chat_with_gemini():
+    data = request.json
+    user_message = data.get('message')
+    
+    if not user_message:
+        return jsonify({'error': 'No message provided'}), 400
+
+    try:
+        # Generate the response from Gemini
+        response = model.generate_content(user_message)
+        return jsonify({'response': response.text})
+    except Exception as e:
+        logging.error(f"Gemini API error: {e}")
+        return jsonify({'error': 'The AI assistant is currently unavailable.'}), 500
+4. Connect the Frontend
+Update your static/js/main.js or the script section of your dashboard to send messages to this new endpoint:
+
+JavaScript
+
+async function sendMessage() {
+    const input = document.getElementById('ai-chat-input');
+    const display = document.getElementById('ai-chat-response');
+    const message = input.value;
+
+    if (!message) return;
+
+    display.innerHTML = '<div class="text-muted">Thinking...</div>';
+    input.value = '';
+
+    try {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: message })
+        });
+        
+        const data = await response.json();
+        // Display Gemini's response
+        display.innerHTML = `<div class="ai-text">${data.response}</div>`;
+    } catch (error) {
+        display.innerHTML = '<div class="text-danger">Error connecting to assistant.</div>';
+    }
+}
+5. Add Personalized Context (Optional)
+Since your User model tracks professional details like specialty and years_of_experience, you can make the assistant smarter by including this context in the prompt:
+
+Python
+
+# In chat_with_gemini route:
+prompt = f"The user is a {current_user.specialty} with {current_user.years_of_experience} years of experience. Question: {user_message}"
+response = model.generate_content(prompt)
+This allows Gemini to provide tailored advice, such as specific tax strategies relevant to a surgeon versus a resident.
