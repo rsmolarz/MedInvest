@@ -17,18 +17,18 @@ def list_amas():
     
     # Live AMAs
     live = ExpertAMA.query.filter(
-        ExpertAMA.status == AMAStatus.LIVE
+        ExpertAMA.status == 'live'
     ).all()
     
     # Upcoming AMAs
     upcoming = ExpertAMA.query.filter(
         ExpertAMA.scheduled_for > now,
-        ExpertAMA.status == AMAStatus.SCHEDULED
+        ExpertAMA.status == 'scheduled'
     ).order_by(ExpertAMA.scheduled_for.asc()).limit(10).all()
     
     # Past AMAs with recordings
     past = ExpertAMA.query.filter(
-        ExpertAMA.status == AMAStatus.ENDED
+        ExpertAMA.status == 'ended'
     ).order_by(ExpertAMA.scheduled_for.desc()).limit(20).all()
     
     # User's registrations

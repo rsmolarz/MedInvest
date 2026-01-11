@@ -16,7 +16,7 @@ def list_deals():
     # Filter by type if specified
     deal_type = request.args.get('type')
     
-    query = InvestmentDeal.query.filter(InvestmentDeal.status == DealStatus.ACTIVE)
+    query = InvestmentDeal.query.filter(InvestmentDeal.status == 'active')
     
     if deal_type:
         query = query.filter(InvestmentDeal.deal_type == deal_type)
