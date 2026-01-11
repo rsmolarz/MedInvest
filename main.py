@@ -38,6 +38,7 @@ from routes.portfolio import portfolio_bp
 from routes.ai import ai_bp
 from routes.admin import admin_bp
 from routes.errors import errors_bp
+from routes.media import media_bp
 
 app.register_blueprint(main_bp)
 app.register_blueprint(auth_bp)
@@ -52,6 +53,7 @@ app.register_blueprint(referral_bp)
 app.register_blueprint(portfolio_bp)
 app.register_blueprint(ai_bp)
 app.register_blueprint(admin_bp)
+app.register_blueprint(media_bp)
 app.register_blueprint(errors_bp)
 
 # Import legacy routes for backwards compatibility

@@ -1,6 +1,49 @@
 {% extends "base.html" %}
 {% block title %}Feed - MedInvest{% endblock %}
 
+{% block extra_css %}
+<style>
+    .post-media-preview { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .post-media-preview .media-item { position: relative; width: 80px; height: 80px; border-radius: 8px; overflow: hidden; }
+    .post-media-preview .media-item img, .post-media-preview .media-item video { width: 100%; height: 100%; object-fit: cover; }
+    .post-media-preview .remove-media { position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; }
+    
+    .post-media { margin-top: 12px; }
+    .post-media-single img, .post-media-single video { width: 100%; max-height: 500px; object-fit: cover; border-radius: 12px; cursor: pointer; }
+    
+    .post-media-gallery { display: grid; gap: 4px; border-radius: 12px; overflow: hidden; }
+    .post-media-gallery.count-2 { grid-template-columns: 1fr 1fr; }
+    .post-media-gallery.count-3 { grid-template-columns: 1fr 1fr; }
+    .post-media-gallery.count-3 .gallery-item:first-child { grid-row: span 2; }
+    .post-media-gallery.count-4 { grid-template-columns: 1fr 1fr; }
+    .post-media-gallery .gallery-item { position: relative; aspect-ratio: 1; overflow: hidden; cursor: pointer; }
+    .post-media-gallery .gallery-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s; }
+    .post-media-gallery .gallery-item:hover img { transform: scale(1.05); }
+    .post-media-gallery .gallery-item.more-overlay::after { content: attr(data-more); position: absolute; inset: 0; background: rgba(0,0,0,0.6); color: white; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; }
+    
+    .upload-zone { border: 2px dashed #ddd; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; margin-top: 10px; }
+    .upload-zone:hover, .upload-zone.dragover { border-color: #2563eb; background: #f0f7ff; }
+    .upload-zone.uploading { opacity: 0.6; pointer-events: none; }
+    
+    .media-actions { display: flex; gap: 8px; }
+    .media-actions button { padding: 6px 12px; border-radius: 20px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+    .media-actions button:hover { background: #f5f5f5; border-color: #bbb; }
+    
+    .video-indicator { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.7); color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+    
+    /* Lightbox */
+    .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 9999; display: none; align-items: center; justify-content: center; }
+    .lightbox.active { display: flex; }
+    .lightbox img, .lightbox video { max-width: 90vw; max-height: 90vh; object-fit: contain; }
+    .lightbox .close-btn { position: absolute; top: 20px; right: 20px; color: white; font-size: 32px; cursor: pointer; z-index: 10000; }
+    .lightbox .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); color: white; font-size: 32px; cursor: pointer; padding: 20px; background: rgba(0,0,0,0.3); border-radius: 50%; }
+    .lightbox .prev-btn { left: 20px; }
+    .lightbox .next-btn { right: 20px; }
+    
+    .post-type-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 8px; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-4">
     <div class="row">
@@ -9,72 +52,186 @@
             <!-- Create Post -->
             <div class="card mb-4">
                 <div class="card-body">
-                    <form action="{{ url_for('main.create_post') }}" method="POST">
-                        <textarea name="content" class="form-control mb-3" rows="3" 
-                                  placeholder="Share an investment insight, ask a question, or start a discussion..."></textarea>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="form-check">
-                                <input type="checkbox" name="is_anonymous" class="form-check-input" id="anonymous">
-                                <label class="form-check-label" for="anonymous">
-                                    <i class="fas fa-user-secret me-1"></i>Post Anonymously
-                                </label>
-                            </div>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-paper-plane me-1"></i>Post
-                            </button>
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center flex-shrink-0" style="width:45px;height:45px;font-weight:bold;">
+                            {{ current_user.first_name[0] }}{{ current_user.last_name[0] }}
                         </div>
-                    </form>
+                        <div class="flex-grow-1">
+                            <textarea id="postContent" class="form-control border-0 bg-light" rows="3" 
+                                      placeholder="Share an investment insight, post a photo of your portfolio gains, or ask a question..."></textarea>
+                            
+                            <!-- Media Preview -->
+                            <div id="mediaPreview" class="post-media-preview"></div>
+                            
+                            <!-- Upload Zone -->
+                            <div id="uploadZone" class="upload-zone" style="display:none;">
+                                <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                                <p class="mb-1">Drop files here or click to browse</p>
+                                <small class="text-muted">Images (JPG, PNG, GIF, WebP) up to 10MB • Videos (MP4, MOV, WebM) up to 50MB</small>
+                                <input type="file" id="mediaInput" multiple accept="image/*,video/*" style="display:none;">
+                            </div>
+                            
+                            <hr class="my-3">
+                            
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <div class="media-actions">
+                                    <button type="button" onclick="toggleUploadZone()" title="Add Photo">
+                                        <i class="fas fa-image text-success"></i> Photo
+                                    </button>
+                                    <button type="button" onclick="toggleUploadZone()" title="Add Video">
+                                        <i class="fas fa-video text-danger"></i> Video
+                                    </button>
+                                    <button type="button" onclick="alert('Coming soon!')" title="Go Live">
+                                        <i class="fas fa-broadcast-tower text-primary"></i> Live
+                                    </button>
+                                </div>
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="form-check mb-0">
+                                        <input type="checkbox" id="anonymous" class="form-check-input">
+                                        <label class="form-check-label small" for="anonymous">
+                                            <i class="fas fa-user-secret"></i> Anonymous
+                                        </label>
+                                    </div>
+                                    <button type="button" class="btn btn-primary px-4" onclick="submitPost()" id="postBtn">
+                                        <i class="fas fa-paper-plane me-1"></i>Post
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Posts -->
+            <!-- Posts Feed -->
             {% for post in posts.items %}
-            <div class="card mb-3">
+            <div class="card mb-3" data-post-id="{{ post.id }}">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between mb-2">
-                        <div>
-                            {% if post.is_anonymous %}
-                            <strong><i class="fas fa-user-secret me-1 text-muted"></i>{{ post.anonymous_name or 'Anonymous' }}</strong>
+                    <!-- Post Header -->
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="rounded-circle bg-{% if post.is_anonymous %}secondary{% else %}primary{% endif %} text-white d-flex align-items-center justify-content-center flex-shrink-0" style="width:45px;height:45px;">
+                                {% if post.is_anonymous %}
+                                <i class="fas fa-user-secret"></i>
+                                {% else %}
+                                {{ post.author.first_name[0] }}{{ post.author.last_name[0] }}
+                                {% endif %}
+                            </div>
+                            <div>
+                                {% if post.is_anonymous %}
+                                <strong>{{ post.anonymous_name or 'Anonymous' }}</strong>
+                                {% else %}
+                                <a href="{{ url_for('main.profile', user_id=post.author.id) }}" class="text-decoration-none text-dark">
+                                    <strong>{{ post.author.full_name }}</strong>
+                                </a>
+                                {% if post.author.is_premium %}<i class="fas fa-crown text-warning ms-1" title="Premium Member"></i>{% endif %}
+                                {% if post.author.is_verified %}<i class="fas fa-check-circle text-primary ms-1" title="Verified"></i>{% endif %}
+                                {% endif %}
+                                {% if post.post_type != 'text' %}
+                                <span class="badge bg-light text-dark post-type-badge">
+                                    <i class="fas fa-{% if post.post_type == 'video' %}video{% elif post.post_type == 'gallery' %}images{% else %}image{% endif %}"></i>
+                                </span>
+                                {% endif %}
+                                <br>
+                                <small class="text-muted">
+                                    {{ post.created_at.strftime('%b %d at %I:%M %p') }}
+                                    {% if post.room %} • <a href="{{ url_for('rooms.view_room', slug=post.room.slug) }}" class="text-muted">{{ post.room.name }}</a>{% endif %}
+                                </small>
+                            </div>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-light rounded-circle" data-bs-toggle="dropdown" style="width:32px;height:32px;">
+                                <i class="fas fa-ellipsis-h"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{{ url_for('rooms.view_post', post_id=post.id) }}"><i class="fas fa-external-link-alt me-2"></i>View Post</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="event.preventDefault(); document.getElementById('bookmark-{{ post.id }}').submit();"><i class="fas fa-bookmark me-2"></i>Bookmark</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="sharePost({{ post.id }})"><i class="fas fa-share me-2"></i>Share</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Post Content -->
+                    {% if post.content %}
+                    <p class="card-text mb-2" style="white-space: pre-wrap;">{{ post.content }}</p>
+                    {% endif %}
+                    
+                    <!-- Post Media -->
+                    {% if post.has_media %}
+                    <div class="post-media">
+                        {% set media_list = post.all_media %}
+                        {% if media_list|length == 1 %}
+                        <div class="post-media-single">
+                            {% if media_list[0].media_type == 'video' %}
+                            <video controls class="w-100" style="border-radius:12px;max-height:500px;">
+                                <source src="{{ media_list[0].file_path }}" type="video/mp4">
+                                Your browser does not support video playback.
+                            </video>
                             {% else %}
-                            <a href="{{ url_for('main.profile', user_id=post.author.id) }}" class="text-decoration-none">
-                                <strong>{{ post.author.full_name }}</strong>
-                                {% if post.author.is_premium %}<i class="fas fa-crown text-warning ms-1"></i>{% endif %}
-                            </a>
-                            {% endif %}
-                            {% if post.room %}
-                            <span class="text-muted ms-2">in <a href="{{ url_for('rooms.view_room', slug=post.room.slug) }}">{{ post.room.name }}</a></span>
+                            <img src="{{ media_list[0].file_path }}" alt="" class="img-fluid" onclick="openLightbox(this, 0)" style="cursor:pointer;">
                             {% endif %}
                         </div>
-                        <small class="text-muted">{{ post.created_at.strftime('%b %d') }}</small>
+                        {% else %}
+                        <div class="post-media-gallery count-{{ [media_list|length, 4]|min }}">
+                            {% for media in media_list[:4] %}
+                            <div class="gallery-item {% if loop.index == 4 and media_list|length > 4 %}more-overlay{% endif %}" 
+                                 {% if loop.index == 4 and media_list|length > 4 %}data-more="+{{ media_list|length - 4 }}"{% endif %}
+                                 onclick="openLightbox(this.parentElement, {{ loop.index0 }})">
+                                {% if media.media_type == 'video' %}
+                                <img src="{{ media.video_thumbnail or media.file_path }}" alt="">
+                                <span class="video-indicator"><i class="fas fa-play"></i></span>
+                                {% else %}
+                                <img src="{{ media.file_path }}" alt="">
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                     </div>
-                    {% if post.title %}
-                    <h5 class="card-title">{{ post.title }}</h5>
                     {% endif %}
-                    <p class="card-text">{{ post.content }}</p>
-                    <div class="d-flex gap-3 align-items-center">
-                        <form action="{{ url_for('main.vote_post', post_id=post.id) }}" method="POST" class="d-inline">
+                    
+                    <!-- Engagement Stats -->
+                    {% if post.upvotes > 0 or post.comment_count > 0 %}
+                    <div class="d-flex gap-3 text-muted small mt-3 mb-2">
+                        {% if post.upvotes > 0 %}
+                        <span><i class="fas fa-thumbs-up text-primary"></i> {{ post.upvotes }}</span>
+                        {% endif %}
+                        {% if post.comment_count > 0 %}
+                        <span>{{ post.comment_count }} comment{% if post.comment_count != 1 %}s{% endif %}</span>
+                        {% endif %}
+                        {% if post.share_count > 0 %}
+                        <span>{{ post.share_count }} share{% if post.share_count != 1 %}s{% endif %}</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Post Actions -->
+                    <div class="d-flex border-top pt-2 mt-2">
+                        <form action="{{ url_for('main.vote_post', post_id=post.id) }}" method="POST" class="flex-fill">
                             <input type="hidden" name="vote_type" value="1">
-                            <button type="submit" class="btn btn-sm {{ 'btn-primary' if user_votes.get(post.id) == 1 else 'btn-outline-primary' }}">
-                                <i class="fas fa-arrow-up me-1"></i>{{ post.upvotes }}
+                            <button type="submit" class="btn btn-light w-100 {{ 'text-primary fw-bold' if user_votes.get(post.id) == 1 else '' }}">
+                                <i class="fas fa-thumbs-up me-1"></i>Like
                             </button>
                         </form>
-                        <a href="{{ url_for('rooms.view_post', post_id=post.id) }}" class="btn btn-sm btn-outline-secondary">
-                            <i class="fas fa-comment me-1"></i>{{ post.comment_count }}
+                        <a href="{{ url_for('rooms.view_post', post_id=post.id) }}" class="btn btn-light flex-fill">
+                            <i class="fas fa-comment me-1"></i>Comment
                         </a>
-                        <form action="{{ url_for('main.bookmark_post', post_id=post.id) }}" method="POST" class="d-inline">
-                            <button type="submit" class="btn btn-sm btn-outline-secondary">
-                                <i class="fas fa-bookmark"></i>
+                        <form id="bookmark-{{ post.id }}" action="{{ url_for('main.bookmark_post', post_id=post.id) }}" method="POST" class="flex-fill">
+                            <button type="submit" class="btn btn-light w-100">
+                                <i class="fas fa-bookmark me-1"></i>Save
                             </button>
                         </form>
+                        <button class="btn btn-light flex-fill" onclick="sharePost({{ post.id }})">
+                            <i class="fas fa-share me-1"></i>Share
+                        </button>
                     </div>
                 </div>
             </div>
             {% else %}
             <div class="card">
                 <div class="card-body text-center py-5">
-                    <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                    <i class="fas fa-camera fa-3x text-muted mb-3"></i>
                     <h5>No posts yet</h5>
-                    <p class="text-muted">Be the first to share something!</p>
+                    <p class="text-muted">Be the first to share something! Upload a photo or video.</p>
                 </div>
             </div>
             {% endfor %}
@@ -88,6 +245,7 @@
                         <a class="page-link" href="{{ url_for('main.feed', page=posts.prev_num) }}">Previous</a>
                     </li>
                     {% endif %}
+                    <li class="page-item disabled"><span class="page-link">Page {{ posts.page }} of {{ posts.pages }}</span></li>
                     {% if posts.has_next %}
                     <li class="page-item">
                         <a class="page-link" href="{{ url_for('main.feed', page=posts.next_num) }}">Next</a>
@@ -100,12 +258,14 @@
 
         <!-- Sidebar -->
         <div class="col-lg-4">
-            <!-- User Stats -->
+            <!-- User Card -->
             <div class="card mb-4">
-                <div class="card-header">
-                    <h6 class="mb-0">Your Stats</h6>
-                </div>
-                <div class="card-body">
+                <div class="card-body text-center">
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width:60px;height:60px;font-size:1.5rem;">
+                        {{ current_user.first_name[0] }}{{ current_user.last_name[0] }}
+                    </div>
+                    <h6>{{ current_user.full_name }}</h6>
+                    <p class="text-muted small mb-3">{{ (current_user.specialty or 'Physician')|replace('_', ' ')|title }}</p>
                     <div class="row text-center">
                         <div class="col-4">
                             <h5 class="mb-0 text-primary">{{ current_user.points }}</h5>
@@ -125,13 +285,14 @@
 
             <!-- Trending -->
             <div class="card mb-4">
-                <div class="card-header">
-                    <h6 class="mb-0"><i class="fas fa-fire text-danger me-2"></i>Trending</h6>
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-fire text-danger me-2"></i>Trending Topics</h6>
                 </div>
                 <div class="list-group list-group-flush">
                     {% for topic in trending %}
-                    <a href="#" class="list-group-item list-group-item-action">
-                        <i class="fas fa-hashtag text-muted me-1"></i>{{ topic }}
+                    <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-hashtag text-muted me-1"></i>{{ topic }}</span>
+                        <small class="text-muted">{{ range(50, 500)|random }} posts</small>
                     </a>
                     {% endfor %}
                 </div>
@@ -139,25 +300,252 @@
 
             <!-- Quick Links -->
             <div class="card">
-                <div class="card-header">
-                    <h6 class="mb-0">Quick Links</h6>
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">Explore</h6>
                 </div>
                 <div class="list-group list-group-flush">
                     <a href="{{ url_for('rooms.list_rooms') }}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-comments me-2"></i>Browse Rooms
+                        <i class="fas fa-comments text-primary me-2"></i>Discussion Rooms
                     </a>
                     <a href="{{ url_for('ama.list_amas') }}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-video me-2"></i>Upcoming AMAs
+                        <i class="fas fa-video text-danger me-2"></i>Expert AMAs
                     </a>
                     <a href="{{ url_for('deals.list_deals') }}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-handshake me-2"></i>Investment Deals
+                        <i class="fas fa-handshake text-success me-2"></i>Investment Deals
                     </a>
                     <a href="{{ url_for('ai.chat') }}" class="list-group-item list-group-item-action">
-                        <i class="fas fa-robot me-2"></i>Ask AI
+                        <i class="fas fa-robot text-info me-2"></i>AI Assistant
                     </a>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Lightbox Modal -->
+<div id="lightbox" class="lightbox" onclick="if(event.target === this) closeLightbox();">
+    <span class="close-btn" onclick="closeLightbox()">&times;</span>
+    <span class="nav-btn prev-btn" onclick="event.stopPropagation(); lightboxPrev();">&#10094;</span>
+    <span class="nav-btn next-btn" onclick="event.stopPropagation(); lightboxNext();">&#10095;</span>
+    <div id="lightboxContent"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Media upload state
+let uploadedMedia = [];
+const mediaInput = document.getElementById('mediaInput');
+const uploadZone = document.getElementById('uploadZone');
+const mediaPreview = document.getElementById('mediaPreview');
+const postBtn = document.getElementById('postBtn');
+
+function toggleUploadZone() {
+    const isHidden = uploadZone.style.display === 'none';
+    uploadZone.style.display = isHidden ? 'block' : 'none';
+    if (isHidden) mediaInput.click();
+}
+
+// Drag and drop
+uploadZone.addEventListener('click', (e) => {
+    if (e.target === uploadZone || e.target.tagName !== 'INPUT') {
+        mediaInput.click();
+    }
+});
+uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove('dragover');
+    handleFiles(e.dataTransfer.files);
+});
+
+mediaInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+function handleFiles(files) {
+    if (uploadedMedia.length + files.length > 10) {
+        alert('Maximum 10 files allowed per post');
+        return;
+    }
+    Array.from(files).forEach(file => uploadFile(file));
+}
+
+async function uploadFile(file) {
+    // Validate file type
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+    
+    if (!isImage && !isVideo) {
+        alert('Only images and videos are allowed');
+        return;
+    }
+    
+    // Validate size
+    const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+        alert(`File too large. Max size: ${isVideo ? '50MB' : '10MB'}`);
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    uploadZone.classList.add('uploading');
+    postBtn.disabled = true;
+    postBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Uploading...';
+    
+    try {
+        const response = await fetch('/media/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            uploadedMedia.push(data);
+            renderMediaPreview();
+            uploadZone.style.display = 'none';
+        } else {
+            alert(data.error || 'Upload failed');
+        }
+    } catch (error) {
+        console.error('Upload error:', error);
+        alert('Upload failed. Please try again.');
+    }
+    
+    uploadZone.classList.remove('uploading');
+    postBtn.disabled = false;
+    postBtn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Post';
+}
+
+function renderMediaPreview() {
+    if (uploadedMedia.length === 0) {
+        mediaPreview.innerHTML = '';
+        return;
+    }
+    
+    mediaPreview.innerHTML = uploadedMedia.map((media, index) => `
+        <div class="media-item">
+            ${media.file_type === 'video' 
+                ? `<video src="${media.file_path}" muted></video><span class="video-indicator" style="position:absolute;bottom:2px;left:2px;background:rgba(0,0,0,0.7);color:white;padding:1px 4px;border-radius:2px;font-size:10px;"><i class="fas fa-video"></i></span>`
+                : `<img src="${media.file_path}" alt="">`
+            }
+            <button type="button" class="remove-media" onclick="removeMedia(${index})">&times;</button>
+        </div>
+    `).join('');
+}
+
+function removeMedia(index) {
+    uploadedMedia.splice(index, 1);
+    renderMediaPreview();
+}
+
+async function submitPost() {
+    const content = document.getElementById('postContent').value.trim();
+    const isAnonymous = document.getElementById('anonymous').checked;
+    
+    if (!content && uploadedMedia.length === 0) {
+        alert('Please add some content or upload media');
+        return;
+    }
+    
+    postBtn.disabled = true;
+    postBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Posting...';
+    
+    try {
+        const response = await fetch('/post/create/ajax', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                content: content,
+                is_anonymous: isAnonymous,
+                media_files: uploadedMedia
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert(data.error || 'Failed to create post');
+            postBtn.disabled = false;
+            postBtn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Post';
+        }
+    } catch (error) {
+        console.error('Post error:', error);
+        alert('Failed to create post. Please try again.');
+        postBtn.disabled = false;
+        postBtn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Post';
+    }
+}
+
+// Lightbox
+let lightboxImages = [];
+let lightboxIndex = 0;
+
+function openLightbox(element, index) {
+    const images = element.querySelectorAll ? 
+        Array.from(element.querySelectorAll('img')).map(img => img.src) :
+        [element.src];
+    
+    lightboxImages = images;
+    lightboxIndex = index || 0;
+    showLightboxImage();
+    document.getElementById('lightbox').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function showLightboxImage() {
+    const src = lightboxImages[lightboxIndex];
+    document.getElementById('lightboxContent').innerHTML = `<img src="${src}" alt="">`;
+    
+    // Show/hide nav buttons
+    document.querySelector('.prev-btn').style.display = lightboxIndex > 0 ? 'block' : 'none';
+    document.querySelector('.next-btn').style.display = lightboxIndex < lightboxImages.length - 1 ? 'block' : 'none';
+}
+
+function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+function lightboxPrev() {
+    if (lightboxIndex > 0) {
+        lightboxIndex--;
+        showLightboxImage();
+    }
+}
+
+function lightboxNext() {
+    if (lightboxIndex < lightboxImages.length - 1) {
+        lightboxIndex++;
+        showLightboxImage();
+    }
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', (e) => {
+    if (!document.getElementById('lightbox').classList.contains('active')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft') lightboxPrev();
+    if (e.key === 'ArrowRight') lightboxNext();
+});
+
+function sharePost(postId) {
+    const url = window.location.origin + '/rooms/post/' + postId;
+    
+    if (navigator.share) {
+        navigator.share({
+            title: 'Check out this post on MedInvest',
+            url: url
+        });
+    } else {
+        navigator.clipboard.writeText(url).then(() => {
+            alert('Link copied to clipboard!');
+        });
+    }
+}
+</script>
 {% endblock %}

@@ -10,7 +10,7 @@ import hashlib
 import base64
 import os
 from app import db
-from models import Post, Room, PostVote, Bookmark, Referral, User, AdCampaign, AdCreative, AdImpression, AdClick
+from models import Post, Room, PostVote, Bookmark, Referral, User, AdCampaign, AdCreative, AdImpression, AdClick, PostMedia
 
 main_bp = Blueprint('main', __name__)
 
@@ -52,53 +52,142 @@ def feed():
                          trending=trending)
 
 
+def _get_anonymous_name(specialty):
+    """Generate anonymous name based on specialty"""
+    specialty_map = {
+        'cardiology': 'Cardiologist',
+        'anesthesiology': 'Anesthesiologist',
+        'radiology': 'Radiologist',
+        'surgery': 'Surgeon',
+        'internal_medicine': 'Internist',
+        'emergency_medicine': 'EM Physician',
+        'pediatrics': 'Pediatrician',
+        'psychiatry': 'Psychiatrist',
+        'dermatology': 'Dermatologist',
+        'orthopedics': 'Orthopedist',
+        'neurology': 'Neurologist',
+        'family_medicine': 'Family Physician',
+    }
+    return f"Anonymous {specialty_map.get(specialty, 'Physician')}"
+
+
 @main_bp.route('/post/create', methods=['POST'])
 @login_required
 def create_post():
-    """Create a new post"""
+    """Create a new post with optional media"""
     content = request.form.get('content', '').strip()
     room_id = request.form.get('room_id', type=int)
     is_anonymous = request.form.get('is_anonymous') == 'on'
+    media_data = request.form.get('media_files', '[]')
     
     if not content:
         flash('Post content cannot be empty', 'error')
         return redirect(request.referrer or url_for('main.feed'))
     
-    # Generate anonymous name if posting anonymously
+    try:
+        media_files = json.loads(media_data) if media_data else []
+    except:
+        media_files = []
+    
+    if len(media_files) == 0:
+        post_type = 'text'
+    elif len(media_files) == 1:
+        post_type = media_files[0].get('file_type', 'image')
+    else:
+        post_type = 'gallery'
+    
     anonymous_name = None
-    if is_anonymous and current_user.specialty:
-        specialty_map = {
-            'cardiology': 'Cardiologist',
-            'anesthesiology': 'Anesthesiologist',
-            'radiology': 'Radiologist',
-            'surgery': 'Surgeon',
-            'internal_medicine': 'Internist',
-            'emergency_medicine': 'EM Physician',
-            'pediatrics': 'Pediatrician',
-            'psychiatry': 'Psychiatrist',
-            'dermatology': 'Dermatologist',
-            'orthopedics': 'Orthopedist',
-            'neurology': 'Neurologist',
-            'family_medicine': 'Family Physician',
-        }
-        anonymous_name = f"Anonymous {specialty_map.get(current_user.specialty, 'Physician')}"
-    elif is_anonymous:
-        anonymous_name = "Anonymous Physician"
+    if is_anonymous:
+        anonymous_name = _get_anonymous_name(current_user.specialty) if current_user.specialty else "Anonymous Physician"
     
     post = Post(
         author_id=current_user.id,
         room_id=room_id,
         content=content,
+        post_type=post_type,
         is_anonymous=is_anonymous,
-        anonymous_name=anonymous_name
+        anonymous_name=anonymous_name,
+        media_count=len(media_files)
     )
     
     db.session.add(post)
-    current_user.add_points(5)  # Points for posting
+    db.session.flush()
+    
+    for i, media in enumerate(media_files):
+        post_media = PostMedia(
+            post_id=post.id,
+            media_type=media.get('file_type', 'image'),
+            file_path=media.get('file_path', ''),
+            filename=media.get('filename', ''),
+            file_size=media.get('file_size', 0),
+            order_index=i
+        )
+        db.session.add(post_media)
+    
+    current_user.add_points(5 if post_type == 'text' else 10)
     db.session.commit()
     
     flash('Post created!', 'success')
     return redirect(request.referrer or url_for('main.feed'))
+
+
+@main_bp.route('/post/create/ajax', methods=['POST'])
+@login_required
+def create_post_ajax():
+    """Create post via AJAX (for better UX with media)"""
+    data = request.get_json()
+    
+    content = data.get('content', '').strip()
+    room_id = data.get('room_id')
+    is_anonymous = data.get('is_anonymous', False)
+    media_files = data.get('media_files', [])
+    
+    if not content and not media_files:
+        return jsonify({'error': 'Post must have content or media'}), 400
+    
+    if len(media_files) == 0:
+        post_type = 'text'
+    elif len(media_files) == 1:
+        post_type = media_files[0].get('file_type', 'image')
+    else:
+        post_type = 'gallery'
+    
+    anonymous_name = None
+    if is_anonymous:
+        anonymous_name = _get_anonymous_name(current_user.specialty) if current_user.specialty else "Anonymous Physician"
+    
+    post = Post(
+        author_id=current_user.id,
+        room_id=room_id,
+        content=content or '',
+        post_type=post_type,
+        is_anonymous=is_anonymous,
+        anonymous_name=anonymous_name,
+        media_count=len(media_files)
+    )
+    
+    db.session.add(post)
+    db.session.flush()
+    
+    for i, media in enumerate(media_files):
+        post_media = PostMedia(
+            post_id=post.id,
+            media_type=media.get('file_type', 'image'),
+            file_path=media.get('file_path', ''),
+            filename=media.get('filename', ''),
+            file_size=media.get('file_size', 0),
+            order_index=i
+        )
+        db.session.add(post_media)
+    
+    current_user.add_points(5 if post_type == 'text' else 10)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'post_id': post.id,
+        'message': 'Post created!'
+    })
 
 
 @main_bp.route('/post/<int:post_id>/vote', methods=['POST'])
