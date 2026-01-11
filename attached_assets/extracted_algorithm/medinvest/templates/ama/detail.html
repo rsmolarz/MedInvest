@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}{{ ama.title }} - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    {% if ama.is_premium_only %}<span class="badge bg-warning mb-2"><i class="fas fa-crown"></i> Premium Only</span>{% endif %}
+                    <h2>{{ ama.title }}</h2>
+                    <p class="lead text-muted">with {{ ama.expert_name }}</p>
+                    <p>{{ ama.description }}</p>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <p><i class="fas fa-calendar me-2"></i><strong>Date:</strong> {{ ama.scheduled_for.strftime('%B %d, %Y') }}</p>
+                            <p><i class="fas fa-clock me-2"></i><strong>Time:</strong> {{ ama.scheduled_for.strftime('%I:%M %p') }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><i class="fas fa-hourglass-half me-2"></i><strong>Duration:</strong> {{ ama.duration_minutes }} minutes</p>
+                            <p><i class="fas fa-users me-2"></i><strong>Registered:</strong> {{ ama.participant_count }}</p>
+                        </div>
+                    </div>
+                    
+                    {% if not is_registered and ama.status.value == 'scheduled' %}
+                    <button class="btn btn-primary btn-lg mt-3" onclick="registerAMA()">
+                        <i class="fas fa-check-circle me-2"></i>Register for AMA
+                    </button>
+                    {% elif is_registered %}
+                    <div class="alert alert-success mt-3"><i class="fas fa-check me-2"></i>You're registered!</div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <h5 class="mb-0">Questions ({{ questions|length }})</h5>
+                </div>
+                <div class="card-body">
+                    <form id="questionForm" class="mb-4">
+                        <textarea id="questionText" class="form-control mb-2" rows="2" placeholder="Ask a question..."></textarea>
+                        <div class="d-flex justify-content-between">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="anonQ">
+                                <label class="form-check-label" for="anonQ">Anonymous</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm">Submit Question</button>
+                        </div>
+                    </form>
+                    
+                    {% for q in questions %}
+                    <div class="border-bottom py-3">
+                        <div class="d-flex justify-content-between">
+                            <strong>{% if q.is_anonymous %}Anonymous{% else %}{{ q.user.full_name }}{% endif %}</strong>
+                            <span class="badge bg-light text-dark"><i class="fas fa-arrow-up"></i> {{ q.upvotes }}</span>
+                        </div>
+                        <p class="mb-1">{{ q.question }}</p>
+                        {% if q.answer %}
+                        <div class="bg-light p-2 rounded mt-2">
+                            <small class="text-muted">Answer:</small>
+                            <p class="mb-0">{{ q.answer }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header"><h6 class="mb-0">About the Expert</h6></div>
+                <div class="card-body">
+                    <h5>{{ ama.expert_name }}</h5>
+                    <p class="text-muted">{{ ama.expert_title }}</p>
+                    <p class="small">{{ ama.expert_bio or 'Bio coming soon.' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+function registerAMA() {
+    fetch('{{ url_for("ama.register_ama", ama_id=ama.id) }}', {method: 'POST'})
+        .then(r => r.json())
+        .then(d => { if(d.success) location.reload(); else alert(d.error); });
+}
+document.getElementById('questionForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    fetch('{{ url_for("ama.ask_question", ama_id=ama.id) }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            question: document.getElementById('questionText').value,
+            is_anonymous: document.getElementById('anonQ').checked
+        })
+    }).then(r => r.json()).then(d => { if(d.success) location.reload(); });
+});
+</script>
+{% endblock %}
+{% endblock %}

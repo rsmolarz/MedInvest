@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ event.title }} - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <span class="badge bg-{{ 'success' if event.is_virtual else 'primary' }} mb-3">
+                {{ 'Virtual Event' if event.is_virtual else 'In-Person Event' }}
+            </span>
+            <h1>{{ event.title }}</h1>
+            <p class="lead text-muted">{{ event.description }}</p>
+            
+            <h5 class="mt-4">Event Details</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <p><i class="fas fa-calendar me-2"></i><strong>Date:</strong> {{ event.start_date.strftime('%B %d, %Y') }}</p>
+                    <p><i class="fas fa-clock me-2"></i><strong>Time:</strong> {{ event.start_date.strftime('%I:%M %p') }}</p>
+                </div>
+                <div class="col-md-6">
+                    {% if not event.is_virtual %}
+                    <p><i class="fas fa-map-marker-alt me-2"></i><strong>Venue:</strong> {{ event.venue_name }}</p>
+                    <p><i class="fas fa-location-arrow me-2"></i>{{ event.venue_address }}</p>
+                    {% else %}
+                    <p><i class="fas fa-video me-2"></i>Online event - link provided after registration</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    {% if is_early_bird %}
+                    <p class="text-success"><i class="fas fa-clock me-1"></i>Early Bird Pricing!</p>
+                    <div class="display-4 fw-bold">${{ '{:.0f}'.format(current_price) }}</div>
+                    <p class="text-muted"><del>${{ '{:.0f}'.format(event.regular_price) }}</del></p>
+                    {% else %}
+                    <div class="display-4 fw-bold">${{ '{:.0f}'.format(current_price) }}</div>
+                    {% endif %}
+                    
+                    {% if spots_left is not none %}
+                    <p class="text-warning"><i class="fas fa-users me-1"></i>{{ spots_left }} spots left!</p>
+                    {% endif %}
+                    
+                    {% if registration %}
+                    <div class="alert alert-success"><i class="fas fa-check me-2"></i>You're registered!</div>
+                    {% else %}
+                    <button class="btn btn-primary btn-lg w-100" onclick="registerEvent()">Register Now</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+function registerEvent() {
+    fetch('{{ url_for("events.register_event", event_id=event.id) }}', {method: 'POST'})
+        .then(r => r.json())
+        .then(d => { if(d.success) location.reload(); else alert(d.error); });
+}
+</script>
+{% endblock %}
+{% endblock %}

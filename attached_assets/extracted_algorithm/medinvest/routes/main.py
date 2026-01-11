@@ -2,16 +2,16 @@
 Main Routes - Home, Feed, Profile, Dashboard
 """
 import json
+from datetime import datetime, timedelta
 from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify
 from flask_login import login_required, current_user
 from app import db
-from models import Post, Room, PostVote, Bookmark, PostMedia, User, Hashtag, NotificationType, PostScore, UserFeedPreference
+from models import Post, Room, PostVote, Bookmark, PostMedia, User, Hashtag, NotificationType
 from utils.content import (
     extract_mentions, extract_hashtags, process_hashtags, 
     link_hashtag, render_content_with_links, get_trending_hashtags,
     search_users_for_mention, search_hashtags
 )
-from utils.algorithm import generate_feed, get_user_interests
 from routes.notifications import create_notification, notify_mention
 
 main_bp = Blueprint('main', __name__)
@@ -28,17 +28,75 @@ def index():
 @main_bp.route('/feed')
 @login_required
 def feed():
-    """Main feed with posts from all rooms"""
-    page = request.args.get('page', 1, type=int)
+    """Main feed with algorithmic sorting"""
+    from utils.algorithm import generate_feed, score_posts_batch, get_user_interests
+    from models import PostScore, UserFeedPreference
     
-    posts = Post.query.order_by(Post.created_at.desc()).paginate(
-        page=page, per_page=20, error_out=False
-    )
+    page = request.args.get('page', 1, type=int)
+    feed_style = request.args.get('style', None)  # Override feed style
+    
+    # Get user's feed preferences
+    user_prefs = UserFeedPreference.query.filter_by(user_id=current_user.id).first()
+    
+    if not feed_style and user_prefs:
+        feed_style = user_prefs.feed_style
+    else:
+        feed_style = feed_style or 'algorithmic'
+    
+    # Generate feed based on style
+    if feed_style == 'chronological':
+        # Pure chronological feed
+        posts = Post.query.order_by(Post.created_at.desc()).paginate(
+            page=page, per_page=20, error_out=False
+        )
+        feed_posts = posts.items
+        has_next = posts.has_next
+        has_prev = posts.has_prev
+    elif feed_style == 'following':
+        # Only posts from followed users
+        from models import UserFollow
+        following_ids = [f.following_id for f in UserFollow.query.filter_by(follower_id=current_user.id).all()]
+        following_ids.append(current_user.id)  # Include own posts
+        
+        posts = Post.query.filter(Post.user_id.in_(following_ids))\
+                         .order_by(Post.created_at.desc())\
+                         .paginate(page=page, per_page=20, error_out=False)
+        feed_posts = posts.items
+        has_next = posts.has_next
+        has_prev = posts.has_prev
+    else:
+        # Algorithmic feed (default)
+        # Try to use pre-calculated scores first
+        scored_posts = db.session.query(Post, PostScore.score)\
+            .outerjoin(PostScore)\
+            .order_by(db.case(
+                (PostScore.score.is_(None), 0),
+                else_=PostScore.score
+            ).desc())\
+            .paginate(page=page, per_page=20, error_out=False)
+        
+        if scored_posts.items and any(score for post, score in scored_posts.items if score):
+            # Use pre-calculated scores
+            feed_posts = [post for post, score in scored_posts.items]
+            has_next = scored_posts.has_next
+            has_prev = scored_posts.has_prev
+        else:
+            # Calculate on-the-fly (fallback)
+            all_posts = Post.query.order_by(Post.created_at.desc()).limit(100).all()
+            user_interests = get_user_interests(current_user, db)
+            scored = score_posts_batch(all_posts, current_user, user_interests)
+            
+            # Paginate manually
+            start = (page - 1) * 20
+            end = start + 20
+            feed_posts = [p for p, s in scored[start:end]]
+            has_next = len(scored) > end
+            has_prev = page > 1
     
     # Get user's votes for these posts
     user_votes = {}
-    if current_user.is_authenticated:
-        post_ids = [p.id for p in posts.items]
+    if feed_posts:
+        post_ids = [p.id for p in feed_posts]
         votes = PostVote.query.filter(
             PostVote.post_id.in_(post_ids),
             PostVote.user_id == current_user.id
@@ -54,10 +112,24 @@ def feed():
     else:
         trending = [h.name for h in trending_hashtags]
     
+    # Create a simple pagination object for template
+    class SimplePagination:
+        def __init__(self, items, page, has_next, has_prev):
+            self.items = items
+            self.page = page
+            self.has_next = has_next
+            self.has_prev = has_prev
+            self.next_num = page + 1
+            self.prev_num = page - 1
+            self.pages = page + (1 if has_next else 0)
+    
+    posts_pagination = SimplePagination(feed_posts, page, has_next, has_prev)
+    
     return render_template('feed.html', 
-                         posts=posts, 
+                         posts=posts_pagination, 
                          user_votes=user_votes,
                          trending=trending,
+                         feed_style=feed_style,
                          render_content=render_content_with_links)
 
 
@@ -244,6 +316,7 @@ def create_post_ajax():
 def vote_post(post_id):
     """Upvote or downvote a post"""
     from routes.notifications import notify_like
+    from jobs import track_post_interaction
     
     post = Post.query.get_or_404(post_id)
     vote_type = request.form.get('vote_type', type=int)  # 1 or -1
@@ -283,6 +356,11 @@ def vote_post(post_id):
         if vote_type == 1:
             post.upvotes += 1
             send_notification = True
+            # Track interest for likes
+            try:
+                track_post_interaction(current_user.id, post_id, 'like')
+            except:
+                pass  # Don't fail vote on tracking error
         else:
             post.downvotes += 1
         db.session.add(vote)
@@ -547,4 +625,73 @@ def follow_user(user_id):
         
         db.session.commit()
         return jsonify({'success': True, 'following': True})
+
+
+@main_bp.route('/feed/preferences', methods=['GET', 'POST'])
+@login_required
+def feed_preferences():
+    """Manage feed preferences"""
+    from models import UserFeedPreference
+    
+    prefs = UserFeedPreference.query.filter_by(user_id=current_user.id).first()
+    
+    if request.method == 'POST':
+        if not prefs:
+            prefs = UserFeedPreference(user_id=current_user.id)
+            db.session.add(prefs)
+        
+        prefs.feed_style = request.form.get('feed_style', 'algorithmic')
+        prefs.show_anonymous = request.form.get('show_anonymous') == 'on'
+        
+        db.session.commit()
+        flash('Feed preferences updated!', 'success')
+        return redirect(url_for('main.feed'))
+    
+    return render_template('feed_preferences.html', prefs=prefs)
+
+
+@main_bp.route('/feed/set-style/<style>')
+@login_required
+def set_feed_style(style):
+    """Quick switch feed style"""
+    from models import UserFeedPreference
+    
+    if style not in ['algorithmic', 'chronological', 'following']:
+        flash('Invalid feed style', 'error')
+        return redirect(url_for('main.feed'))
+    
+    prefs = UserFeedPreference.query.filter_by(user_id=current_user.id).first()
+    
+    if not prefs:
+        prefs = UserFeedPreference(user_id=current_user.id)
+        db.session.add(prefs)
+    
+    prefs.feed_style = style
+    db.session.commit()
+    
+    return redirect(url_for('main.feed'))
+
+
+@main_bp.route('/api/feed/trending')
+@login_required
+def api_trending_posts():
+    """Get trending posts (high velocity engagement)"""
+    from models import PostScore
+    
+    # Get posts with highest engagement velocity in last 24 hours
+    trending = db.session.query(Post, PostScore)\
+        .join(PostScore)\
+        .filter(Post.created_at >= datetime.utcnow() - timedelta(hours=24))\
+        .order_by(PostScore.engagement_velocity.desc())\
+        .limit(10).all()
+    
+    return jsonify([{
+        'id': post.id,
+        'content': post.content[:100] + '...' if len(post.content) > 100 else post.content,
+        'author': post.display_author,
+        'score': round(score.score, 2) if score else 0,
+        'velocity': round(score.engagement_velocity, 2) if score else 0,
+        'upvotes': post.upvotes,
+        'comments': post.comment_count
+    } for post, score in trending])
 

@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Notifications - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">Notifications</h1>
+                    {% if unread_count > 0 %}
+                    <small class="text-muted">{{ unread_count }} unread</small>
+                    {% endif %}
+                </div>
+                <div>
+                    {% if unread_count > 0 %}
+                    <button class="btn btn-outline-primary btn-sm me-2" onclick="markAllRead()">
+                        <i class="fas fa-check-double me-1"></i>Mark All Read
+                    </button>
+                    {% endif %}
+                    <div class="btn-group">
+                        <a href="{{ url_for('notifications.index', filter='all') }}" 
+                           class="btn btn-sm {{ 'btn-primary' if filter_type == 'all' else 'btn-outline-secondary' }}">All</a>
+                        <a href="{{ url_for('notifications.index', filter='unread') }}" 
+                           class="btn btn-sm {{ 'btn-primary' if filter_type == 'unread' else 'btn-outline-secondary' }}">Unread</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="list-group list-group-flush">
+                    {% for notification in notifications.items %}
+                    <div class="list-group-item list-group-item-action {% if not notification.is_read %}bg-light{% endif %}" 
+                         id="notification-{{ notification.id }}"
+                         onclick="handleNotificationClick({{ notification.id }}, '{{ notification.url or '' }}')">
+                        <div class="d-flex align-items-start gap-3">
+                            <!-- Icon/Avatar -->
+                            <div class="flex-shrink-0">
+                                {% if notification.actor %}
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" 
+                                     style="width:45px;height:45px;">
+                                    {{ notification.actor.first_name[0] }}{{ notification.actor.last_name[0] }}
+                                </div>
+                                {% else %}
+                                <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" 
+                                     style="width:45px;height:45px;">
+                                    {% if notification.notification_type.value == 'like' %}
+                                    <i class="fas fa-heart"></i>
+                                    {% elif notification.notification_type.value == 'comment' %}
+                                    <i class="fas fa-comment"></i>
+                                    {% elif notification.notification_type.value == 'mention' %}
+                                    <i class="fas fa-at"></i>
+                                    {% elif notification.notification_type.value == 'follow' %}
+                                    <i class="fas fa-user-plus"></i>
+                                    {% elif notification.notification_type.value == 'level_up' %}
+                                    <i class="fas fa-arrow-up"></i>
+                                    {% else %}
+                                    <i class="fas fa-bell"></i>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Content -->
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        {% if notification.title %}
+                                        <strong>{{ notification.title }}</strong><br>
+                                        {% endif %}
+                                        <span>{{ notification.message }}</span>
+                                    </div>
+                                    {% if not notification.is_read %}
+                                    <span class="badge bg-primary rounded-pill">New</span>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">{{ notification.created_at.strftime('%b %d at %I:%M %p') }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="list-group-item text-center py-5">
+                        <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                        <h5>No notifications</h5>
+                        <p class="text-muted mb-0">You're all caught up!</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Pagination -->
+            {% if notifications.pages > 1 %}
+            <nav class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if notifications.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('notifications.index', page=notifications.prev_num, filter=filter_type) }}">Previous</a>
+                    </li>
+                    {% endif %}
+                    <li class="page-item disabled"><span class="page-link">Page {{ notifications.page }} of {{ notifications.pages }}</span></li>
+                    {% if notifications.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('notifications.index', page=notifications.next_num, filter=filter_type) }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function handleNotificationClick(id, url) {
+    // Mark as read
+    fetch(`/notifications/${id}/read`, { method: 'POST' });
+    
+    // Remove highlight
+    document.getElementById(`notification-${id}`).classList.remove('bg-light');
+    
+    // Navigate if URL exists
+    if (url) {
+        window.location.href = url;
+    }
+}
+
+function markAllRead() {
+    fetch('/notifications/mark-all-read', { method: 'POST' })
+        .then(() => location.reload());
+}
+</script>
+{% endblock %}

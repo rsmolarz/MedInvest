@@ -1755,3 +1755,97 @@ class Mention(db.Model):
     comment_id = db.Column(db.Integer, db.ForeignKey('comments.id'))
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+# =============================================================================
+# FEED ALGORITHM MODELS
+# =============================================================================
+
+class PostScore(db.Model):
+    """Pre-calculated post scores for efficient feed generation"""
+    __tablename__ = 'post_scores'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'), nullable=False, unique=True, index=True)
+    
+    score = db.Column(db.Float, default=0.0, index=True)
+    engagement_score = db.Column(db.Float, default=0.0)
+    quality_score = db.Column(db.Float, default=1.0)
+    decay_score = db.Column(db.Float, default=1.0)
+    engagement_velocity = db.Column(db.Float, default=0.0)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    post = db.relationship('Post', backref=db.backref('score_record', uselist=False))
+
+
+class UserInterest(db.Model):
+    """Track user interests for feed personalization"""
+    __tablename__ = 'user_interests'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    
+    interest_type = db.Column(db.String(20), nullable=False)
+    reference_id = db.Column(db.String(100), nullable=False)
+    affinity = db.Column(db.Float, default=1.0)
+    
+    view_count = db.Column(db.Integer, default=0)
+    like_count = db.Column(db.Integer, default=0)
+    comment_count = db.Column(db.Integer, default=0)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('interests', lazy='dynamic'))
+    
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'interest_type', 'reference_id'),
+        db.Index('idx_user_interest_lookup', 'user_id', 'interest_type'),
+    )
+
+
+class UserFeedPreference(db.Model):
+    """User preferences for feed algorithm"""
+    __tablename__ = 'user_feed_preferences'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
+    
+    feed_style = db.Column(db.String(20), default='algorithmic')
+    show_anonymous = db.Column(db.Boolean, default=True)
+    preferred_content_types = db.Column(db.JSON, default=list)
+    specialty_filter = db.Column(db.JSON, default=list)
+    muted_users = db.Column(db.JSON, default=list)
+    muted_rooms = db.Column(db.JSON, default=list)
+    muted_hashtags = db.Column(db.JSON, default=list)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('feed_preferences', uselist=False))
+
+
+class EngagementSnapshot(db.Model):
+    """Hourly snapshots of post engagement for velocity calculation"""
+    __tablename__ = 'engagement_snapshots'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'), nullable=False, index=True)
+    
+    snapshot_hour = db.Column(db.DateTime, nullable=False)
+    
+    upvotes = db.Column(db.Integer, default=0)
+    comments = db.Column(db.Integer, default=0)
+    bookmarks = db.Column(db.Integer, default=0)
+    views = db.Column(db.Integer, default=0)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    post = db.relationship('Post', backref=db.backref('engagement_history', lazy='dynamic'))
+    
+    __table_args__ = (
+        db.UniqueConstraint('post_id', 'snapshot_hour'),
+        db.Index('idx_engagement_time', 'post_id', 'snapshot_hour'),
+    )
