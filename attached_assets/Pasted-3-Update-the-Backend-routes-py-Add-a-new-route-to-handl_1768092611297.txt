@@ -1,0 +1,74 @@
+3. Update the Backend (routes.py)
+Add a new route to handle the AI logic. This will receive a prompt from your frontend and return Gemini's response.
+
+Python
+
+import google.generativeai as genai
+from flask import jsonify, request
+
+# Configure Gemini
+os.environ.get("GEMINI_API_KEY")
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+
+# Create the model with a system instruction to keep it professional
+model = genai.GenerativeModel(
+    model_name="gemini-1.5-flash",
+    system_instruction="You are a professional financial assistant for medical doctors. Answer questions about tax strategies, retirement planning, and student loans with a helpful, expert tone."
+)
+
+@app.route('/api/chat', methods=['POST'])
+@login_required
+def chat_with_gemini():
+    data = request.json
+    user_message = data.get('message')
+    
+    if not user_message:
+        return jsonify({'error': 'No message provided'}), 400
+
+    try:
+        # Generate the response
+        response = model.generate_content(user_message)
+        return jsonify({'response': response.text})
+    except Exception as e:
+        logging.error(f"Gemini API error: {e}")
+        return jsonify({'error': 'Failed to reach AI assistant'}), 500
+4. Update the Frontend (main.js or Inline Script)
+You need to connect the UI in the image to this new route. Assuming you have a text input and a button in your HTML:
+
+JavaScript
+
+async function askAI() {
+    const inputField = document.querySelector('#ai-input');
+    const displayArea = document.querySelector('#ai-response-area');
+    const userMessage = inputField.value;
+
+    // Show a loading state
+    displayArea.innerHTML = "Thinking...";
+
+    try {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: userMessage })
+        });
+        
+        const data = await response.json();
+        
+        if (data.response) {
+            displayArea.innerHTML = data.response; // You can use a Markdown library here to format the text
+        } else {
+            displayArea.innerHTML = "Sorry, I encountered an error.";
+        }
+    } catch (error) {
+        console.error("Error calling Gemini:", error);
+    }
+}
+Pro-Tip: Context Awareness
+If you want the AI to "know" who it's talking to, you can include the user's details in the prompt automatically:
+
+Python
+
+# Inside your chat_with_gemini route:
+context_prompt = f"User is a {current_user.specialty} with {current_user.years_of_experience} years experience. Question: {user_message}"
+response = model.generate_content(context_prompt)
+Would you like me to help you format the specific HTML template for that AI assistant card so it matches the one in your screenshot?
