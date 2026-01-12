@@ -1,0 +1,210 @@
+Collection of Information
+Uses of Personal Information
+Sharing of Information
+Cookies and Similar Technologies
+Third Party Links
+Security
+Data Retention
+Choices Regarding Personal Information
+Changes to this Policy
+State Privacy Notice
+Contact Us
+Introduction
+This privacy policy describes how Doximity, Inc. (“Doximity,” “we,” “us,” or “our”) collects, uses, shares, and otherwise handles personal information about individuals (“you” and/or “your”) who visit and use our websites and mobile applications that include a link to this privacy policy, and any related products, features, and services (collectively, the “Service” or “Services”).
+
+Any patient information that you provide to us in connection with your use of a secure communication tool that we make available to registered Doximity members through the Service, including but not limited to Doximity Dialer, (“Patient Information”), will be used solely to provide the associated services to you and your patient, as applicable. We do not monitor the content of communications transmitted through these tools and we do not record audio or video calls. We do not sell Patient Information. You can learn more about how Doximity handles Patient Information here.
+
+By using the Service, whether as a registered member or an unregistered visitor, you acknowledge that you have read this privacy policy, and consent to the handling of your personal information as described in this policy, which we may update from time to time as described in the “Changes to this Policy” section, below.
+
+Doximity is a United States company. The Doximity Service is not intended for users outside of the United States and non-US healthcare professionals are not eligible for Doximity membership. By using the Service, you consent to your personal information being stored and otherwise processed in the United States as described in this policy.
+
+Downloads
+ Our Commitment to Security (PDF)
+ Whitepaper: Amion Messaging (PDF)
+
+1. Collection of Information
+We collect personal information that you provide us directly, from third party sources, and automatically when you use the Service as follows:
+
+Information That You Provide To Us Directly
+Doximity Member Accounts
+
+When you register a Doximity account and become a Doximity member, we require you to provide certain personal information that varies depending on whether we have already created a professional profile for you, as described in the “Doximity Profiles and Member Accounts” section below. If you already have a profile, we ask that you verify the information, and if you do not we ask that you provide us some of the information typically included in a Doximity profile. All Doximity members must provide their email address, and healthcare professionals are required to provide certain information about their education, such as school attended, year of graduation, and specialty.
+
+Registering Doximity users also have the option to provide additional information to include in their profile, including subspecialty, clinical and professional interests, languages spoken at the office, profile photo, medical group, hospital affiliations, internship, residency program, fellowships, employment history, speaking engagements, publications, memberships and board certifications. You may choose to update or supplement the information you have provided us at any time as described in the “Updating Your Account Information” section below.
+
+To enhance the accuracy and integrity of the Doximity healthcare professional network, we require registering members to verify their identity and credentials, which may involve answering identity verification questions and/or sharing a copy of their professional license, medical ID or other relevant documentation with Doximity or our third party identity verification partners. While we take steps to verify that Doximity members are actually the individuals they claim to be, we make no guarantee as to any member’s identity, professional credentials or licensure status.
+
+Submissions
+
+We collect and may retain content and information that you share with us (and information about you provided by other Doximity members) including, but not limited to, comments, searches, contacts, schedule details, your resume, survey responses, contest entries, creative submissions, chatbot prompts, and communications with Doximity user support, including emails, chatbot sessions and phone calls. We also collect prompts you submit through our AI tools. We do not sell your prompts to third parties.
+
+Communications Tools
+
+The Services include secure communication tools that enable our members to communicate with each other and with third parties, including their patients, such as Doximity Dialer and Fax. You may choose to share information with your patients using our communication tools such as your image, a virtual video call background, or the phone number you choose to display. We collect information about usage of these tools, such as when a member uses Dialer and the duration of a call. If you are an employee, contractor, or other workforce member of a covered entity with whom Doximity has executed an enterprise agreement intended to cover use by the enterprise’s workforce of a particular Doximity tool, we may share information about your use of that tool with that covered entity. As described above, any Patient Information that you provide us in connection with your use of a Doximity communication tool will be used solely to provide the associated services to you and your patient, as applicable. For example, when you use Doximity Dialer to contact a patient, we use the patient’s phone number that you provide solely to connect you with your patient through Dialer. We do not monitor communication content and we do not record audio or video calls.
+
+If you act as or on behalf of a “covered entity” under the Health Insurance Portability and Accountability Act (HIPAA) and choose to transmit protected health information subject to HIPAA in connection with your use of a Doximity secure communication tool, this information will be handled in accordance with the Doximity Business Associate Agreement incorporated by reference into the Doximity Terms of Service or our Business Associate Agreement with the relevant covered entity, as applicable.
+
+Information Collected Automatically When You Use The Services
+In addition to your personal information that you provide to us directly, we collect a variety of personal information automatically when you use the Services through the use of cookies and similar technologies (e.g., pixels, web beacons and device identifiers), which we refer to as “Log Data” as further described in the "Cookies and Similar Technologies" section below. Log Data includes activity information such as the date and time that you access one of our sites or apps, and whether you view, click or otherwise interact with content, including articles, links, advertisements promoting the products and services of Doximity or our customers, open or click a link in one of our emails, conduct a search on one of our websites, share an article displayed in your newsfeed, or send, receive, or engage with a message sent through the Service. We use technology that maintains a record of the Log Data collected during your browsing session. We collect device information including your IP address (which is a unique numerical address that identifies your device when you access the Internet), your browser and device type and model, operating system, your ISP and mobile carrier, your advertising ID (which is a unique, user-resettable identification number associated with a mobile device), other unique identifiers associated with your computer or mobile device, and the URL of the site from which you access our site.
+
+The use of these technologies helps us serve you better by understanding what you’re interested in, tracking trends, measuring the effectiveness of our content, including ads, and saving your preferences. For information about how you can manage your cookie preferences, refer to the “Choices Regarding Personal Information” section, below.
+
+If you make a Doximity Dialer video call, you may have the option to display a virtual background. Depending on your device, this feature uses Apple's TrueDepth API or Android's Selfie Segmentation API to track your face, figure and movement based on information collected through your device while this feature is enabled. This information does not leave your device, is not stored or shared with third parties, and is used solely to provide this optional feature.
+
+We do not collect precise location information unless you elect to enable location services on your device, but we do receive information about your general location at a city or zip code level through your computer’s IP address and your mobile device.
+
+Information Obtained From Third Party Sources
+We obtain information from third party sources, including government agencies, publicly available databases, professional associations, publications, employers, our business partners, service providers, customers, and other Doximity members, some of which we may add to your professional profile as described in the “Doximity Profiles and Member Accounts” section, below. For example, we may use third party sources to obtain your National Provider Identifier (NPI) record, specialty, office address, phone and fax numbers, educational background, certifications, professional group affiliations, your publications and other professional achievements. We may obtain email addresses that we use to promote the Service to members and potential members, and prescribing and claims data that we may use to personalize content, including advertising. We also may obtain information from third parties about our members’ use of their properties that enables us to deliver targeted advertisements and other sponsored content to those members when they are on those third party properties.
+
+ Return to top
+2. Uses of Information
+Except as otherwise provided herein, we may use the personal information we collect about you for the following business and commercial purposes:
+
+Provision of the Service
+
+We use your information to provide, operate, support, promote, and improve the Services, including through the development of new tools and features.
+
+Doximity Profiles and Member Accounts
+
+We use your information to create and update your professional profile, which is publicly viewable by default, regardless of whether you have registered a Doximity account, to create and maintain your Doximity member account if you choose to register, and to support and respond to your inquiries and requests.
+
+Communications
+
+We use your information to communicate with you about the Service. These communications may contain information about your professional connections, professional opportunities, conferences and other events (including whether your colleagues plan to attend, as informed by the event sponsor), relevant editorial content, and marketing about products and services of Doximity and our customers. These communications may be sent through a variety of channels, including on-site or in-app notifications and email. If you use Doximity Dialer to communicate with a patient, we may send you text messages relating to these communications, e.g., your patient is waiting to join a video call. Refer to the Doximity Terms of Service for more information about text messaging. We also use your information to process, store, and transmit your communications through the Service.
+
+Professional Connections
+
+We use your information to suggest potential connections to you and other Doximity users. For example, if we see that you and another member share a contact or work at the same hospital or attended the same medical school, we may suggest that you and that member connect as colleagues. We use your information to enhance our Doximity search feature to help you find information and learn more about other Doximity members. For example, you can search for clinicians with particular expertise, or that you may know from your medical school or hospital. We also use your information, including your name and photo, to notify other Doximity members of notable professional events, such as when you receive an award, are mentioned in the news or publish a work. We may also inform your connections when you like, share or comment on a newsfeed article, make a new Doximity connection or update your profile.
+
+Professional Opportunities
+
+We use your information to recommend professional opportunities to you (and you to those offering such opportunities), including through our career search function, advertisements, and direct messages that we may send to you on behalf of recruiters and other Doximity clients with whom you may not be directly connected on Doximity, as further described in the "Commercial Clients" section below. Additionally, we may use your information to power and populate our provider recommendation and referral tools, increasing our members’ visibility among other providers and patients.
+
+Personalizing your Experience
+
+We use your information to personalize the Services including content, employment opportunities, marketing messages, market research opportunities, and advertising and other sponsored content delivered to you on our properties and third party properties, and to generally enhance your Doximity experience. For example, we tailor your newsfeed to focus on content relevant to your practice, specialty and inferred interests based on your profile and how you engage with the Services. We use your information to target (and measure the performance of) advertising and other content sponsored by third parties, including pharmaceutical companies promoting their products and therapies, and hospitals promoting their services. For example, if you are an oncologist or have demonstrated an interest in oncology content, you may see advertisements targeted to oncologists or oncology-interested members. Advertising will be identified as an “Advertisement,” “Sponsored,” “Promoted” or some similar designation indicating that the content is promotional and has been selected by the third-party sponsor.
+
+Other Uses of Your Information
+
+We also use your information to detect, investigate, and prevent fraudulent, harmful, unauthorized, unethical or illegal activities to protect the rights, safety and property of Doximity, our users and others, including through the enforcement of the Doximity Terms of Service, in connection with legal proceedings, including arbitration, and to comply with our legal obligations. Also, we may create anonymous, aggregated or de-identified data from information you provide so that it is no longer identifiable to you. We may use this data and share it with third parties for our lawful business purposes, including to analyze and improve the Services, support commercial opportunities, generate insights and identify trends, and promote our business.
+
+ Return to top
+3. Sharing of Information
+In connection with the activities described above, we may share your personal information with third parties as follows:
+
+Public and Social Networks
+
+Public profiles are publicly viewable unless you create a Doximity account, claim your profile and choose to limit public viewability. Once you have claimed your profile, you are able to designate select contact information as private, such as an office back line, mobile phone, home phone, other phone, pager, inpatient/admit number, and email address (“Private Profile Information”). We will only share Private Profile Information with Doximity members who you authorize, except as otherwise specified in this policy. If you do not want your Doximity profile to be publicly viewable or to become a Doximity member, you may request that that we remove your public profile as explained in the “Choices Regarding Personal Information” section below. Note that any personal information you elect to share within Doximity’s social network is visible to Doximity’s members. For example, if you engage in social actions, e.g., by liking or commenting on an article in your newsfeed, those activities will be shared with other Doximity members. Also, we may include social widgets on our sites and apps that enable you to interact with the associated social media services, e.g., to share an article, and in connection with such interaction these third parties may collect personal information about you. You may be able to manage your privacy preferences directly with the applicable social network platform. Additionally, information provided to us by your affiliated hospital and/or employer, such as your schedule, may also be publicly viewable.
+
+Business Partners
+
+We may share your public profile information with trusted business partners that we work with to provide services to you and others, including healthcare provider directories and ranking bodies such as U.S. News and World Report. These services increase the visibility of our members and their employers in the healthcare market, thereby increasing their business and professional opportunities.
+
+Research Institutions
+
+As part of our mission to understand and support the medical profession, we may share your information with research institutions that perform research related to their respective missions. We require these institutions to agree that they will only use and share the data as needed for the approved research purpose and that any resulting research output be aggregated and anonymized so that it cannot be linked back to any individual. We may publish or allow others to publish insights learned from such research activities.
+
+Service Providers
+
+We may share your information with third parties that help us provide the Services and operate our business, including in the areas of website, app and database hosting and maintenance, telecommunications, information security, fraud detection and prevention, email management, data analytics, marketing, advertising, market research, payment fulfillment, member support, and identity and professional credential verification.
+
+Commercial Clients
+
+We provide our commercial clients, including hospitals, recruiters, and life science companies, with profile search and messaging tools as part of our talent and marketing services businesses. They use these tools to select members that may be interested in their information and opportunities, including in the areas of employment and other professional opportunities, events, clinical trials, innovative therapies, and other clinical solutions, and we communicate their messages to the selected Doximity members on their behalf. If your employer or another third party purchases a paid Service from Doximity for your use and you elect to use that Service, this third party will have the right to control access to and obtain information about your use of the paid Service.
+
+We may provide our commercial clients with limited member information for audience insight and development purposes. For example, a commercial client may share a list of individuals they wish to reach with their advertisements or market research surveys and we will inform that client which of those individuals we may be able to reach on our platform so they can manage their audience development plans accordingly. We may also share member-level insights based on how the member uses the Services, such as their topics of interest and content preferences. When you engage with sponsored content made available to you as described in this policy, we may share with the sponsor and its representatives limited information from your Doximity profile such as your name, specialty, and zip code, along with details about the engagement such as whether you viewed or interacted with an advertisement. If you participate in a market research survey conducted by or on behalf of one of our market research clients, we may identify you to this client in relation to your survey participation and responses, however, we will not share your responses with the end sponsor of the survey in a manner that identifies you without your consent. Prior to sharing this information, we require the recipients to agree to limit their use to the authorized purpose. We do not share your Private Profile Information or any personal contact information with our commercial clients without your consent.
+
+CME/CE Providers
+
+As part of our Services, we may share your personal information with Continuing Medical Education (CME) and Continuing Education (CE) providers who provide and/or certify CME and CE activities that we offer through the Service, for the purpose of processing CME or CE activities in which you choose to participate, and as required for their accreditation compliance and record keeping purposes. We may forward to you emails from these organizations in connection with your participation in the applicable activities, including to send you CME/CE credit certificates you have earned.
+
+Advertising Partners
+
+We work with third party partners to serve advertising for us on third party sites and to evaluate the effectiveness of our advertising. These third parties use cookies and similar technologies to collect information about your use of our sites, other sites and online services over time, including certain Log Data described above, so they can display our ads to you on other sites and apps. For example, if you visit Doximity and also use a social media platform, you may see a Doximity ad in your social media newsfeed. We also work with third party partners to develop custom audiences to whom our ads can be delivered outside of Doximity. For example, we may provide hashed versions of member email addresses to Facebook who then matches it to the corresponding Facebook member accounts to create a Doximity “Custom Audience” on Facebook, to which it can target Doximity ads. These activities, known as interest-based advertising, are intended to make the ads you see online more relevant to your interests. Please see the “Choices Regarding Personal Information” section below for information about opting out of interest-based based advertising.
+
+Third Party Sites Using Doximity Login
+
+Certain third party sites allow users to sign in using their Doximity login credentials. When you use this feature, Doximity may share with the third party site operator information from your Doximity registration profile (but not your Doximity username or password), as described when you sign-in. Also, when you use this feature, the third party may share with us information about your use of their property which we may use in accordance with this privacy policy. We encourage you to read and understand the terms of service and privacy policy of any website you log into using your Doximity credentials.
+
+Business Transferees
+
+We may share your personal information in connection with a business transaction (or potential transaction) involving a corporate divestiture, merger, consolidation, acquisition, reorganization, sale or other disposition of all or any portion of the business or assets of, or equity interests in, Doximity or our corporate affiliates (including, in connection with a bankruptcy or similar proceedings).
+
+Affiliated Companies
+
+We may share personal information with our corporate affiliates for use consistent with this privacy policy.
+
+Authorities
+
+We may access, preserve, and share your information with third parties, as required or permitted by applicable law, if we believe it is reasonably necessary to comply with legal process and law enforcement instructions and orders, such as a search warrant, subpoena, statute, judicial proceeding, or other legal process served on us, which may involve disclosure to law enforcement, courts, or governmental authorities. Also, if you provide us information about an adverse event relating to a pharmaceutical product or medical device or receive payment in connection with a market research survey or other sponsored program offered through the Service, we may be required to report this information along with your contact information to the manufacturer or sponsor, as applicable, so it can comply with legally required recordkeeping and/or reporting obligations.
+
+Other Third Parties
+
+We may access, preserve, and share your information if we determine it is reasonably necessary or appropriate to investigate, prevent or take action regarding suspected fraudulent, harmful, unethical or illegal activities, or any violation of our Terms of Service or to protect and defend the legal rights, safety, and property of Doximity, our employees, agents and contractors (including to enforce our agreements) or in connection with any safety or security concerns, including the personal safety of our users and the public.
+
+With Your Consent
+
+We also may share your personal information with a third party in a manner not addressed by this policy with your consent.
+
+ Return to top
+4. Cookies and Similar Technologies
+We and our service providers and partners, as described above, use various tools to collect data when you visit our sites and apps, including cookies, pixel tags, and other similar technologies. These technologies enable us to track usage of the Services and to enhance the user experience by providing a more relevant and personalized online experience. A cookie is a small data file that is sent to a user’s browser when visiting a website. It is stored, accessed and maintained on the computer's hard drive or on a tablet or mobile device. A cookie contains a unique number that allows a website to recognize a particular user’s device each time that user visits the website so they don’t need to log in each time they visit and their preferences can be stored. Cookies enable us to measure the use and effectiveness of our content, track user trends, monitor and stabilize our websites, and improve the quality of the Services and content personalization (including ads) both on Doximity and third party sites.
+
+Most browsers can be set to reject all cookies, including third party cookies, however, if you choose to reject our cookies, your ability to access and use the Services will be limited. We and our partners also use pixel tags, often in conjunction with cookies. Pixel tags are small pieces of code that are embedded on web pages and apps in order to provide us with information about how our sites and apps are used. We also include pixel tags in our emails to inform us whether the recipient has opened those emails and/or clicked on links in those emails.
+
+ Return to top
+5. Third Party Links
+Our Services may contain links to third-party sites. Any access to and use of such linked sites is not governed by this policy, but instead is governed by the privacy policies of those third party sites, which we encourage you to read. We are not responsible for the information practices of such third party sites.
+
+ Return to top
+6. Security
+We employ technical, administrative and physical safeguards designed to protect your personal information. However, no security measure can guarantee security and that data will not be accessed, disclosed, altered, or destroyed. You should take steps to protect against unauthorized access to your password, phone, and computer by, among other things, signing off after using a shared computer, choosing a complex password that nobody else knows or can easily guess, and keeping your log-in credentials private. We are not responsible for any lost, stolen, or compromised passwords or for any unauthorized account activity.
+
+ Return to top
+7. Data Retention
+We will retain your personal information for at least the period reasonably necessary to fulfill the purposes outlined in this privacy policy, unless a longer retention period is required or permitted by law. If we delete some or all of your personal information, we may continue to retain and use aggregate or anonymous data previously collected and/or aggregate or anonymize your personal information.
+
+ Return to top
+8. Choices Regarding Personal Information
+Your Account and Profile Information.
+
+If you have registered a Doximity account, you may review and update certain personal information through your account settings. If you prefer to submit an update request to us directly, or if you do not have a Doximity account but would like us to modify or remove your public profile, or if you wish to close your account, please contact us at support@doximity.com.
+
+Opting Out of Marketing Emails
+
+You may opt-out of receiving marketing emails from Doximity at any time by opting out via the link the email footer, adjusting your account settings or sending an opt-out request to support@doximity.com. Please be aware that you cannot opt-out of receiving service messages from us including security and legal notices.
+
+Controlling Cookies and Interest-based Advertising
+
+If you would prefer not to accept cookies, visit the “help” section of your browser to learn about cookie preferences and other privacy settings that may be available. Most browsers will allow you to: (i) change your browser settings to notify you when you receive a cookie, which lets you choose whether or not to accept it; (ii) disable existing cookies; or (iii) set your browser to automatically reject cookies. Note that rejecting cookies will not prevent device identification and related data collection from occurring. Also, if you choose to reject cookies, your access to some functionality and areas of the Service may be restricted. For additional information about cookies visit www.allaboutcookies.org.
+
+As described above, we allow certain third party partners to place tracking technologies on the Service for the purpose of delivering interest-based advertising to you on third party sites. You can opt-out of certain third party interest-based advertising services we may use by visiting the following links: for Google: Google Marketing Platform opt-out page; For Twitter: Twitter’s Privacy Controls for Personalized Ads; For Facebook: Facebook Ad Preferences; and for LinkedIn: LinkedIn General Advertising Preferences.
+
+We may use Google Analytics to recognize you and link the devices you use when you visit the Service on your browser or mobile device. Google Analytics allows us to better understand how our users interact with the Service and to tailor our content to you. For information on how Google Analytics collects and processes data, as well as how you can control information sent to Google, review Google's site “How Google uses information from sites or apps that use our services” currently located at www.google.com/policies/privacy/partners. You can learn about Google Analytics’ currently available opt-outs, including the Google Analytics Browser Ad-On here https://tools.google.com/dlpage/gaoptout.
+
+You can learn more about managing your preferences for interest-based ads online, particularly for many third-party advertising networks, by visiting the Network Advertising Initiative and the Digital Advertising Alliance. Note that even if you opt-out from interest-based advertising through these organizations’ tools, cookies may still be used to collect data for purposes other than interest-based advertising, including analytics. Also, you will still see ads, but they will not be targeted based upon the information collected through these tracking technologies. When using the preferences and opt-out settings described above, you will need to apply them on every device and on every browser from which you wish to opt-out. Because some of these settings rely on a cookie that stores your preferences, if you delete or clear your browser’s cookies, you may need to opt-out again. You can also control interest-based advertising on your mobile device by enabling the “Limit Ad Tracking” setting on your iOS device or “Opt out of Ads Personalization” on your Android devices.
+
+Some Web browsers incorporate a "Do Not Track" feature that signals to websites that you visit that you do not want to have your online activity tracked. Each browser communicates "Do Not Track" signals to websites differently, making it unworkable to honor each and every request correctly. We do not respond to "Do Not Track" signals at this time.
+
+Push Notifications
+
+If you consent to receive push notifications, you may withdraw your consent at any time by adjusting the appropriate operating system settings on your mobile device.
+
+ Return to top
+9. Changes to this Privacy Policy
+We reserve the right to modify this privacy policy at any time and in our sole discretion. When we make a change, we will update the “Effective Date” and post the updated policy on or through the Service. We may, and if required by law, will also provide notification of changes in another way that we believe is reasonably likely to reach you, such as by e-mail (if you have an account where we have your contact information) or another manner through the Service. Any modifications to this privacy policy will be effective upon posting or as otherwise indicated at the time of posting. In all cases, by continuing to use the Service after posting of the updated policy, you are consenting to the changes. If you object to any changes, you may close your account by contacting support@doximity.com.
+
+ Return to top
+10. State Privacy Notice
+Some state laws provide such states’ residents with additional rights regarding their personal information. To learn more about your state privacy rights, please visit our State Privacy Notice.
+
+ Return to top
+11. Contact Us
+If you have any questions about this policy or Doximity’s privacy practices, you may reach us at any time by emailing support@doximity.com. or by contacting us at:
+
+Doximity
+ATTN: Privacy Policy
+500 3rd St. Suite 510
+San Francisco, CA 94107
+
+ Return to top

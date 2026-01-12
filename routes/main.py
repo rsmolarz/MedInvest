@@ -25,6 +25,18 @@ def index():
     return render_template('index.html')
 
 
+@main_bp.route('/privacy')
+def privacy():
+    """Privacy policy page"""
+    return render_template('privacy.html')
+
+
+@main_bp.route('/terms')
+def terms():
+    """Terms of service page"""
+    return render_template('terms.html')
+
+
 @main_bp.route('/feed')
 @login_required
 def feed():

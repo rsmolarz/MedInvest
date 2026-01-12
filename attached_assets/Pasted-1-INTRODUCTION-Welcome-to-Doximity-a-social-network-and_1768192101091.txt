@@ -1,0 +1,224 @@
+1. INTRODUCTION
+Welcome to Doximity, a social network and professional resource for United States healthcare professionals. By registering as a Doximity member or otherwise accessing or using any of our websites or mobile applications, including any related services (collectively the “Service” or “Services”), whether as a registered member or an unregistered visitor, you are entering into a legally binding contract with Doximity, Inc. (“Doximity,” “we,” “us,” or “our”). The following Terms of Service (these “Terms”) govern your access to and use of the Service.
+
+Doximity is a social network. We cannot provide the Services or perform the agreement described in these Terms without processing personal information about you and other users of the Service. Processing this information is essential to the Services that we provide and a necessary part of our performance of our agreement with you.
+
+By accessing the Service, you acknowledge that you have read and understand these Terms, and that you agree to be bound by them. If you do not agree to be bound by these Terms, do not access the Service.
+
+PLEASE NOTE THAT BY AGREEING TO THESE TERMS, YOU AGREE TO RESOLVE ALL DISPUTES THROUGH BINDING INDIVIDUAL ARBITRATION, AND YOU WAIVE YOUR RIGHT TO PARTICIPATE IN A CLASS ACTION LAWSUIT OR CLASS-WIDE ARBITRATION AS FURTHER DESCRIBED IN SECTION 9 – GOVERNING LAW; DISPUTE RESOLUTION.
+
+ Return to top
+2. THE DOXIMITY SERVICE
+A. Eligibility and Prohibited Activities
+
+By registering for the Service, you certify that you are at least 18 years of age or older and a United States physician, medical student, or other healthcare professional and the information you provide to us in connection with your account registration, including your professional credentials, is accurate and complete, and Doximity may use such information to provide the Service.
+
+Doximity is a United States company. Your information is stored within the United States. The Services are designed specifically for users in the United States. We do not target users in other jurisdictions and we make no claims that the Service or any associated content is appropriate for users located outside of the United States.
+
+You may use the Services only for lawful purposes and in accordance with these Terms. You agree not to use the Services:
+
+In any way that violates any federal, state or local law or regulation or professional rule applicable to you and your use of the Services including, without limitation, those relating to patient privacy, medical care and treatment including the Health Insurance Portability and Accountability Act (HIPAA), physician self-referrals (the Stark law), or faxes or text messaging (the Telephone Consumer Protection Act).
+In any way that violates or conflicts with any agreement to which you are a party, including any agreement with your employer.
+To transmit any material that does not comply with the User Content Standards outlined below.
+To impersonate another person, or misrepresent your identity or affiliation with any person or entity (e.g., by using an email address, username or caller ID that misrepresents your affiliation).
+In any manner that could disable, overburden, damage, or impair any component of the Service.
+To transmit any advertising or promotional materials without our prior written consent, including any "junk mail" or "junk faxes," "bulk mail" or "bulk faxes," "chain letters," "spam," or any other similar solicitation.
+To engage in any other conduct that inhibits anyone's use or enjoyment of the Service or which, as determined by us, may harm Doximity or users of the Service.
+Additionally, you agree not to:
+
+Re-use or re-publish any content made available through the Service including, without limitation, content posted by other Doximity users, without the express written permission of Doximity or such user, as applicable.
+Access, extract, copy, store, or distribute any part of the Service, including any features, content, or information made available through the Service, for any commercial purposes, without the express written permission of Doximity.
+Use the Service or any part thereof to develop, test, or enhance a competing product or service, or otherwise exploit the Service in a manner that could reasonably be construed as competitive with Doximity.
+Attempt to obtain unauthorized access to or interfere with the Service, any Doximity computer system, software or network, including through reverse engineering, decompiling, deriving source code or uploading malicious code or code snippets.
+Tamper with, breach or attempt to probe, scan, or test for vulnerabilities in the Service or Doximity’s computer systems, network, security elements, or any other protective measures associated with the Service.
+Use any software, devices, scripts, robots or any other means or process to view, access or “scrape” the Service or otherwise copy information from the Service, or to transmit any communications using the Service including, without limitation, faxes or member messages.
+Reproduce or redistribute content provided through the Services, including through “framing” or “mirroring” or through third parties, without Doximity’s consent.
+Reverse engineer, decompile, disassemble, decipher or otherwise attempt to derive the source code for the Services or any related technology that is not open source.
+Monitor the availability, performance or functionality of any of the Services for any competitive purpose.
+Deep-link to any of our websites (i.e., linking to a Doximity web page other than the Doximity home page) unless solely to promote your profile or practice on the Service, or as otherwise expressly approved by Doximity in writing on a case-by-case basis.
+Infringe or use any of our brands, logos trademarks or other proprietary marks in any business name, email, URL or other context, unless expressly approved by Doximity in writing.
+Introduce into the Service any viruses, Trojan horses, worms, logic bombs, or other material that is malicious or technologically harmful.
+Otherwise attempt to interfere with the proper working of the Service, or any portion thereof.
+B. User Content Standards
+
+You may submit content and other information to the Service in a variety of ways, including through your profile, our newsfeed, our communication tools, and our AI tools (“User Content”). You agree that you are solely responsible for your User Content, including its legality, reliability, accuracy, and appropriateness, your User Content complies with these Terms, and you have all rights in your User Content as necessary to grant the license granted herein.
+
+You agree that your User Content will not:
+
+Contain any material that is offensive, abusive, defamatory, obscene, threatening or harassing.
+Promote illegal activity or discrimination based on race, sex, religion, nationality, disability, sexual orientation, or age.
+Contain any material that infringes or violates the rights of any person or entity including, without limitation, intellectual property, publicity or privacy rights, or violates applicable laws, rules or regulations.
+Violate any contractual, legal or ethical obligations to which you are subject.
+Contain advertising or promotions that are not expressly authorized by Doximity in writing.
+Misrepresent your current or past affiliation with another person or entity, or otherwise contain fraudulent, false, deceptive or misleading information.
+If you believe that any content displayed on the Service violates your copyright, refer to Section 7 (Claims Regarding Copyright Infringement) for instructions on sending us a notice of copyright infringement.
+
+While Doximity is not responsible for User Content, we may, but have no obligation to, monitor, review or edit User Content. In all cases, we reserve the right to remove any User Content for any or no reason, including User Content that we determine in our sole discretion violates these Terms, threatens the personal safety of our users or the public, or could create liability or reputational harm for Doximity. We may take these actions without prior notification to you, and shall have no liability as a result of any such action.
+
+C. Use of the Service.
+
+The Service is intended for use by healthcare professionals. The content and information made available through the Service are provided for informational purposes only and are not intended as a substitute for your professional judgment or decision-making responsibility, including when diagnosing or treating patients. We do not guarantee the accuracy or reliability of this content and information. You are solely responsible for evaluating the accuracy, completeness, and appropriateness for your intended purposes of all content and information that you obtain through the Service, and your decision to rely on such information and content is at your own risk.
+
+The generative AI tools provided through the Service are for informational purposes only and are not intended to be used as clinical decision support tools or for diagnosing, preventing, or treating any medical condition.
+
+By using the AI tools, you confirm that you have obtained all necessary consents and authorizations from your employer, patient, or other relevant parties, including consents required under HIPAA or other applicable privacy laws.
+
+You agree that neither Doximity nor any Doximity business partner, including any customer or licensor, is responsible for any decisions made based on content or information obtained through your use of the Service, nor liable for any related claim, loss, or damages. You may have the opportunity to access and send your patients UpToDate educational materials made available through the Service. By accessing these materials, you agree to UpToDate's Terms of Use.
+
+Doximity is not engaged in the practice of medicine, the provision of any healthcare services to patients, or diagnostic services. Doximity does not recommend, endorse, or provide any advice regarding specific drugs, tests, healthcare providers, treatments, products, procedures, opinions, “off-label” drug uses, or other information that may be mentioned in the Service, and we assume no responsibility for such information. If you are an employee, contractor, or other workforce member of an enterprise with whom Doximity has executed an enterprise agreement intended to cover use by the enterprise’s workforce of a particular paid Service (an “Enterprise Agreement”), as specified therein, then to the extent of a conflict between a term of the Enterprise Agreement and these Terms, the Enterprise Agreement will govern your use of the paid Service.
+
+D. Service Availability
+
+We make reasonable efforts to keep all of the Services fully operational, however we may encounter technical difficulties or engage in maintenance or updates to the Services that may cause temporary interruptions. We reserve the right, at any time, to modify, suspend or discontinue any Service or functions and features of a Service, without liability to you, except that if we discontinue a Service for which you have purchased a subscription, we will give you a prorated refund of your subscription fees. You understand and agree that Doximity has no obligation to provide any specific content through the Service and Doximity may, from time to time, remove any content without notice, at our sole discretion.
+
+E. Your Doximity Account
+
+You agree to: (1) choose a strong password, and keep it secure and confidential; (2) not permit others to use your login credentials to access your Doximity account; and (3) refrain from accessing another Doximity member’s account. You agree you are solely responsible for your account. If you believe there has been unauthorized access to your account, you must change your username and password and notify us immediately. To close your account, please contact us at support@doximity.com. As between you and others (including your employer), your account belongs to you. However, if you use a paid Service pursuant to an Enterprise Agreement, as described above, that enterprise will have the right to control access to and obtain reports on your use of the paid Service.
+
+F. Paid Subscription Services Terms
+
+The terms of this Section do not apply to enterprise purchases of Doximity’s paid Services that are subject to an Enterprise Agreement. We reserve the right to require that certain purchasers enter into an Enterprise Agreement with Doximity for the purchase of the applicable paid Service.
+
+We may offer individuals the opportunity to purchase subscriptions for our paid Services. You do not need to be a registered Doximity member to purchase subscriptions; however, for certain Services, such as Dialer Pro, only Doximity members we have verified are healthcare providers are eligible to use the Services and the single-use license codes issued in connection with the purchase. If you purchase a subscription for a paid Service, either for yourself or for someone else, you agree that the subscription fees and applicable taxes are payable in advance, subscriptions automatically renew at the end of their subscription term, and you will be charged for the renewal subscription term using any payment method we have on record for you, unless you cancel your auto-renewal prior to the renewal date. We will notify you by email prior to your subscription renewal so you will have time to cancel your auto-renewal, which you may do at any time by contacting Member Support at support@doximity.com and following the provided instructions. You may also cancel your auto-renewal by adjusting your account settings in the Subscriber Portal which is hosted by our third-party payment and subscription management platform and accessible from your subscription purchase, renewal notice, and other emails relating to your subscription.
+
+When you cancel a paid subscription, the cancellation is effective at the end of the current subscription term and the paid Service will remain available for use until that time. While we may offer an initial cancellation period with first time purchases, we do not otherwise provide refunds or credits for subscriptions purchased, except where required by law.
+
+We reserve the right to adjust pricing for our paid Services at any time as we may determine in our sole discretion. Any pricing change will apply to your next subscription renewal term. Before charging you for a renewal subscription term, we will notify you of the applicable fees by email sent to the email address provided in connection with the initial subscription. If you do not wish to renew your subscription, you may cancel the auto-renewal as described above. If you do not cancel your auto-renewal, you will be deemed to have agreed to renewal of your subscription including the applicable charges.
+
+By providing a payment method for your subscription, you represent that you are authorized to use that payment method for the associated purchase and you authorize us (or our third-party payment processor) to charge your payment method for the total amount of your purchase (including any applicable taxes and other charges). You must maintain accurate and up-to-date payment information within our Subscriber Portal or the third party payment service you used to purchase your subscription (e.g., Apple Pay or Google Pay) in order to continue to access the Service during a renewal term. If your designated payment method cannot be verified, is invalid or is otherwise unacceptable, you are solely responsible for resolving the payment issue and may not use the Service until it is resolved. You can update your payment method within the Subscriber Portal, and by doing so you authorize us to charge that payment method for future renewal terms.
+
+We may offer paid subscription promotions to eligible users from time to time, which may be subject to additional terms presented along with the offer. We reserve the right to determine eligibility and to modify, suspend or terminate our promotional offerings at any time and for any reason in our sole discretion without prior notice or liability.
+
+G. Privacy
+
+The Doximity Privacy Policy explains how we collect, use and share personal information in connection with your use of the Service. We encourage you to read our Privacy Policy carefully because by accessing and using the Service in any way, you consent to the handling of your personal information as described in the Doximity Privacy Policy. Note that we may update our Privacy Policy from time to time, as described therein. If you are a “covered entity” under HIPAA and choose to transmit protected health information subject to HIPAA using a Doximity communication tool that we identify as appropriately secure for that purpose, such as our member messaging or electronic fax service, you and Doximity agree that such information will be handled in accordance with the Doximity Business Associate Agreement which is incorporated into these Terms by reference.
+
+H. Third Party Services
+
+The Service includes links to and other integrations with third party services (such as pager services) (collectively, "Third Party Services"). You are responsible for evaluating whether you want to access or use a Third Party Service, and agree that our inclusion of a link to or integration with a Third Party Service in no way constitutes our affiliation with or endorsement of such Service. We do not operate or control any Third Party Service, and they are governed by their respective terms of service and privacy policies, which you should review prior to use. Doximity disclaims any liability for the actions or omissions of Third-Party Service providers and does not warrant their compliance with applicable laws or standards. By accessing any Third Party Service through the Service, you agree to assume all risks associated with use of that Service. This includes, but is not limited to, the risk that the Third Party Services may not comply with relevant laws, such as HIPAA.
+
+ Return to top
+3. COMMUNICATIONS
+A. Member Communication Tools
+
+Members may use the Services to communicate information in a variety of ways including through their profiles, social actions (e.g., liking, sharing or commenting on a newsfeed article), and through our member messaging. We authorize you to use these tools for clinical, non-commercial purposes, unless otherwise expressly approved by Doximity. You are solely responsible for your interactions with other Doximity users and ensuring the content you share complies with these Terms. Doximity reserves the right, but has no obligation, to monitor disputes between you and other users and respond as necessary to enforce these Terms.
+
+Please note that any information you share through your newsfeed or profile (subject to certain privacy settings) will be seen by others, and may be used and re-shared by such users on and outside of Doximity, so be mindful as to what you choose to share, and do not share in this manner any content or information that is confidential, that you do not want others to see or use, or that is subject to third party rights. DOXIMITY IS NOT RESPONSIBLE FOR A USER'S USE, MISUSE OR MISAPPROPRIATION OF ANY CONTENT OR INFORMATION YOU POST, UPLOAD, OR TRANSMIT VIA THE SERVICE UNLESS OTHERWISE EXPRESSLY AGREED BY DOXIMITY PURSUANT TO A SEPARATE WRITTEN AGREEMENT.
+
+B. Patient Communication Tools
+
+The Services include tools intended to facilitate healthcare related communication between our healthcare provider members and their patients, such as Doximity Dialer and its associated voice, video, text messaging and caller ID customization features. It is your decision as to whether you communicate with your patients using these tools, and if you choose to do so, you agree that (1) you will comply with all applicable laws, regulations and rules applicable to you and your use of the tools, (2) you have obtained any and all required consents, authorizations and other permissions including, but not limited to, any required by HIPAA and the Telephone Consumer Protection Act (if applicable to your sending of text messages), and (3) your use of the tools will not conflict with any agreement or obligation to which you are subject, including to your employer. If you use the Doximity Dialer caller ID customization feature, you agree to designate a phone number that you are authorized to use for that purpose, you will not misrepresent your identity or affiliation, and you are solely responsible for your use of this feature in violation of these Terms.
+
+Note that if you text or leave a voicemail for a patient using Doximity Dialer, this message may be accessed through the patient’s device by individuals other than the patient for whom the message is intended, depending on the security settings and accessibility of the device, which are outside of Doximity’s control and for which Doximity disclaims responsibility. Also, Doximity’s communication tools are not intended to be used to transmit messages relating to payments or debt collection, advertisements, or other non-healthcare related information, so do not use them for these purposes. Refer to the section above titled “Privacy” for additional information about Doximity’s communication tools, including the applicability of the Doximity Business Associate Agreement.
+
+If you use a Doximity Service that involves the transmission of text messages, including Doximity Dialer, the number and frequency of text messages you receive may vary. Message and data rates may apply for any text messages sent or received. If you have any questions about your text plan or data plan, you should contact your wireless provider. Please be aware that mobile carriers are not liable for delayed or undelivered text messages. You may choose to stop receiving text messages through the Service at any time by replying “STOP” to any text, at which point you will receive one more text message confirming your opt-out. If you are experiencing issues with text messages sent through the Service, you can reply with the keyword HELP for more assistance, or you can get help directly at support@doximity.com. If you have any questions regarding our privacy practices, please read our Privacy Policy.
+
+C. Communications from Doximity
+
+By registering as a Doximity member, you agree to receive communications from Doximity related to the Services based on the contact information you provide us, including through our messaging tools and email. You acknowledge and agree that we shall have no liability associated with or arising from your failure to maintain accurate contact or other information, including, but not limited to, your failure to receive critical information about the Service. You may opt-out of receiving certain communications from Doximity as described in our Privacy Policy.
+
+ Return to top
+4. OWNERSHIP AND LICENSES
+A. Proprietary Rights
+
+Our websites, mobile apps, and their content, features, and functionality (including but not limited to all information, software, text, displays, images, video, and audio, and the design, selection, and arrangement thereof) are owned by Doximity, our licensors, or other providers of such materials, and are protected by United States and international copyright, trademark, patent, trade secret, and other intellectual property or proprietary rights laws. The name Doximity, the Doximity logo and other Doximity logos and product and service names are the exclusive trademarks of, and are owned by, Doximity, and you may not use or display such trademarks in any manner without Doximity’s prior written permission. Any third party trademarks or service marks displayed on the Services are the property of their respective owners. Your use of the Services grants you no right to reproduce, license or otherwise use any such trademarks, logos or other proprietary marks.
+
+B. License to Use the Services
+
+Subject to these Terms, we grant you a limited, revocable, non-exclusive, non-assignable, non-sublicensable license to access the Services for your personal, non-commercial use, unless otherwise agreed by Doximity, and only as permitted by the features of the Services. Any other use of the Services is strictly prohibited and a violation of these Terms. We reserve all rights not expressly granted in these Terms, including, without limitation, title, ownership, intellectual property rights in the Services, including any content made available through the Services, and our consent to your use of the Services does not impair those rights in any way. For the avoidance of doubt, you are not granted a right to re-use or re-publish any content made available through the Services including, without limitation, User Content submitted by other users, without the express written permission of Doximity or such user, as applicable.
+
+C. Your License to Doximity
+
+Unless otherwise agreed by you and Doximity, any original content you submit to Doximity remains your property, and you may choose to make it available to others. By posting, uploading or otherwise submitting content and other information to the Service, you grant Doximity a nonexclusive, irrevocable, worldwide, perpetual, unlimited, assignable, sublicensable, royalty-free, fully-paid up license to copy, prepare derivative works from, improve, distribute, publish, remove, retain, add, process, analyze, index, tag, use and commercialize such content and other information in any media, form or format now known or hereafter developed, in any manner that is consistent with the Doximity Privacy Policy and applicable law. By submitting ideas, suggestions, or other feedback to Doximity, you agree that we can use, share and commercialize such feedback for any purpose without restriction and without any obligation to make any compensation to you.
+
+ Return to top
+5. TERM AND TERMINATION
+You may terminate your Doximity account at any time by contacting support@doximity.com. We reserve the right to monitor your use of the Services and to suspend or terminate access to the Services without notice if we determine that you have breached these Terms or if required to comply with applicable laws or regulatory requirements. In no event will Doximity be liable for suspension or termination of your use of any of the Services. All sections of these Terms that by their nature should survive termination shall survive termination, including without limitation, Privacy, Ownership and Licenses, Disclaimers and Limitation of Liability, Indemnity, Choice of Law; Dispute Resolution, and Additional Terms.
+
+ Return to top
+6. DISCLAIMERS AND LIMITATION OF LIABILITY
+A. Warranty Disclaimer
+
+WE MAKE NO REPRESENTATIONS OR WARRANTIES ABOUT THE SERVICE, INCLUDING THAT IT WILL BE UNINTERRUPTED OR ERROR-FREE, SECURE, OR FREE FROM VIRUSES OR OTHER HARMFUL COMPONENTS, OR THAT INFORMATION YOU OBTAIN THROUGH THE SERVICE IS ACCURATE OR COMPLETE. THE SERVICE AND ALL CONTENT, INFORMATION (INCLUDING, WITHOUT LIMITATION, USER PROFILE INFORMATION), TOOLS AND FEATURES MADE AVAILABLE THROUGH THE SERVICE, ARE PROVIDED ON AN “AS IS” AND “AS AVAILABLE” BASIS. TO THE FULLEST EXTENT PERMISSIBLE UNDER APPLICABLE LAW, WE AND OUR AFFILIATES DISCLAIM ANY AND ALL IMPLIED OR STATUTORY WARRANTIES OF ANY KIND, INCLUDING WITHOUT LIMITATION IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, ACCURACY, TITLE, NON-INFRINGEMENT, AND ANY WARRANTIES ARISING FROM A COURSE OF DEALING, USAGE, OR TRADE PRACTICE.
+
+IF YOU ARE DISSATISFIED WITH THE SERVICE, YOU AGREE THAT YOUR SOLE AND EXCLUSIVE REMEDY IS TO TERMINATE YOUR DOXIMITY ACCOUNT.
+
+B. Limitation of Liability
+
+TO THE FULLEST EXTENT PERMITTED BY LAW, IN NO EVENT WILL DOXIMITY, OUR AFFILIATES, OR THEIR RESPECTIVE LICENSORS, SERVICE PROVIDERS, EMPLOYEES, AGENTS, OFFICERS, DIRECTORS, OR SHAREHOLDERS BE LIABLE FOR ANY INDIRECT, CONSEQUENTIAL, SPECIAL, INCIDENTAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, BUSINESS OPPORTUNITIES, OR GOODWILL, OR ANY OTHER INTANGIBLE LOSS ARISING OUT OF, BASED ON, OR RESULTING FROM THESE TERMS OR YOUR USE OF, OR INABILITY TO USE, THE SERVICE OR ANY COMPONENT THEREOF. TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, DOXIMITY AND OUR AFFILIATES ASSUME NO LIABILITY OR RESPONSIBILITY FOR ANY (I) ERRORS, MISTAKES, OR INACCURACIES OF CONTENT MADE AVAILABLE THROUGH THE SERVICE OR AS A RESULT OF THE USE OF ANY SUCH CONTENT, (II) PERSONAL INJURY OF ANY NATURE WHATSOEVER RESULTING FROM YOUR ACCESS TO OR USE OF THE SERVICE, (III) UNAUTHORIZED ACCESS TO OR USE OF OUR SERVERS OR YOUR ACCOUNT AND/OR ANY INFORMATION STORED THEREIN, (IV) INTERRUPTION OR CESSATION OF TRANSMISSION TO OR FROM THE SERVICE, (V) ANY VIRUSES, TROJAN HORSES, OR THE LIKE WHICH MAY BE TRANSMITTED TO OR THROUGH THE SERVICE, OR (VI) YOUR RELIANCE ON AND USE OF ANY CONTENT OR INFORMATION OBTAINED THROUGH THE SERVICE. IN NO EVENT WILL DOXIMITY'S AGGREGATE LIABILITY ARISING OUT OF OR RELATED TO THESE TERMS OR YOUR USE OF THE SERVICE EXCEED THE GREATER OF $100 OR THE TOTAL AMOUNT PAID BY YOU TO DOXIMITY FOR THE SERVICES IN THE TWELVE MONTHS PRECEDING THE EVENT GIVING RISE TO THE CLAIM. THESE LIMITATIONS AND EXCLUSIONS SHALL APPLY TO ALL CLAIMS OF LIABILITY WHETHER BASED ON BREACH OF CONTRACT, BREACH OF WARRANTY, NEGLIGENCE, OR ANY OTHER CAUSE OF ACTION, EVEN IF DOXIMITY OR AN AFFILIATE HAS BEEN ADVISED OF THE POSSIBILITY OF DAMAGES, EVEN IF ANY LIMITED REMEDY FAILS ITS ESSENTIAL PURPOSE. THE ALLOCATION OF RISK REFLECTED IN THESE TERMS IS AN ESSENTIAL ELEMENT OF OUR AGREEMENT.
+
+ Return to top
+7. CLAIMS REGARDING COPYRIGHT INFRINGEMENT
+The Digital Millennium Copyright Act (the “DMCA”) provides recourse for copyright owners who believe that material appearing on the internet infringes their rights under U.S. copyright law. If you believe in good faith that materials hosted by Doximity infringe your copyright or trademark rights, you (or your agent) may send us a notice requesting that the material be removed, or access to it blocked. The notice must include the following information:
+
+Identification of the copyrighted work that you believe to be infringed. Please describe the work, and where possible include a copy or the location (e.g., URL) of an authorized version of the work.
+Identification of the material that you believe to be infringing and its location. Please describe the material, and provide us with its URL or any other pertinent information that will allow us to locate the material.
+Your name, address, telephone number and (if available) e-mail address.
+A statement that you have a good faith belief that the identified use of the materials is not authorized by the copyright owner, its agent, or the law.
+A statement that the information that you have supplied is accurate, and indicating that "under penalty of perjury," you are the copyright owner or are authorized to act on the copyright owner's behalf.
+A physical or electronic signature of a person authorized to act on behalf of the owner of an exclusive right that is allegedly infringed.
+Please be advised that Doximity will not respond to complaints that do not meet these requirements. If Doximity determines the materials alleged to infringe your copyright or trademark rights do not require removal, Doximity will remove those materials only pursuant to a court order declaring the content or use of the materials unlawful.
+
+If you believe in good faith that a notice of copyright infringement has been wrongly filed against you, the DMCA permits you to send us a counter-notice. Counter-notices must include the following information: (a) your name, address, and telephone number; (b) the source of the content that was removed; (c) a statement under penalty of perjury that you have a good-faith belief that the content was removed in error; (d) a statement that you consent to the jurisdiction of Federal District Court for the judicial district in which your address is located or, if your address is outside of the United States, for any judicial district in which Doximity may be found, and that you will accept service of process from the person who provided the original complaint; and (e) a physical or electronic signature (for example, typing your full name).
+
+Agent to Receive Notices of Claimed Infringement:
+ATTN: Doximity Copyright Agent
+500 3rd St. Suite 510
+San Francisco, CA 94107
+legal@doximity.com
+
+ Return to top
+8. INDEMNITY
+You agree to indemnify and hold harmless Doximity, our affiliates, officers, agents, employees, and licensors from and against any claims, liabilities, damages, judgments, awards, losses, costs, expenses, or fees (including reasonable attorneys' fees) arising out of or relating to (1) your failure to comply with these Terms, (2) your User Content, and (3) your use of the Service.
+
+ Return to top
+9. CHOICE OF LAW; DISPUTE RESOLUTION
+These Terms and the Service, as well as all related disputes, are governed by the laws of the State of California, without giving effect to its conflict of law provisions, regardless of from where you access the Service. You agree that the exclusive place of jurisdiction for all disputes or claims relating to the Service and/or these Terms is San Francisco County, California, or the United States District Court for the Northern District of California, except as otherwise agreed by the parties or as described in the Arbitration Agreement, below.
+
+Please read this section carefully, as it affects your legal rights, including your right to file a lawsuit in court.
+
+The purpose of this section is to describe what will happen if you and Doximity have a dispute that needs to be resolved. If you have an issue with the Service, we encourage you to contact Doximity Member Support at support@doximity.com. If your issue is not resolved by Member Support, you agree that you and Doximity will first discuss the issue informally for at least 60 days before commencing an arbitration action, as described in the arbitration agreement below (the “Arbitration Agreement”). To initiate a discussion, please send your full name and contact information to us at Doximity, Inc., 500 3rd Street, Suite 510, San Francisco, CA 94107, ATTN: Legal Department, and if we need to contact you we will use the email address associated with your Doximity account. If we are unable to resolve the issue within 60 days, you and Doximity agree that any and all claims that either of us have, whether based on past, present or future events arising out of or relating to these Terms (including the scope and enforceability of this Arbitration Agreement), the Service, and any aspect of our relationship with each other, except for disputes relating to Doximity’s intellectual property (such as trademarks, domain names, trade secrets, copyrights, and patents), must be resolved through binding arbitration. Arbitration is more informal than a lawsuit in court. Arbitration uses a neutral arbitrator instead of a judge or jury, allows for more limited discovery than in court, and is subject to very limited review by courts. Arbitrators can award the same damages and relief that a court can award. Nothing in this Arbitration Agreement shall be interpreted as limiting any non-waivable statutory rights. You agree that, by agreeing to these Terms, the U.S. Federal Arbitration Act (“FAA”) governs the interpretation and enforcement of this Arbitration Agreement. This Arbitration Agreement is governed by the FAA and will remain enforceable even if other provisions of these Terms are invalidated. Arbitration will be administered by JAMS Mediation, Arbitration, and ADR Services (“JAMS”) in accordance with its provisions and procedures for consumer-related disputes, excluding any rules or procedures governing or permitting class actions. Instructions about how to initiate an arbitration and information about the JAMS Streamlined Arbitration Rules and Procedures (“JAMS Rules”) are available at www.jamsadr.com or 1-800-352-5267. No arbitration or proceeding can be combined with another without the prior written consent of you, Doximity, and any other parties to the arbitration or proceedings.
+
+PLEASE BE AWARE THAT YOU ARE GIVING UP THE RIGHT TO LITIGATE A DISPUTE IN COURT BEFORE A JUDGE OR JURY. YOU AND DOXIMITY AGREE TO ARBITRATE IN EACH OF OUR INDIVIDUAL CAPACITIES ONLY, NOT AS A REPRESENTATIVE OR MEMBER OF A CLASS, AND EACH OF US EXPRESSLY WAIVES ANY RIGHT TO FILE A CLASS ACTION OR SEEK RELIEF ON A CLASS BASIS.
+
+Notwithstanding the foregoing, you and Doximity agree that nothing herein will be deemed to waive, preclude, or otherwise limit either of our rights, at any time, to (1) bring an individual action in a U.S. “small claims” court, but only if your claim qualifies, your claim remains in such court, and your claim remains on an individual, non-representative, and non-class basis, or (2) bring an individual action seeking only temporary or preliminary individualized injunctive relief in a court of law, pending a final ruling from the arbitrator.
+
+For your convenience, arbitration may be conducted in-person, through the submission of documents, by phone, or online. Proceedings that cannot be conducted through the submission of documents, by phone, or online, will take place in San Francisco County, California. That said, if you can demonstrate that arbitration in California would create an undue burden on you, you are free to initiate the arbitration in your home state. It is important that you understand that the arbitrator’s decision will be binding and final (except for a limited right of appeal under the FAA) and may be entered as a judgment in any court of competent jurisdiction. Please note that nothing in this Section 9 shall be construed as consent by Doximity to the jurisdiction of any other court with respect to disputes not covered by these Terms.
+
+In accordance with the JAMS Rules, the party initiating the arbitration (either you or Doximity) is responsible for paying the filing fee. However, if the arbitrator issues you an award of damages and (i) that award is greater than the amount of our last written settlement offer, or (ii) if we did not make a settlement offer, then in addition to paying for any JAMS Case Management Fees and all professional fees for the arbitrator’s services, we will reimburse you the filing fees you incurred.
+
+You have the right to opt out and not be bound by this Arbitration Agreement and class-action-waiver set forth in this section by sending written notice of your decision to opt out to the following address: Doximity, Inc., Attn: Legal Department, 500 3rd Street, San Francisco, CA 94107. The notice must be sent within 30 days after first becoming subject to a version of these Terms containing the Arbitration Agreement and waiver; otherwise, you shall be bound to arbitrate disputes in accordance with these Terms. If you opt out of arbitration, all other parts of these Terms will continue to apply to you.
+
+If any portion of this Arbitration Agreement is found to be unenforceable or unlawful for any reason, (1) the unenforceable or unlawful provision shall be severed from these Terms; (2) severance of the unenforceable or unlawful provision shall have no impact whatsoever on the remainder of the Arbitration Agreement or the parties’ ability to compel arbitration of any remaining claims on an individual basis pursuant to the Arbitration Agreement; and (3) to the extent that any claims must therefore proceed on a class, collective, consolidated, or representative basis, such claims must be litigated in a civil court of competent jurisdiction and not in arbitration, and the parties agree that litigation of those claims shall be stayed pending the outcome of any individual claims in arbitration.
+
+In the interest of promptly resolving issues between us, you and Doximity agree to bring any claim arising out of or relating to these Terms, any policy governing your use of the Service, our relationship, or the use of the Service within one year after a claim arises, otherwise, the claim is waived. This limitation applies regardless of the venue in which such claim is or could otherwise be asserted.
+
+ Return to top
+10. ADDITIONAL TERMS
+A. Severability
+
+If any provision of these Terms is found by a court of competent jurisdiction or arbitrator to be unenforceable, the unenforceable provision will be modified so as to render these Terms enforceable and effective to the maximum extent possible in order to effect the intention of the provision; and if a court or arbitrator finds the modified provision unenforceable, the enforceability of the remaining provisions of these Terms will not be affected in any way.
+
+B. No Waiver
+
+Failure to enforce any part of these Terms is not a waiver of the right to later enforce that or any other part of these Terms.
+
+C. Relationship of the Parties
+
+You agree that no joint venture, partnership, joint controllership, employment or agency relationship exists between you and Doximity as a result of these Terms or your use of the Services
+
+D. Notice
+
+Doximity’s notice to you via email, regular mail or notices, posts, or links on the Services shall constitute acceptable notice to you under these Terms. You must provide any notice to us in writing and send via overnight courier.
+
+E. Assignment
+
+You may not assign, delegate or otherwise transfer your account or your obligations under these Terms without the prior written consent of Doximity. Doximity has the right, in our sole discretion, to transfer or assign all or any part of our rights under these Terms and will have the right to delegate or use third parties to fulfill our duties and obligations under these Terms and in connection with the Service.
+
+F. Changes to these Terms
+
+We reserve the right to modify these Terms and any policies applicable to your use of the Service at any time in our sole discretion. When we make a change, we will post the updated Terms to the Service with a new “Effective Date.” We may also provide notification of changes in another way that we believe is reasonably likely to reach you, such as by e-mail (if you have an account where we have your contact information) or another manner through the Service. Any modifications to these Terms will be effective upon posting or as otherwise indicated at the time of posting. In all cases, by continuing to use the Service after posting of the updated Terms, you are consenting to the changes. If you object to any changes, you may close your account by contacting support@doximity.com.
+
+G. Entire Agreement
+
+These Terms, the Doximity Business Associate Agreement, and any applicable Enterprise Agreement constitute the entire, complete and exclusive agreement between you and us regarding your use of the Service and supersede all prior agreements and understandings, whether written or oral, or whether established by custom, practice, policy or precedent, with respect to the subject matter of these Terms. In the event of a conflict between these Terms and an Enterprise Agreement, the terms of the Enterprise Agreement shall govern with respect to the conflicting term. If any provision of these Terms is found by a court of competent jurisdiction to be invalid, the parties nevertheless agree that the court should endeavor to give effect to the parties’ intentions as reflected in the provision, and the other provisions of these Terms remain in full force and effect.
