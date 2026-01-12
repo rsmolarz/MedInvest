@@ -1,183 +1,6 @@
 # Overview
 
-MedInvest is a Facebook-like social media platform designed specifically for medical professionals to learn investment strategies and share financial knowledge. The application combines social networking features with investment education content, allowing doctors to connect, share insights, ask questions, and learn from each other's investment experiences through posts, comments, likes, and professional networking.
-
-The platform features two main architectures: a primary Flask-based web application for the educational content and user interface, and a FastAPI scaffold for potential future investment deal management and financial integrations.
-
-## Recent Changes (January 12, 2026)
-
-✓ Added Shared Package for Web/Mobile Sync:
-- **medinvest-shared/** - TypeScript package for shared code between web and mobile apps
-  - **src/types/index.ts** - Single source of truth for all data types (User, Post, Comment, Room, Message, Deal, etc.)
-  - **src/validators/index.ts** - Zod validation schemas for forms and API requests
-  - **src/api/index.ts** - Base API client class that works on both platforms
-  - **src/constants/index.ts** - Shared constants (limits, timeouts, error codes, feature flags)
-  - **src/utils/index.ts** - Utility functions (date formatting, text processing, debounce, throttle)
-- Build with `npm run build` in the medinvest-shared directory
-- Import with `@medinvest/shared` in web/mobile apps
-
-✓ UI Improvements:
-- Settings and Security pages added to user dropdown menu
-- Network page button fixed (removed broken UserFollow import)
-- Feed sidebar now shows profile picture instead of just initials
-- Security Center page loads correctly with 2FA marked as "Coming Soon"
-
-## Previous Changes (January 11, 2026)
-
-✓ Full Social Media Capability Added:
-- **PostMedia model**: Image and video attachments for posts (carousel galleries supported)
-- **Media upload routes** (routes/media.py):
-  - POST /media/upload - Single file upload (images up to 10MB, videos up to 50MB)
-  - POST /media/upload/multiple - Gallery upload (up to 10 files)
-  - GET /media/uploads/<path> - Serve uploaded files
-- **Enhanced post creation**:
-  - Form and AJAX endpoints support media attachments
-  - Posts can be text-only, image, video, or gallery type
-  - Media-only posts allowed (no text required)
-- **Enhanced feed template** (templates/feed.html):
-  - Drag-and-drop media upload interface
-  - Image/video gallery display with lightbox viewer
-  - Post type badges for media posts
-- **New Post fields**: media_count, share_count
-
-## Changes (January 10, 2026)
-
-✓ Internal Ad Serving System:
-- **Models**: AdAdvertiser, AdCampaign, AdCreative, AdImpression, AdClick
-- **Public Endpoints**:
-  - GET /ads/serve - Serve targeted ads based on placement, keywords, specialty
-  - POST /ads/impression - Log ad impression with idempotency guard
-  - GET /ads/click/{token} - Signed click redirect with tracking
-- **Admin CRUD Endpoints**:
-  - GET|POST /admin/ads/advertisers
-  - GET|POST /admin/ads/campaigns
-  - GET|POST /admin/ads/creatives
-- **Frontend Components** (Next.js/React):
-  - FeedSponsoredCard.tsx - Full-width feed placement
-  - SidebarSponsoredCard.tsx - Sidebar placement
-  - adsClient.ts - fetchAd, logAdImpression, adClickHref utilities
-- **Targeting JSON** supports: specialty, role, state, placement, keywords_any, exclude_user_ids
-
-✓ Modular Blueprint Architecture Migration:
-- Migrated from monolithic routes.py to 13 modular blueprints in routes/ folder
-- Blueprints: auth, main, rooms, ama, deals, subscription, courses, events, mentorship, referral, portfolio, ai, admin, errors
-- Added compatibility models: Room (alias for InvestmentRoom), PostVote, Bookmark
-- Enhanced Post model with voting fields (upvotes, downvotes, view_count)
-- Added User.is_admin property for role-based access control
-- Updated seed.py to populate demo data (users, rooms, AMAs, deals, courses, events, posts)
-
-✓ Single Report Endpoint Added:
-- GET /api/admin/reports/<report_id> - Fetch single report with full details
-- ContentReport.to_dict() method with include_content option for rich data
-- Includes reporter info, resolved_by info, and reported content details
-
-✓ Added Comprehensive Platform Features:
-- **Expert AMAs**: Scheduled Q&A sessions with financial experts (/amas)
-  - Registration, question submission with voting, anonymous questions
-  - Sponsor integration, recording playback support
-- **Investment Deal Marketplace**: Vetted investment opportunities (/deals)
-  - Real estate, funds, practice partnerships, syndicates
-  - Interest expression, view tracking, featured deals
-- **Mentorship Program**: Peer-to-peer guidance system (/mentorship)
-  - Match experienced investors with newcomers
-  - Session tracking, feedback system
-- **Courses & Events**: Educational content (/courses, /events)
-  - Premium courses with modules, enrollment tracking
-  - Virtual/in-person events with registrations
-- **Referral Program**: Viral growth mechanics (/referral)
-  - Unique referral codes, reward tiers
-- **Premium Subscription**: Freemium model (/premium)
-  - Free vs Premium tier comparison
-
-✓ New Database Models:
-- ExpertAMA, AMAQuestion, AMARegistration
-- InvestmentDeal, DealInterest
-- Mentorship, MentorshipSession
-- Course, CourseModule, CourseEnrollment
-- Event, EventSession, EventRegistration
-- Referral, Subscription, Payment, EmailCampaign
-
-✓ User Engagement Fields Added:
-- referral_code, subscription_tier, points, level, login_streak
-
-✓ Added Ops & Moderation Infrastructure:
-- **Verification Queue**: SLA tracking with assignment and priority
-- **Analytics API**: Admin endpoints for WAU, cohorts, verification metrics
-- **Auto-Moderation**: Reputation-based posting, report thresholds, content hiding/locking
-- **Content Reports**: User-submitted reports with admin resolution workflow
-- **Deal Outcomes**: Lessons learned tracking for closed deals
-- **Sponsor Vetting**: Profile submission, admin approval, investor reviews
-- **Onboarding Prompts**: Cohort-specific prompts with dismissal tracking
-- **Activity Logging**: Centralized activity.py for analytics
-
-✓ New Python Modules:
-- activity.py: Centralized activity logging
-- mailer.py: Email abstraction (SendGrid/Postmark)
-- ops_jobs.py: Background jobs (SLA monitoring, auto-routing, invite boosts)
-- scheduler.py: Simple interval-based job scheduler
-- moderation_engine.py: Auto-moderation with cohort norms
-
-✓ New Database Tables:
-- verification_queue_entries, onboarding_prompts, user_prompt_dismissals
-- invite_credit_events, cohort_norms, moderation_events
-- content_reports, deal_outcomes, sponsor_profiles, sponsor_reviews
-
-✓ New API Endpoints:
-- GET /api/admin/analytics/overview, /api/admin/analytics/cohorts
-- POST /api/reports, GET /api/admin/reports, POST /api/admin/reports/<id>/resolve
-- GET|POST /api/deals/<id>/outcome
-- GET|POST /api/sponsors/profile, GET /api/sponsors/<id>/profile
-- GET|POST /api/sponsors/<id>/reviews, POST /api/admin/sponsors/<id>/status
-- GET /api/onboarding/prompt, POST /api/onboarding/prompt/dismiss
-
-✓ Authorization Extended:
-- New actions in authorization.py for analytics, reports, sponsors, invites, deals
-
-✓ Previous: Added AI Job Rate Limiting & Idempotency, Next.js Frontend Scaffold
-
-→ STATUS: Platform now has full ops, analytics, moderation, and sponsor vetting features
-
-## Changes (January 4, 2026)
-
-✓ Added Two-Factor Authentication (2FA):
-- TOTP-based 2FA using pyotp and qrcode libraries
-- QR code generation for authenticator app setup
-- Security settings page to enable/disable 2FA
-- 2FA verification during login when enabled
-
-✓ Added Password Reset Functionality:
-- Forgot password link on login page
-- Secure token-based password reset flow
-- Password reset token expiration (1 hour)
-- Reset password confirmation page
-
-→ STATUS: Application now has enhanced security features
-→ NOTE: Email integration not configured - password reset links logged to server (for admin reference)
-
-## Previous Changes (August 19, 2025)
-
-✓ Fixed deployment configuration issues:
-- Resolved SQLAlchemy model constructor errors in routes.py
-- Added comprehensive health check endpoints (/health, /readiness, /status)
-- Optimized dashboard route to prevent expensive operations during deployment
-- Ensured proper port binding (0.0.0.0:5000) for cloud deployment
-- Fixed null reference issues in sample data creation
-- Improved error handling in dashboard route
-- Added deployment compatibility code with PORT environment variable support
-- Created multiple entry points (main.py and run.py) for deployment flexibility
-- Enhanced status endpoint with deployment environment detection
-
-✓ Applied deployment fixes (August 19, 2025):
-- **Health Check Optimization**: Created fast /health endpoint without database checks for quick deployment probes
-- **Root Endpoint Health Check**: Added health check responses for Google Cloud health probes on / endpoint
-- **Main.py Cleanup**: Removed duplicate imports and logging configurations
-- **Database Connection Optimization**: Added deployment-specific connection pooling and timeout settings
-- **Production Startup Script**: Created start.py with proper deployment configuration
-- **Health Endpoint Testing**: Verified all health endpoints respond correctly (/health, /readiness, /status)
-- **User-Agent Detection**: Added detection for deployment health check requests on root endpoint
-
-→ STATUS: Application now has optimized health checks and deployment configuration
-→ READY FOR: Cloud Run deployment with improved response times and reliability
+MedInvest is a social media platform designed for medical professionals to learn investment strategies and share financial knowledge. It combines social networking with investment education, enabling doctors to connect, share insights, and learn from peers. The platform facilitates discussions through posts, comments, and likes, and offers professional networking opportunities. Its business vision is to become the leading platform for medical professionals seeking to enhance their financial literacy and investment acumen, thereby addressing a significant market need for specialized financial education within the medical community.
 
 # User Preferences
 
@@ -186,77 +9,88 @@ Preferred communication style: Simple, everyday language.
 # System Architecture
 
 ## Frontend Architecture
-- **Template Engine**: Jinja2 templates with Bootstrap 5 for responsive design
-- **UI Framework**: Bootstrap 5 with custom CSS for medical professional theming
-- **JavaScript**: Vanilla JavaScript for enhanced interactivity, form validation, and Bootstrap component initialization
-- **Static Assets**: Organized CSS and JavaScript files served through Flask's static file handling
+- **Template Engine**: Jinja2 with Bootstrap 5 for responsive UI.
+- **UI Framework**: Bootstrap 5 with custom CSS for medical professional theming.
+- **JavaScript**: Vanilla JavaScript for interactivity and validation.
+- **Static Assets**: Flask's static file handling for CSS and JS.
+- **Shared Package**: `medinvest-shared` (TypeScript) for common types, validators, API clients, constants, and utilities across web and mobile.
 
 ## Backend Architecture
-- **Primary Application**: Flask web framework with SQLAlchemy ORM
-- **Database Layer**: SQLAlchemy with DeclarativeBase for modern ORM patterns
-- **Authentication**: Flask-Login for session management with email/password authentication
-- **Security**: Werkzeug password hashing and session management
-- **Routing**: Flask blueprint pattern for organized route handling
+- **Primary Application**: Flask web framework with SQLAlchemy ORM.
+- **API Scaffold**: FastAPI for future investment deal management and financial integrations.
+- **Database Layer**: SQLAlchemy with DeclarativeBase.
+- **Authentication**: Flask-Login for session management (email/password), JWT-based token authentication for API (FastAPI).
+- **Security**: Werkzeug for password hashing and session management, bcrypt for FastAPI.
+- **Routing**: Flask blueprint pattern and FastAPI router-based organization.
+- **Modular Design**: Migration to 13 modular blueprints for core features like authentication, main content, rooms, AMAs, deals, subscriptions, courses, events, mentorship, referral, portfolio, AI, and admin.
+- **Social Media Features**: Posts, media attachments (images/videos), likes, comments, and following relationships.
+- **Direct Messaging**: 1:1 secure conversations with inbox and thread views.
+- **Comprehensive Platform Features**:
+    - **Expert AMAs**: Scheduled Q&A sessions with financial experts, including registration and question submission.
+    - **Investment Deal Marketplace**: Vetted investment opportunities (real estate, funds) with interest tracking.
+    - **Mentorship Program**: Peer-to-peer guidance with session tracking.
+    - **Courses & Events**: Educational content with enrollment and registration.
+    - **Referral Program**: Unique codes and reward tiers.
+    - **Premium Subscription**: Freemium model with tiered access.
+- **Ad Serving System**: Internal system for serving targeted ads based on user profiles and content.
+- **Operational & Moderation Infrastructure**:
+    - **Verification Queue**: For managing user and content verification.
+    - **Analytics API**: Admin endpoints for platform metrics (WAU, cohorts).
+    - **Auto-Moderation**: Reputation-based posting, report thresholds, content hiding/locking.
+    - **Content Reports**: User reporting system with admin resolution workflow.
+    - **Activity Logging**: Centralized system for tracking user actions.
+- **Enhanced Security**:
+    - **Two-Factor Authentication (2FA)**: TOTP-based using pyotp and qrcode.
+    - **Password Reset**: Secure token-based password reset flow.
+- **Deployment**: Optimized health checks, port binding, and environment detection for cloud deployment.
 
 ## Data Models
-- **User Management**: Professional verification system with medical license tracking
-- **Social Media System**: Posts, likes, comments, and following relationships for professional networking
-- **Content Sharing**: Post types including general updates, questions, insights, and achievements
-- **Community Features**: Forum topics and posts with categorization (legacy)
-- **Portfolio Simulation**: Virtual transaction tracking for investment practice (legacy)
-- **Notification System**: Real-time notifications for social interactions
+- **User Management**: Professional verification, medical license tracking, role-based access control (User.is_admin).
+- **Social Media System**: Posts (text, image, video, gallery), PostMedia, PostVote, Bookmark.
+- **Engagement Fields**: referral_code, subscription_tier, points, level, login_streak.
+- **Specialized Models**: ExpertAMA, AMAQuestion, AMARegistration, InvestmentDeal, DealInterest, Mentorship, MentorshipSession, Course, CourseModule, CourseEnrollment, Event, EventSession, EventRegistration, Referral, Subscription, Payment, EmailCampaign.
+- **Ad Models**: AdAdvertiser, AdCampaign, AdCreative, AdImpression, AdClick.
+- **Moderation Models**: verification_queue_entries, onboarding_prompts, user_prompt_dismissals, invite_credit_events, cohort_norms, moderation_events, content_reports, deal_outcomes, sponsor_profiles, sponsor_reviews.
 
 ## Database Design
-- **Primary Database**: SQLite for development with PostgreSQL support via environment configuration
-- **Connection Management**: Connection pooling with automatic reconnection handling
-- **Schema Management**: Automatic table creation on application startup
-- **Data Relationships**: Foreign key relationships between users, modules, progress, and forum content
-
-## Authentication & Authorization
-- **User Sessions**: Flask-Login for secure session management
-- **Professional Verification**: Medical license number validation and verification status tracking
-- **Access Control**: Login-required decorators for protected routes
-- **Password Security**: Werkzeug secure password hashing
-
-## FastAPI Scaffold Architecture
-- **API Framework**: FastAPI with automatic OpenAPI documentation
-- **Authentication**: JWT-based token authentication with OAuth2 password bearer
-- **Database Integration**: SQLAlchemy async support with dependency injection
-- **Security**: bcrypt password hashing and JWT token management
-- **Modular Design**: Router-based organization for scalable API development
+- **Primary Database**: SQLite for development, PostgreSQL for production.
+- **Connection Management**: Connection pooling with auto-reconnection.
+- **Schema Management**: Automatic table creation on startup.
+- **Data Relationships**: Foreign key relationships for interconnected data.
 
 # External Dependencies
 
 ## Core Frameworks
-- **Flask**: Primary web framework for application routing and templating
-- **FastAPI**: Secondary API framework for financial service integrations
-- **SQLAlchemy**: ORM for database operations and model definitions
-- **Bootstrap 5**: Frontend CSS framework for responsive design
-- **Font Awesome**: Icon library for UI enhancement
+- **Flask**: Primary web framework.
+- **FastAPI**: Secondary API framework.
+- **SQLAlchemy**: ORM.
+- **Bootstrap 5**: Frontend CSS framework.
 
 ## Authentication & Security
-- **Flask-Login**: User session management and authentication
-- **Werkzeug**: Password hashing and security utilities
-- **python-jose**: JWT token handling for API authentication
-- **passlib**: Advanced password hashing with bcrypt support
+- **Flask-Login**: User session management.
+- **Werkzeug**: Password hashing, security utilities.
+- **python-jose**: JWT token handling.
+- **passlib**: Advanced password hashing (bcrypt).
+- **pyotp**: TOTP for 2FA.
+- **qrcode**: QR code generation for 2FA.
 
 ## Database Support
-- **SQLite**: Default development database
-- **psycopg2-binary**: PostgreSQL adapter for production deployments
-- **Database URL Configuration**: Environment-based database connection management
+- **SQLite**: Default development database.
+- **psycopg2-binary**: PostgreSQL adapter.
 
 ## Financial Service Integrations
-- **Stripe**: Payment processing and subscription management capabilities
-- **Plaid**: Bank account connectivity and financial data aggregation
-- **Persona**: Identity verification and KYC compliance services
+- **Stripe**: Payment processing, subscriptions.
+- **Plaid**: Bank account connectivity, financial data aggregation.
+- **Persona**: Identity verification, KYC.
 
 ## Development & Deployment
-- **Uvicorn**: ASGI server for FastAPI applications
-- **ProxyFix**: Werkzeug middleware for proper header handling behind proxies
-- **python-multipart**: File upload handling for FastAPI
-- **httpx**: Async HTTP client for external API communications
+- **Uvicorn**: ASGI server for FastAPI.
+- **ProxyFix**: Werkzeug middleware for proxy header handling.
+- **python-multipart**: File upload handling for FastAPI.
+- **httpx**: Async HTTP client.
 
 ## Frontend Libraries
-- **Bootstrap CSS/JS**: Responsive design components and utilities
-- **Font Awesome**: Professional icon set for medical and financial themes
-- **Custom Styling**: Medical professional color scheme and theming
+- **Font Awesome**: Icon library.
+
+## Email Services
+- **SendGrid/Postmark**: Abstraction via `mailer.py`.
