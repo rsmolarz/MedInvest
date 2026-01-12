@@ -4,7 +4,25 @@ MedInvest is a Facebook-like social media platform designed specifically for med
 
 The platform features two main architectures: a primary Flask-based web application for the educational content and user interface, and a FastAPI scaffold for potential future investment deal management and financial integrations.
 
-## Recent Changes (January 11, 2026)
+## Recent Changes (January 12, 2026)
+
+✓ Added Shared Package for Web/Mobile Sync:
+- **medinvest-shared/** - TypeScript package for shared code between web and mobile apps
+  - **src/types/index.ts** - Single source of truth for all data types (User, Post, Comment, Room, Message, Deal, etc.)
+  - **src/validators/index.ts** - Zod validation schemas for forms and API requests
+  - **src/api/index.ts** - Base API client class that works on both platforms
+  - **src/constants/index.ts** - Shared constants (limits, timeouts, error codes, feature flags)
+  - **src/utils/index.ts** - Utility functions (date formatting, text processing, debounce, throttle)
+- Build with `npm run build` in the medinvest-shared directory
+- Import with `@medinvest/shared` in web/mobile apps
+
+✓ UI Improvements:
+- Settings and Security pages added to user dropdown menu
+- Network page button fixed (removed broken UserFollow import)
+- Feed sidebar now shows profile picture instead of just initials
+- Security Center page loads correctly with 2FA marked as "Coming Soon"
+
+## Previous Changes (January 11, 2026)
 
 ✓ Full Social Media Capability Added:
 - **PostMedia model**: Image and video attachments for posts (carousel galleries supported)
