@@ -12,41 +12,14 @@ from models import User, Referral
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
-# Get the custom OAuth callback URL from environment
-# This must be set to match the URL in Google Cloud Console
-GOOGLE_OAUTH_CALLBACK_URL = os.environ.get('GOOGLE_OAUTH_CALLBACK_URL')
-
 # Google OAuth Blueprint
+# Note: ProxyFix in app.py handles proper Host/Proto headers for custom domains
 google_bp = make_google_blueprint(
     client_id=os.environ.get('GOOGLE_CLIENT_ID'),
     client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
     scope=['openid', 'email', 'profile'],
     redirect_to='auth.google_callback'
 )
-
-# Override the login method to use custom redirect_uri
-_original_login = google_bp.login
-
-def custom_login():
-    """Custom login that uses explicit redirect_uri for custom domains"""
-    if GOOGLE_OAUTH_CALLBACK_URL:
-        google_bp.session.redirect_uri = GOOGLE_OAUTH_CALLBACK_URL
-        logging.debug(f"Using custom OAuth callback URL: {GOOGLE_OAUTH_CALLBACK_URL}")
-    return _original_login()
-
-google_bp.login = custom_login
-
-# Also patch the authorized view to use the same redirect_uri
-_original_authorized = google_bp.authorized
-
-def custom_authorized():
-    """Custom authorized that uses explicit redirect_uri for custom domains"""
-    if GOOGLE_OAUTH_CALLBACK_URL:
-        google_bp.session.redirect_uri = GOOGLE_OAUTH_CALLBACK_URL
-        logging.debug(f"Using custom OAuth callback URL for token exchange: {GOOGLE_OAUTH_CALLBACK_URL}")
-    return _original_authorized()
-
-google_bp.authorized = custom_authorized
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])

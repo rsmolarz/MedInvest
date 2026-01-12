@@ -16,7 +16,7 @@ db = SQLAlchemy(model_class=Base)
 # Create the app
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "fallback-secret-for-development-only")
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=2, x_host=2, x_for=2)
 
 # Configure the database
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///medlearn.db")
