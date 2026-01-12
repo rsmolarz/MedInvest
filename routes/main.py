@@ -522,6 +522,53 @@ def search():
                          render_content=render_content_with_links)
 
 
+@main_bp.route('/network')
+@login_required
+def network():
+    """Networking page - connect with colleagues"""
+    from models import User, Follow, UserFollow
+    from utils.algorithm import get_people_you_may_know
+    from sqlalchemy import func
+    
+    tab = request.args.get('tab', 'suggestions')
+    
+    following_ids = [f.following_id for f in 
+                     Follow.query.filter_by(follower_id=current_user.id).all()]
+    following_ids_set = set(following_ids)
+    
+    pending_requests = Follow.query.filter_by(
+        following_id=current_user.id
+    ).filter(
+        Follow.follower_id.notin_(following_ids) if following_ids else True
+    ).order_by(Follow.created_at.desc()).limit(50).all()
+    pending_users = [User.query.get(f.follower_id) for f in pending_requests]
+    pending_users = [u for u in pending_users if u]
+    
+    suggestions = get_people_you_may_know(current_user, limit=20)
+    
+    if current_user.license_state:
+        near_me = User.query.filter(
+            User.license_state == current_user.license_state,
+            User.id != current_user.id,
+            User.id.notin_(following_ids) if following_ids else True
+        ).order_by(User.points.desc()).limit(20).all()
+    else:
+        near_me = []
+    
+    colleagues = User.query.filter(
+        User.id.in_(following_ids)
+    ).order_by(User.last_name).all() if following_ids else []
+    
+    return render_template('network.html',
+                          tab=tab,
+                          pending_users=pending_users,
+                          suggestions=suggestions,
+                          near_me=near_me,
+                          colleagues=colleagues,
+                          pending_count=len(pending_users),
+                          colleague_count=len(colleagues))
+
+
 @main_bp.route('/advertise')
 def advertise():
     """Public advertise with us page"""

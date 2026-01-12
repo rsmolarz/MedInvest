@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+{% block title %}My Network - MedInvest{% endblock %}
+
+{% block extra_css %}
+<style>
+    .network-tabs { border-bottom: 2px solid #e2e8f0; margin-bottom: 1.5rem; }
+    .network-tabs .nav-link { 
+        color: #64748b; 
+        border: none; 
+        padding: 0.75rem 1.25rem;
+        position: relative;
+    }
+    .network-tabs .nav-link.active { 
+        color: #2563eb; 
+        font-weight: 600;
+    }
+    .network-tabs .nav-link.active::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #2563eb;
+    }
+    .network-tabs .badge { font-size: 0.7rem; }
+    
+    .colleague-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .colleague-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        text-align: center;
+        border: 1px solid #e2e8f0;
+        position: relative;
+        transition: box-shadow 0.2s;
+    }
+    .colleague-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .colleague-card .dismiss-btn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: none;
+        border: none;
+        color: #94a3b8;
+        cursor: pointer;
+    }
+    .colleague-card .dismiss-btn:hover { color: #64748b; }
+    
+    .colleague-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        margin: 0 auto 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+    .colleague-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+    }
+    .colleague-avatar.initials {
+        background: #2563eb;
+        color: white;
+    }
+    
+    .colleague-name {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+    }
+    .colleague-specialty {
+        font-size: 0.85rem;
+        color: #64748b;
+        margin-bottom: 0.25rem;
+    }
+    .colleague-location {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        margin-bottom: 0.5rem;
+    }
+    .colleague-reason {
+        font-size: 0.75rem;
+        color: #64748b;
+        margin-bottom: 0.75rem;
+        min-height: 2em;
+    }
+    
+    .btn-colleague {
+        background: #2563eb;
+        color: white;
+        border: none;
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    .btn-colleague:hover {
+        background: #1d4ed8;
+        color: white;
+    }
+    .btn-colleague i { margin-right: 0.25rem; }
+    
+    .sidebar-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        border: 1px solid #e2e8f0;
+    }
+    .sidebar-card h6 {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-9">
+            <div class="card">
+                <div class="card-body">
+                    <ul class="nav network-tabs">
+                        <li class="nav-item">
+                            <a class="nav-link {% if tab == 'pending' %}active{% endif %}" href="{{ url_for('main.network', tab='pending') }}">
+                                {{ pending_count }} Pending Requests
+                                {% if pending_count > 0 %}<span class="badge bg-danger ms-1">{{ pending_count }}</span>{% endif %}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if tab == 'suggestions' %}active{% endif %}" href="{{ url_for('main.network', tab='suggestions') }}">
+                                People you may know
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if tab == 'nearby' %}active{% endif %}" href="{{ url_for('main.network', tab='nearby') }}">
+                                People near you
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if tab == 'colleagues' %}active{% endif %}" href="{{ url_for('main.network', tab='colleagues') }}">
+                                Your {{ colleague_count }} Colleagues
+                            </a>
+                        </li>
+                    </ul>
+
+                    {% if tab == 'pending' %}
+                    <div class="colleague-grid">
+                        {% for user in pending_users %}
+                        <div class="colleague-card">
+                            <button class="dismiss-btn" title="Dismiss"><i class="fas fa-times"></i></button>
+                            <div class="colleague-avatar {% if not user.profile_image_url %}initials{% endif %}">
+                                {% if user.profile_image_url %}
+                                <img src="{{ user.profile_image_url }}" alt="{{ user.full_name }}">
+                                {% else %}
+                                {{ user.first_name[0] }}{{ user.last_name[0] }}
+                                {% endif %}
+                            </div>
+                            <div class="colleague-name">{{ user.full_name }}</div>
+                            <div class="colleague-specialty">{{ (user.specialty or 'Physician')|replace('_', ' ')|title }}</div>
+                            <div class="colleague-location">{{ user.license_state or '' }}</div>
+                            <div class="colleague-reason">Wants to connect with you</div>
+                            <form action="{{ url_for('main.follow_user', user_id=user.id) }}" method="POST" style="display:inline;">
+                                <button type="submit" class="btn-colleague">
+                                    <i class="fas fa-user-plus"></i> Accept
+                                </button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <div class="text-center text-muted py-5 col-12">
+                            <i class="fas fa-user-clock fa-3x mb-3"></i>
+                            <p>No pending connection requests</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    {% elif tab == 'suggestions' %}
+                    <div class="colleague-grid">
+                        {% for user in suggestions %}
+                        <div class="colleague-card">
+                            <button class="dismiss-btn" title="Dismiss"><i class="fas fa-times"></i></button>
+                            <div class="colleague-avatar {% if not user.profile_image_url %}initials{% endif %}">
+                                {% if user.profile_image_url %}
+                                <img src="{{ user.profile_image_url }}" alt="{{ user.full_name }}">
+                                {% else %}
+                                {{ user.first_name[0] }}{{ user.last_name[0] }}
+                                {% endif %}
+                            </div>
+                            <div class="colleague-name">{{ user.full_name }}</div>
+                            <div class="colleague-specialty">{{ (user.specialty or 'Physician')|replace('_', ' ')|title }}</div>
+                            <div class="colleague-location">{{ user.license_state or '' }}</div>
+                            <div class="colleague-reason">
+                                {% if user.specialty == current_user.specialty %}
+                                Same specialty
+                                {% elif user.license_state == current_user.license_state %}
+                                Same location
+                                {% else %}
+                                Recommended for you
+                                {% endif %}
+                            </div>
+                            <form action="{{ url_for('main.follow_user', user_id=user.id) }}" method="POST" style="display:inline;">
+                                <button type="submit" class="btn-colleague">
+                                    <i class="fas fa-user-plus"></i> Colleague
+                                </button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <div class="text-center text-muted py-5 col-12">
+                            <i class="fas fa-users fa-3x mb-3"></i>
+                            <p>No suggestions available right now</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    {% elif tab == 'nearby' %}
+                    <div class="colleague-grid">
+                        {% for user in near_me %}
+                        <div class="colleague-card">
+                            <button class="dismiss-btn" title="Dismiss"><i class="fas fa-times"></i></button>
+                            <div class="colleague-avatar {% if not user.profile_image_url %}initials{% endif %}">
+                                {% if user.profile_image_url %}
+                                <img src="{{ user.profile_image_url }}" alt="{{ user.full_name }}">
+                                {% else %}
+                                {{ user.first_name[0] }}{{ user.last_name[0] }}
+                                {% endif %}
+                            </div>
+                            <div class="colleague-name">{{ user.full_name }}</div>
+                            <div class="colleague-specialty">{{ (user.specialty or 'Physician')|replace('_', ' ')|title }}</div>
+                            <div class="colleague-location">{{ user.license_state or '' }}</div>
+                            <div class="colleague-reason">Near {{ current_user.license_state }}</div>
+                            <form action="{{ url_for('main.follow_user', user_id=user.id) }}" method="POST" style="display:inline;">
+                                <button type="submit" class="btn-colleague">
+                                    <i class="fas fa-user-plus"></i> Colleague
+                                </button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <div class="text-center text-muted py-5 col-12">
+                            <i class="fas fa-map-marker-alt fa-3x mb-3"></i>
+                            <p>{% if not current_user.license_state %}Add your license state in your profile to see nearby colleagues{% else %}No nearby colleagues found{% endif %}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    {% elif tab == 'colleagues' %}
+                    <div class="colleague-grid">
+                        {% for user in colleagues %}
+                        <div class="colleague-card">
+                            <div class="colleague-avatar {% if not user.profile_image_url %}initials{% endif %}">
+                                {% if user.profile_image_url %}
+                                <img src="{{ user.profile_image_url }}" alt="{{ user.full_name }}">
+                                {% else %}
+                                {{ user.first_name[0] }}{{ user.last_name[0] }}
+                                {% endif %}
+                            </div>
+                            <div class="colleague-name">
+                                <a href="{{ url_for('main.profile', user_id=user.id) }}" class="text-decoration-none text-dark">
+                                    {{ user.full_name }}
+                                </a>
+                            </div>
+                            <div class="colleague-specialty">{{ (user.specialty or 'Physician')|replace('_', ' ')|title }}</div>
+                            <div class="colleague-location">{{ user.license_state or '' }}</div>
+                            <div class="colleague-reason">Connected</div>
+                            <a href="{{ url_for('main.profile', user_id=user.id) }}" class="btn btn-outline-primary btn-sm rounded-pill">
+                                View Profile
+                            </a>
+                        </div>
+                        {% else %}
+                        <div class="text-center text-muted py-5 col-12">
+                            <i class="fas fa-user-friends fa-3x mb-3"></i>
+                            <p>You haven't connected with any colleagues yet</p>
+                            <a href="{{ url_for('main.network', tab='suggestions') }}" class="btn btn-primary mt-2">Find Colleagues</a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3">
+            <div class="sidebar-card mb-3">
+                <h6><i class="fas fa-user-md text-primary"></i> Your Network</h6>
+                <div class="text-center py-3">
+                    <h2 class="text-primary mb-0">{{ colleague_count }}</h2>
+                    <small class="text-muted">Colleagues</small>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between small text-muted">
+                    <span>Pending requests</span>
+                    <span class="fw-bold">{{ pending_count }}</span>
+                </div>
+            </div>
+
+            <div class="sidebar-card">
+                <h6><i class="fas fa-clipboard-check text-success"></i> Review your profile</h6>
+                <p class="small text-muted mb-3">Update your profile to ensure it reflects your expertise and accomplishments.</p>
+                <a href="{{ url_for('main.profile') }}" class="btn btn-primary btn-sm w-100">Continue</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
