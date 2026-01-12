@@ -190,7 +190,7 @@ def create_post_ajax():
             anonymous_name = "Anonymous Physician"
     
     post = Post(
-        user_id=current_user.id,
+        author_id=current_user.id,
         room_id=room_id,
         content=content or '',
         post_type=post_type,
