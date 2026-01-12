@@ -105,6 +105,14 @@
                         </a>
                     </li>
                     
+                    <!-- Messages -->
+                    <li class="nav-item">
+                        <a class="nav-link position-relative" href="{{ url_for('dm.inbox') }}" title="Messages">
+                            <i class="fas fa-envelope"></i>
+                            <span id="messageBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display:none;font-size:10px;">0</span>
+                        </a>
+                    </li>
+                    
                     <!-- AI Assistant -->
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('ai.chat') }}" title="AI Assistant">
