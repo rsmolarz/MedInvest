@@ -467,3 +467,84 @@ def get_posts_for_specialty(specialty, db, limit=20):
     scored = score_posts_batch(posts)
     
     return [p for p, s in scored[:limit]]
+
+
+def get_people_you_may_know(user, limit=6):
+    """
+    Recommend users to follow based on:
+    1. Same specialty (highest priority)
+    2. Same location (state)
+    3. Followed by people you follow (mutual connections)
+    4. Active users with high engagement
+    
+    Excludes: current user, users already following
+    """
+    from models import User, Follow, Post
+    from sqlalchemy import func, and_
+    
+    # Get list of users already being followed
+    following_ids = [f.following_id for f in 
+                     Follow.query.filter_by(follower_id=user.id).all()]
+    following_ids.append(user.id)  # Also exclude self
+    
+    suggestions = []
+    suggestion_ids = set()
+    
+    # Priority 1: Same specialty, not following
+    if user.specialty:
+        same_specialty = User.query.filter(
+            User.specialty == user.specialty,
+            User.id.notin_(following_ids),
+            User.is_verified == True
+        ).order_by(User.level.desc()).limit(limit * 2).all()
+        
+        for u in same_specialty:
+            if u.id not in suggestion_ids and len(suggestions) < limit:
+                suggestions.append(u)
+                suggestion_ids.add(u.id)
+    
+    # Priority 2: Same license state or location
+    if user.license_state and len(suggestions) < limit:
+        same_location = User.query.filter(
+            User.license_state == user.license_state,
+            User.id.notin_(following_ids),
+            User.id.notin_(list(suggestion_ids))
+        ).order_by(User.level.desc()).limit(limit).all()
+        
+        for u in same_location:
+            if u.id not in suggestion_ids and len(suggestions) < limit:
+                suggestions.append(u)
+                suggestion_ids.add(u.id)
+    
+    # Priority 3: Friends of friends (mutual connections)
+    if len(suggestions) < limit:
+        # Get who my followings are following
+        mutual_suggestions = User.query.join(
+            Follow, Follow.following_id == User.id
+        ).filter(
+            Follow.follower_id.in_(following_ids),
+            User.id.notin_(following_ids),
+            User.id.notin_(list(suggestion_ids))
+        ).group_by(User.id).order_by(
+            func.count(Follow.id).desc()
+        ).limit(limit).all()
+        
+        for u in mutual_suggestions:
+            if u.id not in suggestion_ids and len(suggestions) < limit:
+                suggestions.append(u)
+                suggestion_ids.add(u.id)
+    
+    # Priority 4: Active verified users
+    if len(suggestions) < limit:
+        active_users = User.query.filter(
+            User.id.notin_(following_ids),
+            User.id.notin_(list(suggestion_ids)),
+            User.is_verified == True
+        ).order_by(User.points.desc()).limit(limit).all()
+        
+        for u in active_users:
+            if u.id not in suggestion_ids and len(suggestions) < limit:
+                suggestions.append(u)
+                suggestion_ids.add(u.id)
+    
+    return suggestions[:limit]

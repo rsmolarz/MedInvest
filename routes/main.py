@@ -11,7 +11,7 @@ from utils.content import (
     link_hashtag, render_content_with_links, get_trending_hashtags,
     search_users_for_mention, search_hashtags
 )
-from utils.algorithm import generate_feed, get_user_interests
+from utils.algorithm import generate_feed, get_user_interests, get_people_you_may_know
 from routes.notifications import create_notification, notify_mention
 
 main_bp = Blueprint('main', __name__)
@@ -54,10 +54,14 @@ def feed():
     else:
         trending = [h.name for h in trending_hashtags]
     
+    # Get people you may know suggestions
+    suggested_users = get_people_you_may_know(current_user, limit=6)
+    
     return render_template('feed.html', 
                          posts=posts, 
                          user_votes=user_votes,
                          trending=trending,
+                         suggested_users=suggested_users,
                          render_content=render_content_with_links)
 
 

@@ -35,3 +35,6 @@ integrations = ["python_log_in_with_replit:1.0.0", "python_database:1.0.0", "sty
 [deployment]
 run = ["gunicorn", "main:app"]
 deploymentTarget = "cloudrun"
+
+[objectStorage]
+defaultBucketID = "replit-objstore-b659791e-a9d2-4779-b2eb-b091ce83935d"

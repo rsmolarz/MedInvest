@@ -319,6 +319,45 @@
                 </div>
             </div>
 
+            <!-- People You May Know -->
+            {% if suggested_users %}
+            <div class="card mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="fas fa-user-plus text-primary me-2"></i>People you may know</h6>
+                    <a href="{{ url_for('main.search') }}?tab=people" class="text-primary small text-decoration-none">View all</a>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for user in suggested_users %}
+                    <div class="list-group-item d-flex align-items-center justify-content-between py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            {% if user.avatar_url %}
+                            <img src="{{ user.avatar_url }}" alt="{{ user.full_name }}" class="rounded-circle" style="width:40px;height:40px;object-fit:cover;">
+                            {% else %}
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center flex-shrink-0" style="width:40px;height:40px;font-size:0.85rem;font-weight:bold;">
+                                {{ user.first_name[0] }}{{ user.last_name[0] }}
+                            </div>
+                            {% endif %}
+                            <div class="overflow-hidden">
+                                <a href="{{ url_for('main.profile', user_id=user.id) }}" class="text-decoration-none text-dark d-block fw-semibold text-truncate" style="max-width:130px;">
+                                    {{ user.full_name }}
+                                    {% if user.is_verified %}<i class="fas fa-check-circle text-primary ms-1" style="font-size:0.7rem;"></i>{% endif %}
+                                </a>
+                                <small class="text-muted d-block text-truncate" style="max-width:130px;">
+                                    {{ (user.specialty or 'Physician')|replace('_', ' ')|title }}{% if user.license_state %} &middot; {{ user.license_state }}{% endif %}
+                                </small>
+                            </div>
+                        </div>
+                        <form action="{{ url_for('main.follow_user', user_id=user.id) }}" method="POST">
+                            <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill px-3" title="Follow">
+                                <i class="fas fa-user-plus"></i>
+                            </button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Quick Links -->
             <div class="card">
                 <div class="card-header bg-white">
