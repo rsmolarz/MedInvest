@@ -292,9 +292,14 @@
             <!-- User Card -->
             <div class="card mb-4">
                 <div class="card-body text-center">
+                    {% if current_user.profile_image_url %}
+                    <img src="{{ current_user.profile_image_url }}" alt="{{ current_user.full_name }}" 
+                         class="rounded-circle mx-auto mb-3" style="width:60px;height:60px;object-fit:cover;">
+                    {% else %}
                     <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width:60px;height:60px;font-size:1.5rem;">
                         {{ current_user.first_name[0] }}{{ current_user.last_name[0] }}
                     </div>
+                    {% endif %}
                     <h6>{{ current_user.full_name }}</h6>
                     <p class="text-muted small mb-3">{{ (current_user.specialty or 'Physician')|replace('_', ' ')|title }}</p>
                     <div class="row text-center">
