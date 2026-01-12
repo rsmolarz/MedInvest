@@ -3,7 +3,9 @@ import secrets
 import string
 from enum import Enum
 from flask_login import UserMixin
+from flask_dance.consumer.storage.sqla import OAuthConsumerMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import UniqueConstraint
 from app import db
 import pyotp
 
@@ -59,12 +61,13 @@ class User(UserMixin, db.Model):
     __tablename__ = 'users'
     
     id = db.Column(db.Integer, primary_key=True)
+    replit_id = db.Column(db.String(50), unique=True, nullable=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(256), nullable=False)
+    password_hash = db.Column(db.String(256), nullable=True)
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
-    medical_license = db.Column(db.String(50), unique=True, nullable=False)
-    specialty = db.Column(db.String(100), nullable=False)
+    medical_license = db.Column(db.String(50), unique=True, nullable=True)
+    specialty = db.Column(db.String(100), nullable=True)
     # Trust & verification
     npi_number = db.Column(db.String(20), unique=True)
     license_state = db.Column(db.String(2))
@@ -335,6 +338,22 @@ class Resource(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# OAuth Model for Replit Auth
+class OAuth(OAuthConsumerMixin, db.Model):
+    __tablename__ = 'flask_dance_oauth'
+    
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    browser_session_key = db.Column(db.String(100), nullable=False)
+    user = db.relationship('User')
+    
+    __table_args__ = (UniqueConstraint(
+        'user_id',
+        'browser_session_key',
+        'provider',
+        name='uq_user_browser_session_provider',
+    ),)
 
 
 # Social Media Models
