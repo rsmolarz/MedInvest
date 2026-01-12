@@ -14,8 +14,12 @@
                         <p class="text-muted">Welcome back, Doctor</p>
                     </div>
                     
-                    <a href="{{ url_for('replit_auth.login') }}" class="btn btn-primary btn-lg w-100 mb-3">
-                        <i class="fas fa-sign-in-alt me-2"></i>Sign In with Google, Apple, or GitHub
+                    <a href="{{ url_for('google.login') }}" class="btn btn-light btn-lg w-100 mb-3 border">
+                        <img src="https://www.google.com/favicon.ico" alt="Google" class="me-2" style="width:20px;height:20px;">
+                        Continue with Google
+                    </a>
+                    <a href="{{ url_for('replit_auth.login') }}" class="btn btn-dark btn-lg w-100 mb-3">
+                        <i class="fas fa-sign-in-alt me-2"></i>Sign In with Apple or GitHub
                     </a>
                     <p class="text-center text-muted small mb-4">Quick and secure sign-in using your existing account</p>
                     

@@ -1,13 +1,23 @@
 """
 Authentication Routes - Login, Register, Logout
 """
-from flask import Blueprint, render_template, redirect, url_for, request, flash
+import os
+from flask import Blueprint, render_template, redirect, url_for, request, flash, session
 from flask_login import login_user, logout_user, login_required, current_user
+from flask_dance.contrib.google import make_google_blueprint, google
 from datetime import datetime
 from app import db
 from models import User, Referral
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
+
+# Google OAuth Blueprint
+google_bp = make_google_blueprint(
+    client_id=os.environ.get('GOOGLE_CLIENT_ID'),
+    client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
+    scope=['openid', 'email', 'profile'],
+    redirect_to='auth.google_callback'
+)
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
@@ -237,3 +247,55 @@ def disable_2fa():
     
     flash('Two-factor authentication has been disabled', 'success')
     return redirect(url_for('main.security'))
+
+
+@auth_bp.route('/google/callback')
+def google_callback():
+    """Handle Google OAuth callback"""
+    if not google.authorized:
+        flash('Google login failed. Please try again.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    try:
+        resp = google.get('/oauth2/v2/userinfo')
+        if not resp.ok:
+            flash('Failed to get user info from Google.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        google_info = resp.json()
+        email = google_info.get('email')
+        google_id = google_info.get('id')
+        
+        if not email:
+            flash('Google account email not available.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        user = User.query.filter_by(email=email).first()
+        
+        if user:
+            user.replit_id = f'google_{google_id}'
+            if google_info.get('picture') and not user.profile_image_url:
+                user.profile_image_url = google_info.get('picture')
+        else:
+            user = User(
+                email=email,
+                first_name=google_info.get('given_name', 'User'),
+                last_name=google_info.get('family_name', ''),
+                replit_id=f'google_{google_id}',
+                profile_image_url=google_info.get('picture'),
+                specialty='',
+                medical_license=f'GOOGLE-{google_id}',
+            )
+            user.generate_referral_code()
+            db.session.add(user)
+        
+        db.session.commit()
+        login_user(user)
+        
+        flash(f'Welcome, {user.first_name}!', 'success')
+        next_url = session.pop('next_url', None)
+        return redirect(next_url or url_for('main.feed'))
+        
+    except Exception as e:
+        flash('An error occurred during Google login.', 'error')
+        return redirect(url_for('auth.login'))
