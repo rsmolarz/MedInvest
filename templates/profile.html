@@ -100,6 +100,22 @@
                                 <input type="text" name="last_name" class="form-control" value="{{ user.last_name }}">
                             </div>
                         </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">State/Location</label>
+                                <select name="license_state" class="form-select">
+                                    <option value="">Select your state</option>
+                                    {% for code, name in [('AL','Alabama'),('AK','Alaska'),('AZ','Arizona'),('AR','Arkansas'),('CA','California'),('CO','Colorado'),('CT','Connecticut'),('DE','Delaware'),('FL','Florida'),('GA','Georgia'),('HI','Hawaii'),('ID','Idaho'),('IL','Illinois'),('IN','Indiana'),('IA','Iowa'),('KS','Kansas'),('KY','Kentucky'),('LA','Louisiana'),('ME','Maine'),('MD','Maryland'),('MA','Massachusetts'),('MI','Michigan'),('MN','Minnesota'),('MS','Mississippi'),('MO','Missouri'),('MT','Montana'),('NE','Nebraska'),('NV','Nevada'),('NH','New Hampshire'),('NJ','New Jersey'),('NM','New Mexico'),('NY','New York'),('NC','North Carolina'),('ND','North Dakota'),('OH','Ohio'),('OK','Oklahoma'),('OR','Oregon'),('PA','Pennsylvania'),('RI','Rhode Island'),('SC','South Carolina'),('SD','South Dakota'),('TN','Tennessee'),('TX','Texas'),('UT','Utah'),('VT','Vermont'),('VA','Virginia'),('WA','Washington'),('WV','West Virginia'),('WI','Wisconsin'),('WY','Wyoming'),('DC','Washington DC')] %}
+                                    <option value="{{ code }}" {% if user.license_state == code %}selected{% endif %}>{{ name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Used for "People Near You" connections</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">City/Region</label>
+                                <input type="text" name="location" class="form-control" value="{{ user.location or '' }}" placeholder="e.g., Los Angeles, CA">
+                            </div>
+                        </div>
                         <div class="mb-3">
                             <label class="form-label">Bio</label>
                             <textarea name="bio" class="form-control" rows="3">{{ user.bio or '' }}</textarea>
