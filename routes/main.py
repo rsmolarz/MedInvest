@@ -522,6 +522,28 @@ def search():
                          render_content=render_content_with_links)
 
 
+@main_bp.route('/advertise')
+def advertise():
+    """Public advertise with us page"""
+    return render_template('advertise.html')
+
+
+@main_bp.route('/advertise/inquiry', methods=['POST'])
+def advertise_inquiry():
+    """Handle advertiser inquiry form submission"""
+    company = request.form.get('company', '')
+    email = request.form.get('email', '')
+    category = request.form.get('category', '')
+    message = request.form.get('message', '')
+    
+    import logging
+    logging.info(f"New advertiser inquiry: {company} ({email}) - {category}")
+    logging.info(f"Message: {message}")
+    
+    flash('Thank you for your interest! We will contact you within 1-2 business days.', 'success')
+    return redirect(url_for('main.advertise'))
+
+
 @main_bp.route('/api/users/search')
 @login_required
 def api_search_users():

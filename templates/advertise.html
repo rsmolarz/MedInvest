@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Advertise With Us - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="text-center mb-5">
+                <h1 class="display-5 fw-bold text-primary">
+                    <i class="fas fa-bullhorn me-3"></i>Advertise With MedInvest
+                </h1>
+                <p class="lead text-muted">Reach thousands of verified medical professionals interested in investment and financial growth</p>
+            </div>
+
+            <div class="row g-4 mb-5">
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width:60px;height:60px;">
+                                <i class="fas fa-user-md fa-2x text-primary"></i>
+                            </div>
+                            <h5>Verified Physicians</h5>
+                            <p class="text-muted small">All members are verified medical professionals with high earning potential</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width:60px;height:60px;">
+                                <i class="fas fa-chart-line fa-2x text-success"></i>
+                            </div>
+                            <h5>Investment Focus</h5>
+                            <p class="text-muted small">Members actively learning about real estate, stocks, and alternative investments</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="rounded-circle bg-warning bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width:60px;height:60px;">
+                                <i class="fas fa-bullseye fa-2x text-warning"></i>
+                            </div>
+                            <h5>Targeted Reach</h5>
+                            <p class="text-muted small">Target by specialty, location, investment interests, and more</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-5">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-ad me-2"></i>Ad Placements</h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Placement</th>
+                                    <th>Description</th>
+                                    <th>Best For</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Feed Ads</strong></td>
+                                    <td>Native ads appearing in the main social feed</td>
+                                    <td>Brand awareness, financial products</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Sidebar</strong></td>
+                                    <td>Prominent sidebar placement on all pages</td>
+                                    <td>Services, tools, consulting</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Deal Inline</strong></td>
+                                    <td>Appear alongside investment opportunities</td>
+                                    <td>Investment products, funds, syndicates</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="fas fa-envelope me-2"></i>Get Started</h4>
+                </div>
+                <div class="card-body">
+                    <p class="mb-4">Interested in advertising? Contact us to discuss your campaign goals and get a custom quote.</p>
+                    <form action="{{ url_for('main.advertise_inquiry') }}" method="POST">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Company Name</label>
+                                <input type="text" name="company" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Contact Email</label>
+                                <input type="email" name="email" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Industry/Category</label>
+                            <select name="category" class="form-select">
+                                <option value="finance">Financial Services</option>
+                                <option value="software">Software/Tools</option>
+                                <option value="real_estate">Real Estate</option>
+                                <option value="recruiting">Recruiting/Jobs</option>
+                                <option value="insurance">Insurance</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tell us about your campaign goals</label>
+                            <textarea name="message" class="form-control" rows="4" placeholder="What products/services are you promoting? Who is your target audience?"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-paper-plane me-2"></i>Submit Inquiry
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="{{ url_for('auth.login') }}" class="text-muted">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Login
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

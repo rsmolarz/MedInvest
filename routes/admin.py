@@ -367,3 +367,27 @@ def ads_admin_creatives():
         "is_active": c.is_active,
         "created_at": c.created_at.isoformat() if c.created_at else None
     } for c in creatives])
+
+
+@admin_bp.route('/ads/dashboard')
+@login_required
+def ads_dashboard():
+    """Visual admin dashboard for managing ads"""
+    from flask_login import current_user
+    if current_user.email != 'rsmolarz@rsmolarz.com':
+        flash('Access denied', 'error')
+        return redirect(url_for('main.feed'))
+    
+    advertisers = AdAdvertiser.query.order_by(AdAdvertiser.id.desc()).all()
+    campaigns = AdCampaign.query.order_by(AdCampaign.id.desc()).all()
+    creatives = AdCreative.query.order_by(AdCreative.id.desc()).all()
+    
+    total_impressions = AdImpression.query.count()
+    total_clicks = AdClick.query.count()
+    
+    return render_template('admin/ads_dashboard.html',
+                          advertisers=advertisers,
+                          campaigns=campaigns,
+                          creatives=creatives,
+                          total_impressions=total_impressions,
+                          total_clicks=total_clicks)
