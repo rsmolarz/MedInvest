@@ -148,6 +148,10 @@ def create_notification(user_id, notification_type, title, message,
     if actor_id and actor_id == user_id:
         return None
     
+    # Convert enum to string value if needed
+    if hasattr(notification_type, 'value'):
+        notification_type = notification_type.value
+    
     notification = Notification(
         user_id=user_id,
         notification_type=notification_type,
