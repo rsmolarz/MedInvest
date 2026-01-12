@@ -32,11 +32,6 @@ def view_room(slug):
     """View a specific room and its posts"""
     room = Room.query.filter_by(slug=slug).first_or_404()
     
-    # Check premium access
-    if room.is_premium_only and not current_user.is_premium:
-        flash('This room is for premium members only', 'warning')
-        return redirect(url_for('subscription.pricing'))
-    
     page = request.args.get('page', 1, type=int)
     sort = request.args.get('sort', 'new')  # new, top, hot
     
@@ -74,10 +69,6 @@ def view_room(slug):
 def create_room_post(slug):
     """Create a post in a specific room"""
     room = Room.query.filter_by(slug=slug).first_or_404()
-    
-    if room.is_premium_only and not current_user.is_premium:
-        flash('Premium membership required to post here', 'warning')
-        return redirect(url_for('subscription.pricing'))
     
     content = request.form.get('content', '').strip()
     is_anonymous = request.form.get('is_anonymous') == 'on'

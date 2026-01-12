@@ -704,7 +704,7 @@ def api_search_hashtags():
 @login_required
 def follow_user(user_id):
     """Follow a user"""
-    from models import UserFollow
+    from models import Follow
     from routes.notifications import notify_follow
     
     if user_id == current_user.id:
@@ -712,7 +712,7 @@ def follow_user(user_id):
     
     user = User.query.get_or_404(user_id)
     
-    existing = UserFollow.query.filter_by(
+    existing = Follow.query.filter_by(
         follower_id=current_user.id,
         following_id=user_id
     ).first()
@@ -724,7 +724,7 @@ def follow_user(user_id):
         return jsonify({'success': True, 'following': False})
     else:
         # Follow
-        follow = UserFollow(follower_id=current_user.id, following_id=user_id)
+        follow = Follow(follower_id=current_user.id, following_id=user_id)
         db.session.add(follow)
         
         # Notify the user
