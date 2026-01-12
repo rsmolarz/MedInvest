@@ -69,9 +69,14 @@
             <div class="card mb-4">
                 <div class="card-body">
                     <div class="d-flex align-items-start gap-3">
+                        {% if current_user.profile_image_url %}
+                        <img src="{{ current_user.profile_image_url }}" alt="{{ current_user.full_name }}" 
+                             class="rounded-circle flex-shrink-0" style="width:45px;height:45px;object-fit:cover;">
+                        {% else %}
                         <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center flex-shrink-0" style="width:45px;height:45px;font-weight:bold;">
                             {{ current_user.first_name[0] }}{{ current_user.last_name[0] }}
                         </div>
+                        {% endif %}
                         <div class="flex-grow-1">
                             <div class="position-relative">
                                 <textarea id="postContent" class="form-control border-0 bg-light" rows="3" 
@@ -130,13 +135,18 @@
                     <!-- Post Header -->
                     <div class="d-flex justify-content-between mb-3">
                         <div class="d-flex align-items-center gap-2">
-                            <div class="rounded-circle bg-{% if post.is_anonymous %}secondary{% else %}primary{% endif %} text-white d-flex align-items-center justify-content-center flex-shrink-0" style="width:45px;height:45px;">
-                                {% if post.is_anonymous %}
+                            {% if post.is_anonymous %}
+                            <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center flex-shrink-0" style="width:45px;height:45px;">
                                 <i class="fas fa-user-secret"></i>
-                                {% else %}
-                                {{ post.author.first_name[0] }}{{ post.author.last_name[0] }}
-                                {% endif %}
                             </div>
+                            {% elif post.author.profile_image_url %}
+                            <img src="{{ post.author.profile_image_url }}" alt="{{ post.author.full_name }}" 
+                                 class="rounded-circle flex-shrink-0" style="width:45px;height:45px;object-fit:cover;">
+                            {% else %}
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center flex-shrink-0" style="width:45px;height:45px;">
+                                {{ post.author.first_name[0] }}{{ post.author.last_name[0] }}
+                            </div>
+                            {% endif %}
                             <div>
                                 {% if post.is_anonymous %}
                                 <strong>{{ post.anonymous_name or 'Anonymous' }}</strong>

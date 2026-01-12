@@ -42,7 +42,7 @@ def generate_unique_filename(original_filename):
 def ensure_upload_dirs():
     """Ensure upload directories exist"""
     base_path = os.path.join(current_app.root_path, UPLOAD_FOLDER)
-    for subdir in ['images', 'videos', 'thumbnails']:
+    for subdir in ['images', 'videos', 'thumbnails', 'profiles']:
         path = os.path.join(base_path, subdir)
         os.makedirs(path, exist_ok=True)
     return base_path

@@ -353,6 +353,55 @@ def edit_profile():
     return redirect(url_for('main.profile'))
 
 
+@main_bp.route('/profile/picture', methods=['POST'])
+@login_required
+def upload_profile_picture():
+    """Upload profile picture"""
+    import os
+    import uuid
+    from werkzeug.utils import secure_filename
+    from flask import current_app
+    
+    if 'profile_picture' not in request.files:
+        flash('No file selected', 'error')
+        return redirect(url_for('main.profile'))
+    
+    file = request.files['profile_picture']
+    
+    if file.filename == '':
+        flash('No file selected', 'error')
+        return redirect(url_for('main.profile'))
+    
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+    ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+    
+    if ext not in allowed_extensions:
+        flash('Invalid file type. Please use JPG, PNG, GIF, or WebP.', 'error')
+        return redirect(url_for('main.profile'))
+    
+    file.seek(0, 2)
+    file_size = file.tell()
+    file.seek(0)
+    
+    if file_size > 5 * 1024 * 1024:
+        flash('File too large. Maximum size is 5MB.', 'error')
+        return redirect(url_for('main.profile'))
+    
+    upload_folder = os.path.join(current_app.root_path, 'uploads', 'profiles')
+    os.makedirs(upload_folder, exist_ok=True)
+    
+    unique_filename = f"{uuid.uuid4().hex}_{current_user.id}.{ext}"
+    file_path = os.path.join(upload_folder, unique_filename)
+    
+    file.save(file_path)
+    
+    current_user.profile_image_url = f"/media/uploads/profiles/{unique_filename}"
+    db.session.commit()
+    
+    flash('Profile picture updated!', 'success')
+    return redirect(url_for('main.profile'))
+
+
 @main_bp.route('/dashboard')
 @login_required
 def dashboard():
