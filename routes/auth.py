@@ -24,6 +24,11 @@ FACEBOOK_APP_ID = os.environ.get('FACEBOOK_APP_ID')
 FACEBOOK_APP_SECRET = os.environ.get('FACEBOOK_APP_SECRET')
 FACEBOOK_REDIRECT_URI = os.environ.get('FACEBOOK_OAUTH_REDIRECT_URI', 'https://medmoneyincubator.com/auth/facebook/callback')
 
+# GitHub OAuth Configuration
+GITHUB_CLIENT_ID = os.environ.get('GITHUB_CLIENT_ID')
+GITHUB_CLIENT_SECRET = os.environ.get('GITHUB_CLIENT_SECRET')
+GITHUB_REDIRECT_URI = os.environ.get('GITHUB_OAUTH_REDIRECT_URI', 'https://medmoneyincubator.com/auth/github/callback')
+
 # Google OAuth Blueprint (for compatibility, but we'll use custom routes)
 google_bp = make_google_blueprint(
     client_id=GOOGLE_CLIENT_ID,
@@ -73,6 +78,142 @@ def facebook_login():
     auth_url = f"https://www.facebook.com/v18.0/dialog/oauth?{urlencode(params)}"
     logging.info(f"Redirecting to Facebook OAuth with redirect_uri: {FACEBOOK_REDIRECT_URI}")
     return redirect(auth_url)
+
+
+@auth_bp.route('/github-login')
+def github_login():
+    """GitHub OAuth login with explicit redirect_uri"""
+    state = secrets.token_urlsafe(32)
+    session['oauth_state'] = state
+    session['oauth_provider'] = 'github'
+    
+    params = {
+        'client_id': GITHUB_CLIENT_ID,
+        'redirect_uri': GITHUB_REDIRECT_URI,
+        'scope': 'user:email read:user',
+        'state': state
+    }
+    
+    auth_url = f"https://github.com/login/oauth/authorize?{urlencode(params)}"
+    logging.info(f"Redirecting to GitHub OAuth with redirect_uri: {GITHUB_REDIRECT_URI}")
+    return redirect(auth_url)
+
+
+@auth_bp.route('/github/callback')
+def github_callback():
+    """Handle GitHub OAuth callback"""
+    import requests
+    
+    state = request.args.get('state')
+    stored_state = session.pop('oauth_state', None)
+    
+    if not state or state != stored_state:
+        flash('Invalid OAuth state. Please try again.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    error = request.args.get('error')
+    if error:
+        logging.error(f"GitHub OAuth error: {error}")
+        flash('GitHub login was cancelled or failed.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    code = request.args.get('code')
+    if not code:
+        flash('No authorization code received from GitHub.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    try:
+        token_url = 'https://github.com/login/oauth/access_token'
+        token_data = {
+            'client_id': GITHUB_CLIENT_ID,
+            'client_secret': GITHUB_CLIENT_SECRET,
+            'redirect_uri': GITHUB_REDIRECT_URI,
+            'code': code
+        }
+        headers = {'Accept': 'application/json'}
+        
+        token_response = requests.post(token_url, data=token_data, headers=headers)
+        
+        if not token_response.ok:
+            logging.error(f"GitHub token exchange failed: {token_response.text}")
+            flash('Failed to authenticate with GitHub.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        tokens = token_response.json()
+        access_token = tokens.get('access_token')
+        
+        if not access_token:
+            flash('No access token received from GitHub.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        userinfo_url = 'https://api.github.com/user'
+        userinfo_headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+        userinfo_response = requests.get(userinfo_url, headers=userinfo_headers)
+        
+        if not userinfo_response.ok:
+            flash('Failed to get user info from GitHub.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        gh_info = userinfo_response.json()
+        gh_id = gh_info.get('id')
+        gh_username = gh_info.get('login')
+        gh_name = gh_info.get('name') or gh_username
+        gh_avatar = gh_info.get('avatar_url')
+        
+        email = gh_info.get('email')
+        if not email:
+            emails_url = 'https://api.github.com/user/emails'
+            emails_response = requests.get(emails_url, headers=userinfo_headers)
+            if emails_response.ok:
+                emails = emails_response.json()
+                for e in emails:
+                    if e.get('primary') and e.get('verified'):
+                        email = e.get('email')
+                        break
+                if not email and emails:
+                    email = emails[0].get('email')
+        
+        if not email:
+            flash('GitHub account email not available. Please ensure your GitHub account has a verified email.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        user = User.query.filter_by(email=email).first()
+        
+        name_parts = gh_name.split(' ', 1)
+        first_name = name_parts[0] if name_parts else 'User'
+        last_name = name_parts[1] if len(name_parts) > 1 else ''
+        
+        if user:
+            user.replit_id = f'github_{gh_id}'
+            if gh_avatar and not user.profile_image_url:
+                user.profile_image_url = gh_avatar
+        else:
+            user = User(
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                replit_id=f'github_{gh_id}',
+                profile_image_url=gh_avatar,
+                specialty='',
+                medical_license=f'GITHUB-{gh_id}',
+            )
+            user.generate_referral_code()
+            db.session.add(user)
+        
+        db.session.commit()
+        login_user(user)
+        
+        flash(f'Welcome, {user.first_name}!', 'success')
+        next_url = session.pop('next_url', None)
+        return redirect(next_url or url_for('main.feed'))
+        
+    except Exception as e:
+        logging.error(f"GitHub OAuth error: {str(e)}")
+        flash('An error occurred during GitHub login.', 'error')
+        return redirect(url_for('auth.login'))
 
 
 @auth_bp.route('/facebook/callback')
