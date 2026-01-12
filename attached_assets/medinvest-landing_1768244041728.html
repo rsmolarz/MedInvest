@@ -43,6 +43,7 @@
             -webkit-font-smoothing: antialiased;
         }
 
+        /* Navigation */
         nav {
             position: fixed;
             top: 0;
@@ -148,6 +149,7 @@
             border-color: var(--primary-dark);
         }
 
+        /* Hero Section */
         .hero {
             padding-top: 64px;
             min-height: 100vh;
@@ -415,6 +417,7 @@
             color: var(--text-secondary);
         }
 
+        /* Trust Bar */
         .trust-bar {
             background: var(--bg-primary);
             border-top: 1px solid var(--border);
@@ -452,6 +455,7 @@
             color: var(--text-secondary);
         }
 
+        /* Features Section */
         .features {
             padding: 100px 24px;
             background: var(--bg-primary);
@@ -532,6 +536,7 @@
             line-height: 1.6;
         }
 
+        /* Social Proof */
         .social-proof {
             padding: 100px 24px;
             background: var(--bg-secondary);
@@ -594,6 +599,7 @@
             color: var(--text-secondary);
         }
 
+        /* CTA Section */
         .cta {
             padding: 100px 24px;
             background: var(--primary);
@@ -648,6 +654,7 @@
             border-color: white;
         }
 
+        /* Footer */
         footer {
             background: var(--text-primary);
             padding: 60px 24px 40px;
@@ -754,6 +761,7 @@
             color: white;
         }
 
+        /* Responsive */
         @media (max-width: 1024px) {
             .hero-container {
                 grid-template-columns: 1fr;
@@ -835,9 +843,10 @@
     </style>
 </head>
 <body>
+    <!-- Navigation -->
     <nav>
         <div class="nav-container">
-            <a href="{{ url_for('main.index') }}" class="logo">
+            <a href="/" class="logo">
                 <div class="logo-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M3 3v18h18" stroke-linecap="round" stroke-linejoin="round"/>
@@ -849,20 +858,21 @@
             <div class="nav-links">
                 <a href="#features" class="nav-link">Features</a>
                 <a href="#community" class="nav-link">Community</a>
-                <a href="{{ url_for('deals.list_deals') }}" class="nav-link">Deals</a>
-                <a href="{{ url_for('auth.login') }}" class="nav-btn nav-btn-outline">Sign in</a>
-                <a href="{{ url_for('auth.register') }}" class="nav-btn nav-btn-primary">Join now</a>
+                <a href="#deals" class="nav-link">Deals</a>
+                <a href="/login" class="nav-btn nav-btn-outline">Sign in</a>
+                <a href="/signup" class="nav-btn nav-btn-primary">Join now</a>
             </div>
         </div>
     </nav>
 
+    <!-- Hero Section -->
     <section class="hero">
         <div class="hero-container">
             <div class="hero-content">
                 <h1>Where physicians build <span>wealth</span> together</h1>
                 <p>Join the exclusive professional network for physician investors. Access vetted deals, anonymous discussions, and expert insights.</p>
                 <div class="hero-cta">
-                    <a href="{{ url_for('auth.register') }}" class="btn-large btn-primary">
+                    <a href="/signup" class="btn-large btn-primary">
                         Join now — it's free
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/>
@@ -948,6 +958,7 @@
         </div>
     </section>
 
+    <!-- Trust Bar -->
     <section class="trust-bar">
         <div class="trust-container">
             <p class="trust-label">Trusted by physicians from leading institutions</p>
@@ -961,6 +972,7 @@
         </div>
     </section>
 
+    <!-- Features Section -->
     <section class="features" id="features">
         <div class="features-container">
             <div class="section-header">
@@ -1030,6 +1042,7 @@
         </div>
     </section>
 
+    <!-- Social Proof -->
     <section class="social-proof" id="community">
         <div class="social-proof-container">
             <div class="section-header">
@@ -1071,17 +1084,19 @@
         </div>
     </section>
 
+    <!-- CTA Section -->
     <section class="cta">
         <div class="cta-container">
             <h2>Ready to take control of your financial future?</h2>
             <p>Join thousands of physicians already building wealth together. Free to join, no credit card required.</p>
             <div class="cta-buttons">
-                <a href="{{ url_for('auth.register') }}" class="btn-large btn-white">Join MedInvest free</a>
+                <a href="/signup" class="btn-large btn-white">Join MedInvest free</a>
                 <a href="#features" class="btn-large btn-outline-white">Learn more</a>
             </div>
         </div>
     </section>
 
+    <!-- Footer -->
     <footer>
         <div class="footer-container">
             <div class="footer-grid">
@@ -1117,11 +1132,11 @@
                 <div class="footer-column">
                     <h4>Product</h4>
                     <ul>
-                        <li><a href="#features">Features</a></li>
-                        <li><a href="{{ url_for('deals.list_deals') }}">Deals</a></li>
-                        <li><a href="{{ url_for('rooms.list_rooms') }}">Rooms</a></li>
-                        <li><a href="{{ url_for('courses.list_courses') }}">Education</a></li>
-                        <li><a href="{{ url_for('subscription.pricing') }}">Pricing</a></li>
+                        <li><a href="#">Features</a></li>
+                        <li><a href="#">Deals</a></li>
+                        <li><a href="#">Rooms</a></li>
+                        <li><a href="#">Education</a></li>
+                        <li><a href="#">Pricing</a></li>
                     </ul>
                 </div>
                 <div class="footer-column">
@@ -1140,15 +1155,15 @@
                         <li><a href="#">Help Center</a></li>
                         <li><a href="#">Community Guidelines</a></li>
                         <li><a href="#">Investor FAQ</a></li>
-                        <li><a href="{{ url_for('main.advertise') }}">Partner with Us</a></li>
+                        <li><a href="#">Partner with Us</a></li>
                     </ul>
                 </div>
             </div>
             <div class="footer-bottom">
                 <p>© 2026 MedInvest. All rights reserved.</p>
                 <div class="footer-legal">
-                    <a href="{{ url_for('main.privacy') }}">Privacy Policy</a>
-                    <a href="{{ url_for('main.terms') }}">Terms of Service</a>
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
                     <a href="#">Cookie Policy</a>
                 </div>
             </div>
