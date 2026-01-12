@@ -176,6 +176,92 @@ def facebook_callback():
         return redirect(url_for('auth.login'))
 
 
+@auth_bp.route('/facebook/data-deletion', methods=['POST'])
+def facebook_data_deletion():
+    """
+    Facebook Data Deletion Callback
+    Required by Facebook for GDPR/privacy compliance
+    """
+    import json
+    import base64
+    import hashlib
+    import hmac
+    
+    try:
+        signed_request = request.form.get('signed_request')
+        if not signed_request:
+            return json.dumps({'error': 'Missing signed_request'}), 400
+        
+        # Parse the signed request
+        parts = signed_request.split('.')
+        if len(parts) != 2:
+            return json.dumps({'error': 'Invalid signed_request format'}), 400
+        
+        encoded_sig, payload = parts
+        
+        # Decode the payload
+        payload += '=' * (4 - len(payload) % 4)  # Add padding
+        decoded_payload = base64.urlsafe_b64decode(payload)
+        data = json.loads(decoded_payload)
+        
+        # Verify signature
+        secret = FACEBOOK_APP_SECRET
+        expected_sig = hmac.new(
+            secret.encode('utf-8'),
+            payload.encode('utf-8'),
+            hashlib.sha256
+        ).digest()
+        
+        encoded_sig += '=' * (4 - len(encoded_sig) % 4)
+        decoded_sig = base64.urlsafe_b64decode(encoded_sig)
+        
+        if not hmac.compare_digest(decoded_sig, expected_sig):
+            logging.warning("Facebook data deletion: Invalid signature")
+            return json.dumps({'error': 'Invalid signature'}), 403
+        
+        # Get the Facebook user ID
+        fb_user_id = data.get('user_id')
+        
+        if fb_user_id:
+            # Find and delete user data associated with this Facebook ID
+            user = User.query.filter(User.replit_id == f'facebook_{fb_user_id}').first()
+            if user:
+                # Generate a confirmation code
+                confirmation_code = secrets.token_hex(8).upper()
+                
+                # Log the deletion request
+                logging.info(f"Facebook data deletion request for user: {user.email}, FB ID: {fb_user_id}")
+                
+                # Delete the user (or anonymize - depending on your policy)
+                # For now, we'll anonymize the Facebook connection
+                user.replit_id = None
+                user.profile_image_url = None
+                db.session.commit()
+                
+                # Return confirmation as required by Facebook
+                return json.dumps({
+                    'url': f'https://medmoneyincubator.com/auth/facebook/deletion-status?code={confirmation_code}',
+                    'confirmation_code': confirmation_code
+                })
+        
+        # No user found, but still return success
+        return json.dumps({
+            'url': 'https://medmoneyincubator.com/privacy',
+            'confirmation_code': 'NO_DATA_FOUND'
+        })
+        
+    except Exception as e:
+        logging.error(f"Facebook data deletion error: {str(e)}")
+        return json.dumps({'error': 'Internal error'}), 500
+
+
+@auth_bp.route('/facebook/deletion-status')
+def facebook_deletion_status():
+    """Show status of Facebook data deletion request"""
+    code = request.args.get('code', '')
+    return render_template('auth/deletion_status.html', confirmation_code=code)
+
+
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     """User login"""
