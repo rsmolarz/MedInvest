@@ -13,20 +13,35 @@
                         </h2>
                         <p class="text-muted">Welcome back, Doctor</p>
                     </div>
+                    
+                    <a href="{{ url_for('replit_auth.login') }}" class="btn btn-primary btn-lg w-100 mb-3">
+                        <i class="fas fa-sign-in-alt me-2"></i>Sign In with Google, Apple, or GitHub
+                    </a>
+                    <p class="text-center text-muted small mb-4">Quick and secure sign-in using your existing account</p>
+                    
+                    <div class="d-flex align-items-center mb-4">
+                        <hr class="flex-grow-1">
+                        <span class="px-3 text-muted small">OR USE EMAIL</span>
+                        <hr class="flex-grow-1">
+                    </div>
+                    
                     <form method="POST">
                         <div class="mb-3">
                             <label class="form-label">Email</label>
-                            <input type="email" name="email" class="form-control form-control-lg" required autofocus>
+                            <input type="email" name="email" class="form-control form-control-lg" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Password</label>
                             <input type="password" name="password" class="form-control form-control-lg" required>
                         </div>
-                        <div class="mb-3 form-check">
-                            <input type="checkbox" name="remember" class="form-check-input" id="remember">
-                            <label class="form-check-label" for="remember">Remember me</label>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" name="remember" class="form-check-input" id="remember">
+                                <label class="form-check-label" for="remember">Remember me</label>
+                            </div>
+                            <a href="{{ url_for('auth.forgot_password') }}" class="small text-muted">Forgot password?</a>
                         </div>
-                        <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">Login</button>
+                        <button type="submit" class="btn btn-outline-primary btn-lg w-100 mb-3">Login with Email</button>
                     </form>
                     <hr>
                     <p class="text-center mb-0">

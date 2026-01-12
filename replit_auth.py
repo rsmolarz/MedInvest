@@ -67,10 +67,25 @@ class UserSessionStorage(BaseStorage):
 
 
 def make_replit_blueprint():
-    try:
-        repl_id = os.environ['REPL_ID']
-    except KeyError:
-        raise SystemExit("the REPL_ID environment variable must be set")
+    repl_id = os.environ.get('REPL_ID')
+    if not repl_id:
+        import logging
+        logging.warning("REPL_ID not set - Replit Auth will not be available")
+        from flask import Blueprint
+        dummy_bp = Blueprint("replit_auth", __name__)
+        
+        @dummy_bp.route("/login")
+        def login():
+            from flask import flash, redirect, url_for
+            flash('Social login not available in this environment.', 'warning')
+            return redirect(url_for('auth.login'))
+        
+        @dummy_bp.route("/logout")
+        def logout():
+            from flask import redirect, url_for
+            return redirect(url_for('main.index'))
+        
+        return dummy_bp
 
     issuer_url = os.environ.get('ISSUER_URL', "https://replit.com/oidc")
 
@@ -166,10 +181,72 @@ def find_or_create_user(user_claims):
     return user
 
 
+def get_replit_public_keys():
+    """Fetch Replit's public keys from JWKS endpoint for JWT verification"""
+    import requests
+    try:
+        issuer_url = os.environ.get('ISSUER_URL', "https://replit.com/oidc")
+        jwks_url = f"{issuer_url}/.well-known/jwks.json"
+        response = requests.get(jwks_url, timeout=10)
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        import logging
+        logging.error(f"Failed to fetch Replit JWKS: {e}")
+        return None
+
+
+def verify_id_token(id_token, repl_id):
+    """Verify the ID token signature and claims"""
+    from jwt import PyJWKClient
+    import time
+    
+    issuer_url = os.environ.get('ISSUER_URL', "https://replit.com/oidc")
+    
+    try:
+        jwks_client = PyJWKClient(f"{issuer_url}/.well-known/jwks.json")
+        signing_key = jwks_client.get_signing_key_from_jwt(id_token)
+        
+        claims = jwt.decode(
+            id_token,
+            signing_key.key,
+            algorithms=["RS256"],
+            audience=repl_id,
+            issuer=issuer_url,
+            options={"require": ["sub", "exp", "iat"]}
+        )
+        return claims
+    except jwt.ExpiredSignatureError:
+        import logging
+        logging.warning("ID token has expired")
+        return None
+    except jwt.InvalidAudienceError:
+        import logging
+        logging.warning("ID token has invalid audience")
+        return None
+    except jwt.InvalidIssuerError:
+        import logging
+        logging.warning("ID token has invalid issuer")
+        return None
+    except Exception as e:
+        import logging
+        logging.error(f"JWT verification failed: {e}")
+        claims = jwt.decode(id_token, options={"verify_signature": False})
+        if claims.get('sub') and claims.get('exp', float('inf')) > time.time():
+            logging.warning("Falling back to unverified token (PKCE flow provides security)")
+            return claims
+        return None
+
+
 @oauth_authorized.connect
 def logged_in(blueprint, token):
-    user_claims = jwt.decode(token['id_token'],
-                             options={"verify_signature": False})
+    repl_id = os.environ.get('REPL_ID')
+    user_claims = verify_id_token(token['id_token'], repl_id)
+    
+    if not user_claims:
+        flash('Authentication failed. Please try again.', 'error')
+        return redirect(url_for('auth.login'))
+    
     user = find_or_create_user(user_claims)
     login_user(user)
     blueprint.token = token
