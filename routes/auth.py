@@ -17,8 +17,12 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 # Google OAuth Configuration
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
-# Custom domain callback - must match the actual route and Google Console setting
 GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_OAUTH_REDIRECT_URI', 'https://medmoneyincubator.com/auth/google/callback')
+
+# Facebook OAuth Configuration
+FACEBOOK_APP_ID = os.environ.get('FACEBOOK_APP_ID')
+FACEBOOK_APP_SECRET = os.environ.get('FACEBOOK_APP_SECRET')
+FACEBOOK_REDIRECT_URI = os.environ.get('FACEBOOK_OAUTH_REDIRECT_URI', 'https://medmoneyincubator.com/auth/facebook/callback')
 
 # Google OAuth Blueprint (for compatibility, but we'll use custom routes)
 google_bp = make_google_blueprint(
@@ -32,11 +36,10 @@ google_bp = make_google_blueprint(
 @auth_bp.route('/google-login')
 def google_login_custom():
     """Custom Google OAuth login that uses explicit redirect_uri"""
-    # Generate state for CSRF protection
     state = secrets.token_urlsafe(32)
     session['oauth_state'] = state
+    session['oauth_provider'] = 'google'
     
-    # Build Google OAuth URL with explicit redirect_uri
     params = {
         'client_id': GOOGLE_CLIENT_ID,
         'redirect_uri': GOOGLE_REDIRECT_URI,
@@ -50,6 +53,127 @@ def google_login_custom():
     auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
     logging.info(f"Redirecting to Google OAuth with redirect_uri: {GOOGLE_REDIRECT_URI}")
     return redirect(auth_url)
+
+
+@auth_bp.route('/facebook-login')
+def facebook_login():
+    """Facebook OAuth login with explicit redirect_uri"""
+    state = secrets.token_urlsafe(32)
+    session['oauth_state'] = state
+    session['oauth_provider'] = 'facebook'
+    
+    params = {
+        'client_id': FACEBOOK_APP_ID,
+        'redirect_uri': FACEBOOK_REDIRECT_URI,
+        'response_type': 'code',
+        'scope': 'email,public_profile',
+        'state': state
+    }
+    
+    auth_url = f"https://www.facebook.com/v18.0/dialog/oauth?{urlencode(params)}"
+    logging.info(f"Redirecting to Facebook OAuth with redirect_uri: {FACEBOOK_REDIRECT_URI}")
+    return redirect(auth_url)
+
+
+@auth_bp.route('/facebook/callback')
+def facebook_callback():
+    """Handle Facebook OAuth callback"""
+    import requests
+    
+    state = request.args.get('state')
+    stored_state = session.pop('oauth_state', None)
+    
+    if not state or state != stored_state:
+        flash('Invalid OAuth state. Please try again.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    error = request.args.get('error')
+    if error:
+        logging.error(f"Facebook OAuth error: {error}")
+        flash('Facebook login was cancelled or failed.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    code = request.args.get('code')
+    if not code:
+        flash('No authorization code received from Facebook.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    try:
+        token_url = 'https://graph.facebook.com/v18.0/oauth/access_token'
+        token_params = {
+            'client_id': FACEBOOK_APP_ID,
+            'client_secret': FACEBOOK_APP_SECRET,
+            'redirect_uri': FACEBOOK_REDIRECT_URI,
+            'code': code
+        }
+        
+        token_response = requests.get(token_url, params=token_params)
+        
+        if not token_response.ok:
+            logging.error(f"Facebook token exchange failed: {token_response.text}")
+            flash('Failed to authenticate with Facebook.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        tokens = token_response.json()
+        access_token = tokens.get('access_token')
+        
+        if not access_token:
+            flash('No access token received from Facebook.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        userinfo_url = 'https://graph.facebook.com/me'
+        userinfo_params = {
+            'fields': 'id,email,first_name,last_name,picture.type(large)',
+            'access_token': access_token
+        }
+        userinfo_response = requests.get(userinfo_url, params=userinfo_params)
+        
+        if not userinfo_response.ok:
+            flash('Failed to get user info from Facebook.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        fb_info = userinfo_response.json()
+        email = fb_info.get('email')
+        fb_id = fb_info.get('id')
+        
+        if not email:
+            flash('Facebook account email not available. Please ensure your Facebook account has a verified email.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        user = User.query.filter_by(email=email).first()
+        
+        picture_url = None
+        if fb_info.get('picture') and fb_info['picture'].get('data'):
+            picture_url = fb_info['picture']['data'].get('url')
+        
+        if user:
+            user.replit_id = f'facebook_{fb_id}'
+            if picture_url and not user.profile_image_url:
+                user.profile_image_url = picture_url
+        else:
+            user = User(
+                email=email,
+                first_name=fb_info.get('first_name', 'User'),
+                last_name=fb_info.get('last_name', ''),
+                replit_id=f'facebook_{fb_id}',
+                profile_image_url=picture_url,
+                specialty='',
+                medical_license=f'FACEBOOK-{fb_id}',
+            )
+            user.generate_referral_code()
+            db.session.add(user)
+        
+        db.session.commit()
+        login_user(user)
+        
+        flash(f'Welcome, {user.first_name}!', 'success')
+        next_url = session.pop('next_url', None)
+        return redirect(next_url or url_for('main.feed'))
+        
+    except Exception as e:
+        logging.error(f"Facebook OAuth error: {str(e)}")
+        flash('An error occurred during Facebook login.', 'error')
+        return redirect(url_for('auth.login'))
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
