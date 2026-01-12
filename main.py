@@ -1,6 +1,6 @@
 import os
 import logging
-from flask_login import LoginManager
+from flask import session
 from app import app, db
 
 # Configure logging for production
@@ -9,19 +9,20 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)s %(name)s %(message)s'
 )
 
-# Set up Flask-Login
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'auth.login'
+# Set up Replit Auth (includes Flask-Login)
+from replit_auth import make_replit_blueprint, login_manager
+
+# Configure login manager messages
 login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'info'
 
-# Import models for user loader
-from models import User
+# Make session permanent
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
 
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
+# Register Replit Auth blueprint
+app.register_blueprint(make_replit_blueprint(), url_prefix="/auth")
 
 # Register blueprints
 from routes.main import main_bp
