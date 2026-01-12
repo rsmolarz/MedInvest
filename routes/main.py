@@ -334,7 +334,7 @@ def profile(user_id=None):
     else:
         user = current_user
     
-    posts = Post.query.filter_by(user_id=user.id, is_anonymous=False)\
+    posts = Post.query.filter_by(author_id=user.id, is_anonymous=False)\
                       .order_by(Post.created_at.desc()).limit(10).all()
     
     return render_template('profile.html', user=user, posts=posts)
