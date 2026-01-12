@@ -374,7 +374,7 @@
             {% endif %}
 
             <!-- Quick Links -->
-            <div class="card">
+            <div class="card mb-4">
                 <div class="card-header bg-white">
                     <h6 class="mb-0">Explore</h6>
                 </div>
@@ -390,6 +390,22 @@
                     </a>
                     <a href="{{ url_for('ai.chat') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-robot text-info me-2"></i>AI Assistant
+                    </a>
+                </div>
+            </div>
+
+            <!-- Platform Sponsor -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center p-3">
+                    <small class="text-muted d-block mb-2">Proudly Sponsored By</small>
+                    <a href="https://medmoneyshow.com" target="_blank" rel="noopener" class="d-block">
+                        <img src="{{ url_for('static', filename='images/sponsors/medicine-money-show.jpg') }}" 
+                             alt="The Medicine and Money Show" 
+                             class="img-fluid rounded" 
+                             style="max-height: 100px; object-fit: contain;">
+                    </a>
+                    <a href="https://medmoneyshow.com" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm mt-2">
+                        <i class="fas fa-podcast me-1"></i>Listen Now
                     </a>
                 </div>
             </div>

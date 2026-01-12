@@ -142,7 +142,7 @@ def get_time_ago(dt):
 
 def create_notification(user_id, notification_type, title, message, 
                        actor_id=None, post_id=None, comment_id=None, 
-                       ama_id=None, deal_id=None, url=None):
+                       url=None):
     """Create a notification for a user"""
     # Don't notify yourself
     if actor_id and actor_id == user_id:
@@ -156,8 +156,6 @@ def create_notification(user_id, notification_type, title, message,
         actor_id=actor_id,
         post_id=post_id,
         comment_id=comment_id,
-        ama_id=ama_id,
-        deal_id=deal_id,
         url=url
     )
     db.session.add(notification)
