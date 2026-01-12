@@ -41,6 +41,7 @@ from routes.admin import admin_bp
 from routes.errors import errors_bp
 from routes.media import media_bp
 from routes.notifications import notifications_bp
+from routes.dm import dm_bp
 
 app.register_blueprint(main_bp)
 app.register_blueprint(auth_bp)
@@ -60,6 +61,7 @@ app.register_blueprint(ai_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(media_bp)
 app.register_blueprint(notifications_bp)
+app.register_blueprint(dm_bp)
 app.register_blueprint(errors_bp)
 
 # Import legacy routes for backwards compatibility
