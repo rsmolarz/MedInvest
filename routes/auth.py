@@ -7,19 +7,49 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash,
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_dance.contrib.google import make_google_blueprint, google
 from datetime import datetime
+from urllib.parse import urlencode
+import secrets
 from app import db
 from models import User, Referral
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
-# Google OAuth Blueprint
-# Note: ProxyFix in app.py handles proper Host/Proto headers for custom domains
+# Google OAuth Configuration
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
+# Custom domain callback - must match the actual route and Google Console setting
+GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_OAUTH_REDIRECT_URI', 'https://medmoneyincubator.com/auth/google/callback')
+
+# Google OAuth Blueprint (for compatibility, but we'll use custom routes)
 google_bp = make_google_blueprint(
-    client_id=os.environ.get('GOOGLE_CLIENT_ID'),
-    client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
+    client_id=GOOGLE_CLIENT_ID,
+    client_secret=GOOGLE_CLIENT_SECRET,
     scope=['openid', 'email', 'profile'],
     redirect_to='auth.google_callback'
 )
+
+
+@auth_bp.route('/google-login')
+def google_login_custom():
+    """Custom Google OAuth login that uses explicit redirect_uri"""
+    # Generate state for CSRF protection
+    state = secrets.token_urlsafe(32)
+    session['oauth_state'] = state
+    
+    # Build Google OAuth URL with explicit redirect_uri
+    params = {
+        'client_id': GOOGLE_CLIENT_ID,
+        'redirect_uri': GOOGLE_REDIRECT_URI,
+        'response_type': 'code',
+        'scope': 'openid email profile',
+        'state': state,
+        'access_type': 'offline',
+        'prompt': 'select_account'
+    }
+    
+    auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+    logging.info(f"Redirecting to Google OAuth with redirect_uri: {GOOGLE_REDIRECT_URI}")
+    return redirect(auth_url)
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
@@ -253,18 +283,66 @@ def disable_2fa():
 
 @auth_bp.route('/google/callback')
 def google_callback():
-    """Handle Google OAuth callback"""
-    if not google.authorized:
-        flash('Google login failed. Please try again.', 'error')
+    """Handle Google OAuth callback - custom implementation with explicit redirect_uri"""
+    import requests
+    
+    # Verify state to prevent CSRF
+    state = request.args.get('state')
+    stored_state = session.pop('oauth_state', None)
+    
+    if not state or state != stored_state:
+        flash('Invalid OAuth state. Please try again.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Check for errors from Google
+    error = request.args.get('error')
+    if error:
+        logging.error(f"Google OAuth error: {error}")
+        flash('Google login was cancelled or failed.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Get the authorization code
+    code = request.args.get('code')
+    if not code:
+        flash('No authorization code received from Google.', 'error')
         return redirect(url_for('auth.login'))
     
     try:
-        resp = google.get('/oauth2/v2/userinfo')
-        if not resp.ok:
+        # Exchange code for tokens using explicit redirect_uri
+        token_url = 'https://oauth2.googleapis.com/token'
+        token_data = {
+            'code': code,
+            'client_id': GOOGLE_CLIENT_ID,
+            'client_secret': GOOGLE_CLIENT_SECRET,
+            'redirect_uri': GOOGLE_REDIRECT_URI,  # Must match exactly what was sent in auth request
+            'grant_type': 'authorization_code'
+        }
+        
+        logging.info(f"Exchanging code for tokens with redirect_uri: {GOOGLE_REDIRECT_URI}")
+        token_response = requests.post(token_url, data=token_data)
+        
+        if not token_response.ok:
+            logging.error(f"Token exchange failed: {token_response.text}")
+            flash('Failed to authenticate with Google.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        tokens = token_response.json()
+        access_token = tokens.get('access_token')
+        
+        if not access_token:
+            flash('No access token received from Google.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        # Get user info using the access token
+        userinfo_url = 'https://www.googleapis.com/oauth2/v2/userinfo'
+        headers = {'Authorization': f'Bearer {access_token}'}
+        userinfo_response = requests.get(userinfo_url, headers=headers)
+        
+        if not userinfo_response.ok:
             flash('Failed to get user info from Google.', 'error')
             return redirect(url_for('auth.login'))
         
-        google_info = resp.json()
+        google_info = userinfo_response.json()
         email = google_info.get('email')
         google_id = google_info.get('id')
         
@@ -299,5 +377,6 @@ def google_callback():
         return redirect(next_url or url_for('main.feed'))
         
     except Exception as e:
+        logging.error(f"Google OAuth error: {str(e)}")
         flash('An error occurred during Google login.', 'error')
         return redirect(url_for('auth.login'))
