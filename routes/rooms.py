@@ -107,7 +107,7 @@ def create_room_post(slug):
         anonymous_name = "Anonymous Physician"
     
     post = Post(
-        user_id=current_user.id,
+        author_id=current_user.id,
         room_id=room.id,
         content=content,
         is_anonymous=is_anonymous,
@@ -161,7 +161,7 @@ def add_comment(post_id):
     
     comment = Comment(
         post_id=post_id,
-        user_id=current_user.id,
+        author_id=current_user.id,
         parent_id=parent_id,
         content=content,
         is_anonymous=is_anonymous
