@@ -526,9 +526,8 @@ def search():
 @login_required
 def network():
     """Networking page - connect with colleagues"""
-    from models import User, Follow, UserFollow
+    from models import User, Follow
     from utils.algorithm import get_people_you_may_know
-    from sqlalchemy import func
     
     tab = request.args.get('tab', 'suggestions')
     
