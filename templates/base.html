@@ -106,6 +106,9 @@
                             <li><a class="dropdown-item" href="{{ url_for('main.bookmarks') }}"><i class="fas fa-bookmark me-2"></i>Bookmarks</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('referral.index') }}"><i class="fas fa-gift me-2"></i>Referrals</a></li>
                             <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.settings') }}"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.security') }}"><i class="fas fa-shield-alt me-2"></i>Security</a></li>
+                            <li><hr class="dropdown-divider"></li>
                             {% if not current_user.is_premium %}
                             <li><a class="dropdown-item text-warning fw-bold" href="{{ url_for('subscription.pricing') }}"><i class="fas fa-crown me-2"></i>Upgrade</a></li>
                             {% else %}

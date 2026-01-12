@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Settings - MedInvest{% endblock %}
+
+{% block extra_css %}
+<style>
+    .settings-nav { border-right: 1px solid #e2e8f0; }
+    .settings-nav .nav-link {
+        color: #64748b;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        margin-bottom: 0.25rem;
+    }
+    .settings-nav .nav-link:hover { background: #f1f5f9; color: #1e293b; }
+    .settings-nav .nav-link.active { background: #f1f5f9; color: #2563eb; font-weight: 600; }
+    .settings-section h4 { margin-bottom: 1.5rem; }
+    .settings-item {
+        padding: 1.25rem 0;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .settings-item:last-child { border-bottom: none; }
+    .settings-item h6 { margin-bottom: 0.25rem; }
+    .settings-item p { color: #64748b; margin-bottom: 0.5rem; font-size: 0.9rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-3 mb-4">
+            <div class="card">
+                <div class="card-body settings-nav">
+                    <nav class="nav flex-column">
+                        <a class="nav-link {% if tab == 'account' %}active{% endif %}" href="{{ url_for('main.settings', tab='account') }}">
+                            <i class="fas fa-user me-2"></i>Account
+                        </a>
+                        <a class="nav-link {% if tab == 'communication' %}active{% endif %}" href="{{ url_for('main.settings', tab='communication') }}">
+                            <i class="fas fa-envelope me-2"></i>Communication
+                        </a>
+                        <a class="nav-link {% if tab == 'privacy' %}active{% endif %}" href="{{ url_for('main.settings', tab='privacy') }}">
+                            <i class="fas fa-lock me-2"></i>Privacy
+                        </a>
+                        <a class="nav-link {% if tab == 'preferences' %}active{% endif %}" href="{{ url_for('main.settings', tab='preferences') }}">
+                            <i class="fas fa-sliders-h me-2"></i>Career Preferences
+                        </a>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-9">
+            <div class="card">
+                <div class="card-body settings-section">
+                    {% if tab == 'account' %}
+                    <h4><i class="fas fa-user me-2"></i>Account Settings</h4>
+                    
+                    <div class="settings-item">
+                        <h6>Sign-in Emails</h6>
+                        <p>Having a Primary Email can help you log in and receive the latest personalized news, messages and notifications from colleagues.</p>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>{{ current_user.email }}</strong>
+                                <span class="badge bg-success ms-2">Primary</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-item">
+                        <h6>Security Center</h6>
+                        <p>Change your password, set up two-factor authentication, manage authorized applications, and more.</p>
+                        <a href="{{ url_for('main.security') }}" class="btn btn-outline-secondary">Manage</a>
+                    </div>
+
+                    {% elif tab == 'communication' %}
+                    <h4><i class="fas fa-envelope me-2"></i>Communication Preferences</h4>
+                    
+                    <form action="{{ url_for('main.update_settings') }}" method="POST">
+                        <input type="hidden" name="setting_type" value="communication">
+                        
+                        <div class="settings-item">
+                            <h6>Email Notifications</h6>
+                            <p>Receive email notifications for new messages, comments, and mentions.</p>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="email_notifications" id="emailNotif" checked>
+                                <label class="form-check-label" for="emailNotif">Enable email notifications</label>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <h6>Weekly Digest</h6>
+                            <p>Get a weekly summary of top posts, deals, and network activity.</p>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="weekly_digest" id="weeklyDigest" checked>
+                                <label class="form-check-label" for="weeklyDigest">Enable weekly digest</label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary mt-3">Save Preferences</button>
+                    </form>
+
+                    {% elif tab == 'privacy' %}
+                    <h4><i class="fas fa-lock me-2"></i>Privacy Settings</h4>
+                    
+                    <form action="{{ url_for('main.update_settings') }}" method="POST">
+                        <input type="hidden" name="setting_type" value="privacy">
+                        
+                        <div class="settings-item">
+                            <h6>Profile Visibility</h6>
+                            <p>Control who can see your profile information.</p>
+                            <select name="profile_visibility" class="form-select" style="max-width:300px;">
+                                <option value="public">Public - Anyone on MedInvest</option>
+                                <option value="colleagues">Colleagues Only</option>
+                                <option value="private">Private - Only Me</option>
+                            </select>
+                        </div>
+
+                        <div class="settings-item">
+                            <h6>Activity Status</h6>
+                            <p>Show when you're active on MedInvest.</p>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="show_activity" id="showActivity" checked>
+                                <label class="form-check-label" for="showActivity">Show activity status</label>
+                            </div>
+                        </div>
+
+                        <div class="settings-item">
+                            <h6>Anonymous Posting</h6>
+                            <p>Your identity is protected when you post anonymously. Even admins cannot see who posted.</p>
+                            <span class="badge bg-success"><i class="fas fa-check me-1"></i>Enabled</span>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary mt-3">Save Privacy Settings</button>
+                    </form>
+
+                    {% elif tab == 'preferences' %}
+                    <h4><i class="fas fa-sliders-h me-2"></i>Career Preferences</h4>
+                    
+                    <div class="settings-item">
+                        <h6>Investment Interests</h6>
+                        <p>Select the types of investments you're most interested in learning about.</p>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="realEstate" checked>
+                                    <label class="form-check-label" for="realEstate">Real Estate</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="stocks">
+                                    <label class="form-check-label" for="stocks">Stocks & ETFs</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="syndicates">
+                                    <label class="form-check-label" for="syndicates">Syndicates & Funds</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="startups">
+                                    <label class="form-check-label" for="startups">Startups & Angel Investing</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="crypto">
+                                    <label class="form-check-label" for="crypto">Cryptocurrency</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="practice">
+                                    <label class="form-check-label" for="practice">Practice Ownership</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-item">
+                        <h6>Career Stage</h6>
+                        <p>Help us show you relevant content based on your career stage.</p>
+                        <select class="form-select" style="max-width:300px;">
+                            <option>Medical Student</option>
+                            <option>Resident</option>
+                            <option>Fellow</option>
+                            <option selected>Attending Physician</option>
+                            <option>Practice Owner</option>
+                            <option>Retired</option>
+                        </select>
+                    </div>
+
+                    <button type="button" class="btn btn-primary mt-3">Save Preferences</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

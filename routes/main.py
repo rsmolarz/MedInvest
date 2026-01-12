@@ -569,6 +569,68 @@ def network():
                           colleague_count=len(colleagues))
 
 
+@main_bp.route('/settings')
+@login_required
+def settings():
+    """Account settings page"""
+    tab = request.args.get('tab', 'account')
+    return render_template('settings.html', tab=tab)
+
+
+@main_bp.route('/settings/update', methods=['POST'])
+@login_required
+def update_settings():
+    """Update account settings"""
+    setting_type = request.form.get('setting_type', '')
+    
+    if setting_type == 'communication':
+        current_user.email_notifications = request.form.get('email_notifications') == 'on'
+        current_user.weekly_digest = request.form.get('weekly_digest') == 'on'
+        flash('Communication preferences updated!', 'success')
+    elif setting_type == 'privacy':
+        current_user.profile_visibility = request.form.get('profile_visibility', 'public')
+        current_user.show_activity = request.form.get('show_activity') == 'on'
+        flash('Privacy settings updated!', 'success')
+    
+    db.session.commit()
+    return redirect(url_for('main.settings', tab=setting_type))
+
+
+@main_bp.route('/security')
+@login_required
+def security():
+    """Security center page"""
+    return render_template('security.html')
+
+
+@main_bp.route('/security/change-password', methods=['POST'])
+@login_required
+def change_password():
+    """Change user password"""
+    from werkzeug.security import check_password_hash, generate_password_hash
+    
+    current_password = request.form.get('current_password', '')
+    new_password = request.form.get('new_password', '')
+    confirm_password = request.form.get('confirm_password', '')
+    
+    if not check_password_hash(current_user.password_hash, current_password):
+        flash('Current password is incorrect', 'error')
+        return redirect(url_for('main.security'))
+    
+    if new_password != confirm_password:
+        flash('New passwords do not match', 'error')
+        return redirect(url_for('main.security'))
+    
+    if len(new_password) < 8:
+        flash('Password must be at least 8 characters', 'error')
+        return redirect(url_for('main.security'))
+    
+    current_user.password_hash = generate_password_hash(new_password)
+    db.session.commit()
+    flash('Password changed successfully!', 'success')
+    return redirect(url_for('main.security'))
+
+
 @main_bp.route('/advertise')
 def advertise():
     """Public advertise with us page"""

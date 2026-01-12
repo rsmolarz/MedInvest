@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Security Center - MedInvest{% endblock %}
+
+{% block extra_css %}
+<style>
+    .security-header {
+        text-align: center;
+        padding: 2rem 0;
+    }
+    .security-avatar {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        margin: 0 auto 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 600;
+    }
+    .security-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+    }
+    .security-avatar.initials {
+        background: #2563eb;
+        color: white;
+    }
+    .security-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem 0;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .security-item:last-child { border-bottom: none; }
+    .security-item h6 { margin-bottom: 0.25rem; font-weight: 600; }
+    .security-item p { color: #64748b; margin-bottom: 0; font-size: 0.9rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <div class="security-header">
+                        <div class="security-avatar {% if not current_user.profile_image_url %}initials{% endif %}">
+                            {% if current_user.profile_image_url %}
+                            <img src="{{ current_user.profile_image_url }}" alt="{{ current_user.full_name }}">
+                            {% else %}
+                            {{ current_user.first_name[0] }}{{ current_user.last_name[0] }}
+                            {% endif %}
+                        </div>
+                        <h3>Security Center</h3>
+                        <p class="text-muted">Welcome, {{ current_user.full_name }}. Manage your account security and access.</p>
+                    </div>
+
+                    <hr>
+
+                    <div class="security-item">
+                        <div>
+                            <h6>Change Password</h6>
+                            <p>Use a strong password to keep your MedInvest account secure.</p>
+                        </div>
+                        <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#changePasswordModal">Manage</button>
+                    </div>
+
+                    <div class="security-item">
+                        <div>
+                            <h6>Two-Factor Authentication</h6>
+                            <p>Add an extra layer of security to your account with 2FA.</p>
+                        </div>
+                        <a href="{{ url_for('auth.security_settings') }}" class="btn btn-outline-secondary">Manage</a>
+                    </div>
+
+                    <div class="security-item">
+                        <div>
+                            <h6>Authorized Applications</h6>
+                            <p>Manage the apps where you can sign in using your MedInvest account.</p>
+                        </div>
+                        <button class="btn btn-outline-secondary" disabled>Manage</button>
+                    </div>
+
+                    <div class="security-item">
+                        <div>
+                            <h6>SSO Connections</h6>
+                            <p>View your account's Single Sign-On connections.</p>
+                        </div>
+                        <button class="btn btn-outline-secondary" disabled>Manage</button>
+                    </div>
+
+                    <div class="security-item">
+                        <div>
+                            <h6>Session Activity</h6>
+                            <p>View your account's recent access attempts. See IP addresses, dates, and login attempts.</p>
+                        </div>
+                        <button class="btn btn-outline-secondary" disabled>Manage</button>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <a href="{{ url_for('main.feed') }}" class="text-primary">Return to MedInvest</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="changePasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Change Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('main.change_password') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Current Password</label>
+                        <input type="password" name="current_password" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">New Password</label>
+                        <input type="password" name="new_password" class="form-control" required minlength="8">
+                        <small class="text-muted">Minimum 8 characters</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirm New Password</label>
+                        <input type="password" name="confirm_password" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Change Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
