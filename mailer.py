@@ -1,13 +1,87 @@
-"""Email sending abstraction supporting SendGrid and Postmark."""
+"""Email sending abstraction supporting SendGrid and Postmark.
+
+Uses Replit's SendGrid connection for credentials management.
+"""
 import os
 import logging
+import requests
 
 logger = logging.getLogger(__name__)
+
+# Cache for SendGrid credentials (short-lived)
+_sendgrid_cache = {'api_key': None, 'from_email': None, 'expires': 0}
 
 
 def get_email_provider():
     """Get the configured email provider."""
     return os.environ.get('EMAIL_PROVIDER', 'sendgrid').lower()
+
+
+def _get_sendgrid_credentials():
+    """Get SendGrid credentials from Replit connector.
+    
+    Returns tuple of (api_key, from_email) or (None, None) if not configured.
+    """
+    import time
+    global _sendgrid_cache
+    
+    # Check cache (valid for 5 minutes)
+    if _sendgrid_cache['api_key'] and time.time() < _sendgrid_cache['expires']:
+        return _sendgrid_cache['api_key'], _sendgrid_cache['from_email']
+    
+    # Try Replit connector first
+    hostname = os.environ.get('REPLIT_CONNECTORS_HOSTNAME')
+    if hostname:
+        # Build token for authentication
+        repl_identity = os.environ.get('REPL_IDENTITY')
+        web_repl_renewal = os.environ.get('WEB_REPL_RENEWAL')
+        
+        x_replit_token = None
+        if repl_identity:
+            x_replit_token = f'repl {repl_identity}'
+        elif web_repl_renewal:
+            x_replit_token = f'depl {web_repl_renewal}'
+        
+        if x_replit_token:
+            try:
+                response = requests.get(
+                    f'https://{hostname}/api/v2/connection?include_secrets=true&connector_names=sendgrid',
+                    headers={
+                        'Accept': 'application/json',
+                        'X_REPLIT_TOKEN': x_replit_token
+                    },
+                    timeout=5
+                )
+                
+                if response.ok:
+                    data = response.json()
+                    items = data.get('items', [])
+                    if items:
+                        settings = items[0].get('settings', {})
+                        api_key = settings.get('api_key')
+                        from_email = settings.get('from_email', 'noreply@medmoneyincubator.com')
+                        
+                        if api_key:
+                            # Cache for 5 minutes
+                            _sendgrid_cache = {
+                                'api_key': api_key,
+                                'from_email': from_email,
+                                'expires': time.time() + 300
+                            }
+                            logger.info("SendGrid credentials loaded from Replit connector")
+                            return api_key, from_email
+            except Exception as e:
+                logger.warning(f"Failed to get SendGrid credentials from Replit: {e}")
+    
+    # Fallback to environment variables
+    api_key = os.environ.get('SENDGRID_API_KEY')
+    from_email = os.environ.get('SENDGRID_FROM', 'noreply@medmoneyincubator.com')
+    
+    if api_key:
+        logger.info("Using SendGrid credentials from environment variables")
+        return api_key, from_email
+    
+    return None, None
 
 
 def send_email(to_email: str, subject: str, html_content: str, text_content: str = None):
@@ -34,16 +108,15 @@ def send_email(to_email: str, subject: str, html_content: str, text_content: str
 
 
 def _send_sendgrid(to_email: str, subject: str, html_content: str, text_content: str = None):
-    """Send email via SendGrid."""
+    """Send email via SendGrid using Replit connector credentials."""
     try:
         from sendgrid import SendGridAPIClient
         from sendgrid.helpers.mail import Mail
         
-        api_key = os.environ.get('SENDGRID_API_KEY')
-        from_email = os.environ.get('SENDGRID_FROM', 'noreply@medinvest.com')
+        api_key, from_email = _get_sendgrid_credentials()
         
         if not api_key:
-            logger.warning("SENDGRID_API_KEY not set, email not sent")
+            logger.warning("SendGrid not configured - check Replit connector or SENDGRID_API_KEY")
             return False
         
         message = Mail(

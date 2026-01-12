@@ -632,6 +632,127 @@ def disable_2fa():
     return redirect(url_for('main.security'))
 
 
+@auth_bp.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """Request password reset email"""
+    if current_user.is_authenticated:
+        return redirect(url_for('main.feed'))
+    
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        
+        if not email:
+            flash('Please enter your email address', 'error')
+            return render_template('auth/forgot_password.html')
+        
+        user = User.query.filter_by(email=email).first()
+        
+        if user:
+            # Generate reset token
+            token = user.generate_password_reset_token()
+            db.session.commit()
+            
+            # Send reset email
+            from mailer import send_email
+            
+            reset_url = url_for('auth.reset_password', token=token, _external=True)
+            
+            html_content = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 30px; text-align: center;">
+                    <h1 style="color: white; margin: 0;">MedInvest</h1>
+                </div>
+                <div style="padding: 30px; background: #f8fafc;">
+                    <h2 style="color: #1e293b;">Password Reset Request</h2>
+                    <p style="color: #475569; line-height: 1.6;">
+                        Hi {user.first_name},
+                    </p>
+                    <p style="color: #475569; line-height: 1.6;">
+                        We received a request to reset your password. Click the button below to create a new password:
+                    </p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="{reset_url}" 
+                           style="background: #2563eb; color: white; padding: 14px 28px; 
+                                  text-decoration: none; border-radius: 8px; font-weight: bold;
+                                  display: inline-block;">
+                            Reset Password
+                        </a>
+                    </div>
+                    <p style="color: #475569; line-height: 1.6; font-size: 14px;">
+                        This link will expire in 1 hour. If you didn't request this reset, 
+                        you can safely ignore this email.
+                    </p>
+                    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                    <p style="color: #94a3b8; font-size: 12px; text-align: center;">
+                        If the button doesn't work, copy and paste this link into your browser:<br>
+                        <a href="{reset_url}" style="color: #2563eb;">{reset_url}</a>
+                    </p>
+                </div>
+                <div style="background: #1e293b; padding: 20px; text-align: center;">
+                    <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+                        MedInvest - Investment Education for Medical Professionals
+                    </p>
+                </div>
+            </div>
+            """
+            
+            email_sent = send_email(
+                to_email=user.email,
+                subject='Reset Your MedInvest Password',
+                html_content=html_content,
+                text_content=f"Reset your password: {reset_url}"
+            )
+            
+            if email_sent:
+                logging.info(f"Password reset email sent to {user.email}")
+            else:
+                logging.warning(f"Failed to send password reset email to {user.email}")
+        else:
+            logging.info(f"Password reset requested for non-existent email: {email}")
+        
+        # Always show success message to prevent email enumeration
+        flash('If an account exists with that email, you will receive password reset instructions.', 'success')
+        return redirect(url_for('auth.login'))
+    
+    return render_template('auth/forgot_password.html')
+
+
+@auth_bp.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    """Reset password using token"""
+    if current_user.is_authenticated:
+        return redirect(url_for('main.feed'))
+    
+    # Find user with this token
+    user = User.query.filter_by(password_reset_token=token).first()
+    
+    if not user or not user.verify_reset_token(token):
+        flash('Invalid or expired reset link. Please request a new one.', 'error')
+        return redirect(url_for('auth.forgot_password'))
+    
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+        
+        if len(password) < 8:
+            flash('Password must be at least 8 characters', 'error')
+            return render_template('auth/reset_password.html', token=token)
+        
+        if password != confirm_password:
+            flash('Passwords do not match', 'error')
+            return render_template('auth/reset_password.html', token=token)
+        
+        # Update password and clear token
+        user.set_password(password)
+        user.clear_reset_token()
+        db.session.commit()
+        
+        flash('Your password has been reset successfully! Please log in.', 'success')
+        return redirect(url_for('auth.login'))
+    
+    return render_template('auth/reset_password.html', token=token)
+
+
 @auth_bp.route('/google/callback')
 def google_callback():
     """Handle Google OAuth callback - custom implementation with explicit redirect_uri"""
