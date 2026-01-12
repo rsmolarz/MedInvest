@@ -1,0 +1,643 @@
+// Prisma Schema for MedInvest
+// PostgreSQL database
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// USER & AUTH
+// =============================================================================
+
+model User {
+  id                 Int       @id @default(autoincrement())
+  email              String    @unique
+  password           String
+  full_name          String
+  username           String?   @unique
+  avatar_url         String?
+  bio                String?
+  specialty          String?
+  credentials        String?
+  location           String?
+  website            String?
+  is_verified        Boolean   @default(false)
+  is_premium         Boolean   @default(false)
+  is_admin           Boolean   @default(false)
+  email_verified     Boolean   @default(false)
+  email_verified_at  DateTime?
+  premium_expires_at DateTime?
+  last_seen_at       DateTime?
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+
+  // Relations
+  posts              Post[]
+  comments           Comment[]
+  likes              Like[]
+  bookmarks          Bookmark[]
+  reactions          Reaction[]
+  followers          Follow[]          @relation("following")
+  following          Follow[]          @relation("follower")
+  blocks_given       Block[]           @relation("blocker")
+  blocks_received    Block[]           @relation("blocked")
+  mutes_given        Mute[]            @relation("muter")
+  mutes_received     Mute[]            @relation("muted")
+  sent_messages      Message[]         @relation("sender")
+  conversations      ConversationParticipant[]
+  notifications      Notification[]    @relation("recipient")
+  notifications_sent Notification[]    @relation("actor")
+  reports_filed      Report[]          @relation("reporter")
+  reports_received   Report[]          @relation("reported")
+  room_memberships   RoomMember[]
+  deal_interests     DealInterest[]
+  deal_watches       DealWatch[]
+  pinned_posts       PinnedPost[]
+  poll_votes         PollVote[]
+  devices            Device[]
+  refresh_tokens     RefreshToken[]
+  verification_tokens VerificationToken[]
+  achievements       UserAchievement[]
+
+  @@index([email])
+  @@index([username])
+  @@index([specialty])
+}
+
+model RefreshToken {
+  id         Int      @id @default(autoincrement())
+  token      String   @unique
+  user_id    Int
+  expires_at DateTime
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([user_id])
+}
+
+model VerificationToken {
+  id         Int      @id @default(autoincrement())
+  token      String   @unique
+  type       String   // email_verify, password_reset
+  user_id    Int
+  expires_at DateTime
+  used_at    DateTime?
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([token])
+}
+
+// =============================================================================
+// POSTS & CONTENT
+// =============================================================================
+
+model Post {
+  id           Int       @id @default(autoincrement())
+  author_id    Int
+  room_id      Int?
+  content      String
+  is_anonymous Boolean   @default(false)
+  images       String[]
+  video_url    String?
+  views_count  Int       @default(0)
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+  deleted_at   DateTime?
+
+  // Relations
+  author     User       @relation(fields: [author_id], references: [id], onDelete: Cascade)
+  room       Room?      @relation(fields: [room_id], references: [id])
+  comments   Comment[]
+  likes      Like[]
+  bookmarks  Bookmark[]
+  reactions  Reaction[]
+  poll       Poll?
+  pinned_by  PinnedPost[]
+  hashtags   PostHashtag[]
+  mentions   Mention[]
+
+  @@index([author_id])
+  @@index([room_id])
+  @@index([created_at])
+}
+
+model Comment {
+  id         Int       @id @default(autoincrement())
+  post_id    Int
+  author_id  Int
+  parent_id  Int?
+  content    String
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  // Relations
+  post    Post      @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  author  User      @relation(fields: [author_id], references: [id], onDelete: Cascade)
+  parent  Comment?  @relation("replies", fields: [parent_id], references: [id])
+  replies Comment[] @relation("replies")
+  likes   CommentLike[]
+
+  @@index([post_id])
+  @@index([author_id])
+  @@index([parent_id])
+}
+
+model Like {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  post_id    Int
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, post_id])
+}
+
+model CommentLike {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  comment_id Int
+  created_at DateTime @default(now())
+
+  comment Comment @relation(fields: [comment_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, comment_id])
+}
+
+model Bookmark {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  post_id    Int
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, post_id])
+}
+
+model Reaction {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  post_id    Int
+  type       String   // like, love, laugh, wow, sad, fire, thinking, clap
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, post_id])
+  @@index([post_id, type])
+}
+
+model PinnedPost {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  post_id    Int
+  order      Int      @default(0)
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, post_id])
+  @@index([user_id])
+}
+
+// =============================================================================
+// POLLS
+// =============================================================================
+
+model Poll {
+  id             String    @id @default(uuid())
+  post_id        Int       @unique
+  question       String
+  allow_multiple Boolean   @default(false)
+  is_anonymous   Boolean   @default(false)
+  ends_at        DateTime?
+  created_at     DateTime  @default(now())
+
+  post    Post         @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  options PollOption[]
+  votes   PollVote[]
+}
+
+model PollOption {
+  id      String @id @default(uuid())
+  poll_id String
+  text    String
+  order   Int    @default(0)
+
+  poll  Poll       @relation(fields: [poll_id], references: [id], onDelete: Cascade)
+  votes PollVote[]
+
+  @@index([poll_id])
+}
+
+model PollVote {
+  id         Int      @id @default(autoincrement())
+  poll_id    String
+  option_id  String
+  user_id    Int
+  created_at DateTime @default(now())
+
+  poll   Poll       @relation(fields: [poll_id], references: [id], onDelete: Cascade)
+  option PollOption @relation(fields: [option_id], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([poll_id, option_id, user_id])
+  @@index([poll_id])
+}
+
+// =============================================================================
+// HASHTAGS & MENTIONS
+// =============================================================================
+
+model Hashtag {
+  id          Int      @id @default(autoincrement())
+  tag         String   @unique
+  posts_count Int      @default(0)
+  created_at  DateTime @default(now())
+
+  posts PostHashtag[]
+
+  @@index([tag])
+  @@index([posts_count])
+}
+
+model PostHashtag {
+  post_id    Int
+  hashtag_id Int
+
+  post    Post    @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  hashtag Hashtag @relation(fields: [hashtag_id], references: [id], onDelete: Cascade)
+
+  @@id([post_id, hashtag_id])
+}
+
+model Mention {
+  id               Int      @id @default(autoincrement())
+  post_id          Int
+  mentioned_user_id Int
+  created_at       DateTime @default(now())
+
+  post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
+
+  @@index([mentioned_user_id])
+}
+
+// =============================================================================
+// ROOMS
+// =============================================================================
+
+model Room {
+  id            Int      @id @default(autoincrement())
+  name          String
+  slug          String   @unique
+  description   String?
+  icon          String?
+  color         String?
+  is_default    Boolean  @default(false)
+  members_count Int      @default(0)
+  posts_count   Int      @default(0)
+  created_at    DateTime @default(now())
+
+  posts   Post[]
+  members RoomMember[]
+
+  @@index([slug])
+}
+
+model RoomMember {
+  id         Int      @id @default(autoincrement())
+  room_id    Int
+  user_id    Int
+  created_at DateTime @default(now())
+
+  room Room @relation(fields: [room_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([room_id, user_id])
+}
+
+// =============================================================================
+// SOCIAL (FOLLOW, BLOCK, MUTE)
+// =============================================================================
+
+model Follow {
+  id          Int      @id @default(autoincrement())
+  follower_id Int
+  following_id Int
+  created_at  DateTime @default(now())
+
+  follower  User @relation("follower", fields: [follower_id], references: [id], onDelete: Cascade)
+  following User @relation("following", fields: [following_id], references: [id], onDelete: Cascade)
+
+  @@unique([follower_id, following_id])
+  @@index([follower_id])
+  @@index([following_id])
+}
+
+model Block {
+  id         Int      @id @default(autoincrement())
+  blocker_id Int
+  blocked_id Int
+  created_at DateTime @default(now())
+
+  blocker User @relation("blocker", fields: [blocker_id], references: [id], onDelete: Cascade)
+  blocked User @relation("blocked", fields: [blocked_id], references: [id], onDelete: Cascade)
+
+  @@unique([blocker_id, blocked_id])
+}
+
+model Mute {
+  id                 Int       @id @default(autoincrement())
+  muter_id           Int
+  muted_id           Int
+  mute_posts         Boolean   @default(true)
+  mute_comments      Boolean   @default(true)
+  mute_messages      Boolean   @default(true)
+  mute_notifications Boolean   @default(true)
+  expires_at         DateTime?
+  created_at         DateTime  @default(now())
+
+  muter User @relation("muter", fields: [muter_id], references: [id], onDelete: Cascade)
+  muted User @relation("muted", fields: [muted_id], references: [id], onDelete: Cascade)
+
+  @@unique([muter_id, muted_id])
+}
+
+// =============================================================================
+// MESSAGING
+// =============================================================================
+
+model Conversation {
+  id         Int      @id @default(autoincrement())
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  id              Int       @id @default(autoincrement())
+  conversation_id Int
+  user_id         Int
+  is_muted        Boolean   @default(false)
+  last_read_at    DateTime?
+  created_at      DateTime  @default(now())
+
+  conversation Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([conversation_id, user_id])
+  @@index([user_id])
+}
+
+model Message {
+  id              Int      @id @default(autoincrement())
+  conversation_id Int
+  sender_id       Int
+  content         String
+  attachments     String[]
+  created_at      DateTime @default(now())
+  deleted_at      DateTime?
+
+  conversation Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  sender       User         @relation("sender", fields: [sender_id], references: [id], onDelete: Cascade)
+
+  @@index([conversation_id])
+  @@index([sender_id])
+  @@index([created_at])
+}
+
+// =============================================================================
+// NOTIFICATIONS
+// =============================================================================
+
+model Notification {
+  id           Int       @id @default(autoincrement())
+  recipient_id Int
+  actor_id     Int?
+  type         String    // like, comment, reply, mention, follow, message, deal_update, system, achievement
+  title        String
+  body         String
+  data         Json?
+  is_read      Boolean   @default(false)
+  read_at      DateTime?
+  created_at   DateTime  @default(now())
+
+  recipient User  @relation("recipient", fields: [recipient_id], references: [id], onDelete: Cascade)
+  actor     User? @relation("actor", fields: [actor_id], references: [id], onDelete: SetNull)
+
+  @@index([recipient_id])
+  @@index([recipient_id, is_read])
+  @@index([created_at])
+}
+
+model Device {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  token      String   @unique
+  platform   String   // ios, android, web
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([token])
+}
+
+// =============================================================================
+// REPORTS & MODERATION
+// =============================================================================
+
+model Report {
+  id          Int       @id @default(autoincrement())
+  reporter_id Int
+  reported_id Int?      // User being reported (if user report)
+  type        String    // user, post, comment, message
+  target_id   Int       // ID of the reported item
+  reason      String
+  details     String?
+  status      String    @default("pending") // pending, reviewed, resolved, dismissed
+  reviewed_at DateTime?
+  reviewed_by Int?
+  created_at  DateTime  @default(now())
+
+  reporter User  @relation("reporter", fields: [reporter_id], references: [id], onDelete: Cascade)
+  reported User? @relation("reported", fields: [reported_id], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([type])
+}
+
+// =============================================================================
+// DEALS & INVESTMENTS
+// =============================================================================
+
+model Deal {
+  id                 Int       @id @default(autoincrement())
+  title              String
+  company_name       String
+  description        String
+  sector             String
+  stage              String    // seed, series_a, series_b, series_c, growth, pre_ipo
+  minimum_investment Int
+  target_raise       Int
+  current_raise      Int       @default(0)
+  valuation          Int?
+  logo_url           String?
+  cover_image_url    String?
+  deadline           DateTime?
+  is_featured        Boolean   @default(false)
+  is_active          Boolean   @default(true)
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+
+  documents DealDocument[]
+  interests DealInterest[]
+  watches   DealWatch[]
+
+  @@index([sector])
+  @@index([stage])
+  @@index([is_featured])
+  @@index([is_active])
+}
+
+model DealDocument {
+  id         Int      @id @default(autoincrement())
+  deal_id    Int
+  name       String
+  type       String
+  url        String
+  created_at DateTime @default(now())
+
+  deal Deal @relation(fields: [deal_id], references: [id], onDelete: Cascade)
+
+  @@index([deal_id])
+}
+
+model DealInterest {
+  id         Int      @id @default(autoincrement())
+  deal_id    Int
+  user_id    Int
+  amount     Int?
+  message    String?
+  status     String   @default("pending") // pending, contacted, invested, declined
+  created_at DateTime @default(now())
+
+  deal Deal @relation(fields: [deal_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([deal_id, user_id])
+}
+
+model DealWatch {
+  id         Int      @id @default(autoincrement())
+  deal_id    Int
+  user_id    Int
+  created_at DateTime @default(now())
+
+  deal Deal @relation(fields: [deal_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([deal_id, user_id])
+}
+
+// =============================================================================
+// ACHIEVEMENTS
+// =============================================================================
+
+model Achievement {
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique
+  name        String
+  description String
+  icon        String?
+  points      Int      @default(0)
+  created_at  DateTime @default(now())
+
+  users UserAchievement[]
+}
+
+model UserAchievement {
+  id             Int      @id @default(autoincrement())
+  user_id        Int
+  achievement_id Int
+  earned_at      DateTime @default(now())
+
+  user        User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievement_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, achievement_id])
+}
+
+// =============================================================================
+// USER SETTINGS
+// =============================================================================
+
+model UserSettings {
+  id      Int  @id @default(autoincrement())
+  user_id Int  @unique
+
+  // Notification settings
+  notifications_enabled    Boolean @default(true)
+  notify_likes             Boolean @default(true)
+  notify_comments          Boolean @default(true)
+  notify_mentions          Boolean @default(true)
+  notify_follows           Boolean @default(true)
+  notify_messages          Boolean @default(true)
+  notify_deals             Boolean @default(true)
+  quiet_hours_enabled      Boolean @default(false)
+  quiet_hours_start        String  @default("22:00")
+  quiet_hours_end          String  @default("07:00")
+
+  // Content preferences
+  hide_nsfw                Boolean @default(false)
+  blur_sensitive_images    Boolean @default(true)
+  autoplay_videos          String  @default("wifi") // always, wifi, never
+  muted_keywords           String[]
+
+  // Privacy settings
+  profile_visibility       String  @default("public") // public, followers, private
+  allow_messages_from      String  @default("everyone") // everyone, followers, none
+  show_online_status       Boolean @default(true)
+  show_read_receipts       Boolean @default(true)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+// =============================================================================
+// DATA EXPORTS
+// =============================================================================
+
+model DataExport {
+  id           Int       @id @default(autoincrement())
+  user_id      Int
+  categories   String[]
+  format       String    // json, csv, html
+  status       String    @default("pending") // pending, processing, completed, failed
+  progress     Int       @default(0)
+  download_url String?
+  expires_at   DateTime?
+  created_at   DateTime  @default(now())
+  completed_at DateTime?
+
+  @@index([user_id])
+  @@index([status])
+}
