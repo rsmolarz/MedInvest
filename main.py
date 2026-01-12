@@ -45,9 +45,9 @@ from routes.notifications import notifications_bp
 app.register_blueprint(main_bp)
 app.register_blueprint(auth_bp)
 
-# Register Google OAuth blueprint
+# Register Google OAuth blueprint (callback will be at /login/google/authorized)
 from routes.auth import google_bp
-app.register_blueprint(google_bp, url_prefix='/auth/google')
+app.register_blueprint(google_bp, url_prefix='/login')
 app.register_blueprint(rooms_bp)
 app.register_blueprint(ama_bp)
 app.register_blueprint(deals_bp)
