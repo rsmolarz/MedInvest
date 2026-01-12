@@ -8,8 +8,41 @@
 .chat-message.user { margin-left: auto; }
 .chat-message .bubble { padding: 1rem; border-radius: 1rem; }
 .chat-message.user .bubble { background: #2563eb; color: white; border-bottom-right-radius: 0; }
-.chat-message.ai .bubble { background: #f1f5f9; border-bottom-left-radius: 0; }
+.chat-message.ai .bubble { background: #f1f5f9; color: #1e293b; border-bottom-left-radius: 0; }
 .suggestion-btn { font-size: 0.85rem; }
+
+/* Dark mode styles for AI chat */
+[data-theme="dark"] .chat-message.ai .bubble { 
+    background: #334155; 
+    color: #f1f5f9; 
+}
+[data-theme="dark"] .chat-message.ai .bubble ul,
+[data-theme="dark"] .chat-message.ai .bubble li,
+[data-theme="dark"] .chat-message.ai .bubble p,
+[data-theme="dark"] .chat-message.ai .bubble strong {
+    color: #f1f5f9;
+}
+[data-theme="dark"] .card {
+    background: #1e293b;
+    border-color: #334155;
+}
+[data-theme="dark"] .card-header {
+    background: #1e293b;
+    border-color: #334155;
+    color: #f1f5f9;
+}
+[data-theme="dark"] .card-footer {
+    background: #1e293b;
+    border-color: #334155;
+}
+[data-theme="dark"] .form-control {
+    background: #334155;
+    border-color: #475569;
+    color: #f1f5f9;
+}
+[data-theme="dark"] .form-control::placeholder {
+    color: #94a3b8;
+}
 </style>
 {% endblock %}
 
