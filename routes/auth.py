@@ -16,7 +16,8 @@ google_bp = make_google_blueprint(
     client_id=os.environ.get('GOOGLE_CLIENT_ID'),
     client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
     scope=['openid', 'email', 'profile'],
-    redirect_to='auth.google_callback'
+    redirect_to='auth.google_callback',
+    redirect_url=os.environ.get('GOOGLE_OAUTH_REDIRECT_URL')
 )
 
 
