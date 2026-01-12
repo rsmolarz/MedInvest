@@ -45,9 +45,8 @@ from routes.notifications import notifications_bp
 app.register_blueprint(main_bp)
 app.register_blueprint(auth_bp)
 
-# Register Google OAuth blueprint (callback will be at /login/google/authorized)
-from routes.auth import google_bp
-app.register_blueprint(google_bp, url_prefix='/login')
+# Note: Google OAuth is now handled by custom routes in auth_bp
+# The Flask-Dance blueprint was removed to avoid redirect_uri conflicts
 app.register_blueprint(rooms_bp)
 app.register_blueprint(ama_bp)
 app.register_blueprint(deals_bp)
