@@ -37,19 +37,187 @@
                             <label class="form-label">Specialty</label>
                             <select name="specialty" class="form-select" required>
                                 <option value="">Select your specialty...</option>
-                                <option value="anesthesiology">Anesthesiology</option>
-                                <option value="cardiology">Cardiology</option>
-                                <option value="dermatology">Dermatology</option>
-                                <option value="emergency_medicine">Emergency Medicine</option>
-                                <option value="family_medicine">Family Medicine</option>
-                                <option value="internal_medicine">Internal Medicine</option>
-                                <option value="neurology">Neurology</option>
-                                <option value="orthopedics">Orthopedics</option>
-                                <option value="pediatrics">Pediatrics</option>
-                                <option value="psychiatry">Psychiatry</option>
-                                <option value="radiology">Radiology</option>
-                                <option value="surgery">Surgery</option>
-                                <option value="other">Other</option>
+                                <optgroup label="Primary Care">
+                                    <option value="family_medicine">Family Medicine</option>
+                                    <option value="internal_medicine">Internal Medicine</option>
+                                    <option value="pediatrics">Pediatrics</option>
+                                    <option value="geriatric_medicine">Geriatric Medicine</option>
+                                    <option value="adolescent_medicine">Adolescent Medicine</option>
+                                </optgroup>
+                                <optgroup label="Internal Medicine Subspecialties">
+                                    <option value="cardiology">Cardiology</option>
+                                    <option value="interventional_cardiology">Interventional Cardiology</option>
+                                    <option value="electrophysiology">Electrophysiology</option>
+                                    <option value="gastroenterology">Gastroenterology</option>
+                                    <option value="hepatology">Hepatology</option>
+                                    <option value="pulmonology">Pulmonology</option>
+                                    <option value="critical_care_medicine">Critical Care Medicine</option>
+                                    <option value="nephrology">Nephrology</option>
+                                    <option value="endocrinology">Endocrinology</option>
+                                    <option value="rheumatology">Rheumatology</option>
+                                    <option value="hematology">Hematology</option>
+                                    <option value="oncology">Oncology</option>
+                                    <option value="hematology_oncology">Hematology/Oncology</option>
+                                    <option value="infectious_disease">Infectious Disease</option>
+                                    <option value="allergy_immunology">Allergy & Immunology</option>
+                                    <option value="hospitalist">Hospitalist Medicine</option>
+                                </optgroup>
+                                <optgroup label="Surgical Specialties">
+                                    <option value="general_surgery">General Surgery</option>
+                                    <option value="cardiothoracic_surgery">Cardiothoracic Surgery</option>
+                                    <option value="vascular_surgery">Vascular Surgery</option>
+                                    <option value="neurosurgery">Neurosurgery</option>
+                                    <option value="orthopedic_surgery">Orthopedic Surgery</option>
+                                    <option value="sports_medicine_ortho">Sports Medicine (Orthopedic)</option>
+                                    <option value="spine_surgery">Spine Surgery</option>
+                                    <option value="hand_surgery">Hand Surgery</option>
+                                    <option value="plastic_surgery">Plastic Surgery</option>
+                                    <option value="reconstructive_surgery">Reconstructive Surgery</option>
+                                    <option value="transplant_surgery">Transplant Surgery</option>
+                                    <option value="trauma_surgery">Trauma Surgery</option>
+                                    <option value="surgical_oncology">Surgical Oncology</option>
+                                    <option value="colorectal_surgery">Colorectal Surgery</option>
+                                    <option value="bariatric_surgery">Bariatric Surgery</option>
+                                    <option value="pediatric_surgery">Pediatric Surgery</option>
+                                </optgroup>
+                                <optgroup label="Neurology & Psychiatry">
+                                    <option value="neurology">Neurology</option>
+                                    <option value="neurointerventional">Neurointerventional</option>
+                                    <option value="movement_disorders">Movement Disorders</option>
+                                    <option value="epilepsy">Epilepsy</option>
+                                    <option value="sleep_medicine">Sleep Medicine</option>
+                                    <option value="headache_medicine">Headache Medicine</option>
+                                    <option value="neuromuscular_medicine">Neuromuscular Medicine</option>
+                                    <option value="psychiatry">Psychiatry</option>
+                                    <option value="child_psychiatry">Child & Adolescent Psychiatry</option>
+                                    <option value="addiction_psychiatry">Addiction Psychiatry</option>
+                                    <option value="forensic_psychiatry">Forensic Psychiatry</option>
+                                    <option value="geriatric_psychiatry">Geriatric Psychiatry</option>
+                                    <option value="consultation_liaison">Consultation-Liaison Psychiatry</option>
+                                </optgroup>
+                                <optgroup label="Obstetrics & Gynecology">
+                                    <option value="obstetrics_gynecology">Obstetrics & Gynecology</option>
+                                    <option value="maternal_fetal_medicine">Maternal-Fetal Medicine</option>
+                                    <option value="reproductive_endocrinology">Reproductive Endocrinology</option>
+                                    <option value="gynecologic_oncology">Gynecologic Oncology</option>
+                                    <option value="urogynecology">Urogynecology</option>
+                                    <option value="minimally_invasive_gyn">Minimally Invasive Gynecologic Surgery</option>
+                                </optgroup>
+                                <optgroup label="Pediatric Subspecialties">
+                                    <option value="pediatric_cardiology">Pediatric Cardiology</option>
+                                    <option value="pediatric_gastroenterology">Pediatric Gastroenterology</option>
+                                    <option value="pediatric_pulmonology">Pediatric Pulmonology</option>
+                                    <option value="pediatric_nephrology">Pediatric Nephrology</option>
+                                    <option value="pediatric_neurology">Pediatric Neurology</option>
+                                    <option value="pediatric_hematology_oncology">Pediatric Hematology/Oncology</option>
+                                    <option value="pediatric_endocrinology">Pediatric Endocrinology</option>
+                                    <option value="pediatric_infectious_disease">Pediatric Infectious Disease</option>
+                                    <option value="pediatric_critical_care">Pediatric Critical Care</option>
+                                    <option value="pediatric_emergency">Pediatric Emergency Medicine</option>
+                                    <option value="neonatology">Neonatology</option>
+                                    <option value="developmental_behavioral_peds">Developmental-Behavioral Pediatrics</option>
+                                </optgroup>
+                                <optgroup label="Emergency & Critical Care">
+                                    <option value="emergency_medicine">Emergency Medicine</option>
+                                    <option value="critical_care">Critical Care / ICU</option>
+                                    <option value="medical_toxicology">Medical Toxicology</option>
+                                    <option value="wilderness_medicine">Wilderness Medicine</option>
+                                    <option value="disaster_medicine">Disaster Medicine</option>
+                                    <option value="ems_medicine">EMS Medicine</option>
+                                </optgroup>
+                                <optgroup label="Anesthesiology & Pain">
+                                    <option value="anesthesiology">Anesthesiology</option>
+                                    <option value="cardiac_anesthesiology">Cardiac Anesthesiology</option>
+                                    <option value="neuro_anesthesiology">Neuroanesthesiology</option>
+                                    <option value="pediatric_anesthesiology">Pediatric Anesthesiology</option>
+                                    <option value="obstetric_anesthesiology">Obstetric Anesthesiology</option>
+                                    <option value="pain_medicine">Pain Medicine</option>
+                                    <option value="regional_anesthesia">Regional Anesthesia</option>
+                                </optgroup>
+                                <optgroup label="Radiology & Imaging">
+                                    <option value="diagnostic_radiology">Diagnostic Radiology</option>
+                                    <option value="interventional_radiology">Interventional Radiology</option>
+                                    <option value="neuroradiology">Neuroradiology</option>
+                                    <option value="musculoskeletal_radiology">Musculoskeletal Radiology</option>
+                                    <option value="pediatric_radiology">Pediatric Radiology</option>
+                                    <option value="breast_imaging">Breast Imaging</option>
+                                    <option value="nuclear_medicine">Nuclear Medicine</option>
+                                    <option value="radiation_oncology">Radiation Oncology</option>
+                                </optgroup>
+                                <optgroup label="Dermatology">
+                                    <option value="dermatology">Dermatology</option>
+                                    <option value="dermatopathology">Dermatopathology</option>
+                                    <option value="pediatric_dermatology">Pediatric Dermatology</option>
+                                    <option value="mohs_surgery">Mohs Surgery</option>
+                                    <option value="cosmetic_dermatology">Cosmetic Dermatology</option>
+                                </optgroup>
+                                <optgroup label="Ophthalmology">
+                                    <option value="ophthalmology">Ophthalmology</option>
+                                    <option value="retina">Retina</option>
+                                    <option value="glaucoma">Glaucoma</option>
+                                    <option value="cornea">Cornea</option>
+                                    <option value="oculoplastics">Oculoplastics</option>
+                                    <option value="pediatric_ophthalmology">Pediatric Ophthalmology</option>
+                                    <option value="neuro_ophthalmology">Neuro-Ophthalmology</option>
+                                </optgroup>
+                                <optgroup label="ENT / Otolaryngology">
+                                    <option value="otolaryngology">Otolaryngology (ENT)</option>
+                                    <option value="head_neck_surgery">Head & Neck Surgery</option>
+                                    <option value="otology_neurotology">Otology/Neurotology</option>
+                                    <option value="rhinology">Rhinology</option>
+                                    <option value="laryngology">Laryngology</option>
+                                    <option value="pediatric_otolaryngology">Pediatric Otolaryngology</option>
+                                    <option value="facial_plastic_surgery">Facial Plastic Surgery</option>
+                                </optgroup>
+                                <optgroup label="Urology">
+                                    <option value="urology">Urology</option>
+                                    <option value="urologic_oncology">Urologic Oncology</option>
+                                    <option value="female_pelvic_urology">Female Pelvic Medicine</option>
+                                    <option value="pediatric_urology">Pediatric Urology</option>
+                                    <option value="male_infertility">Male Infertility</option>
+                                    <option value="endourology">Endourology</option>
+                                </optgroup>
+                                <optgroup label="Physical Medicine & Rehab">
+                                    <option value="physical_medicine_rehab">Physical Medicine & Rehabilitation</option>
+                                    <option value="sports_medicine">Sports Medicine</option>
+                                    <option value="spinal_cord_medicine">Spinal Cord Medicine</option>
+                                    <option value="brain_injury_medicine">Brain Injury Medicine</option>
+                                    <option value="pain_rehab">Pain Rehabilitation</option>
+                                </optgroup>
+                                <optgroup label="Pathology & Laboratory">
+                                    <option value="pathology">Pathology</option>
+                                    <option value="anatomic_pathology">Anatomic Pathology</option>
+                                    <option value="clinical_pathology">Clinical Pathology</option>
+                                    <option value="surgical_pathology">Surgical Pathology</option>
+                                    <option value="cytopathology">Cytopathology</option>
+                                    <option value="hematopathology">Hematopathology</option>
+                                    <option value="neuropathology">Neuropathology</option>
+                                    <option value="forensic_pathology">Forensic Pathology</option>
+                                </optgroup>
+                                <optgroup label="Preventive & Occupational">
+                                    <option value="preventive_medicine">Preventive Medicine</option>
+                                    <option value="occupational_medicine">Occupational Medicine</option>
+                                    <option value="public_health">Public Health</option>
+                                    <option value="aerospace_medicine">Aerospace Medicine</option>
+                                    <option value="undersea_hyperbaric">Undersea & Hyperbaric Medicine</option>
+                                </optgroup>
+                                <optgroup label="Other Specialties">
+                                    <option value="medical_genetics">Medical Genetics</option>
+                                    <option value="palliative_care">Palliative Care / Hospice</option>
+                                    <option value="wound_care">Wound Care</option>
+                                    <option value="lifestyle_medicine">Lifestyle Medicine</option>
+                                    <option value="integrative_medicine">Integrative Medicine</option>
+                                    <option value="concierge_medicine">Concierge Medicine</option>
+                                    <option value="telemedicine">Telemedicine</option>
+                                    <option value="physician_executive">Physician Executive / Administration</option>
+                                    <option value="medical_education">Medical Education</option>
+                                    <option value="research">Research / Academic Medicine</option>
+                                    <option value="locum_tenens">Locum Tenens</option>
+                                    <option value="resident">Resident / Fellow</option>
+                                    <option value="medical_student">Medical Student</option>
+                                    <option value="retired">Retired Physician</option>
+                                    <option value="other">Other</option>
+                                </optgroup>
                             </select>
                         </div>
                         <div class="mb-3">
