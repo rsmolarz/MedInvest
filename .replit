@@ -38,3 +38,8 @@ deploymentTarget = "cloudrun"
 
 [objectStorage]
 defaultBucketID = "replit-objstore-b659791e-a9d2-4779-b2eb-b091ce83935d"
+
+[userenv]
+
+[userenv.shared]
+OAUTHLIB_RELAX_TOKEN_SCOPE = "1"
