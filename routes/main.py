@@ -708,7 +708,10 @@ def follow_user(user_id):
     from routes.notifications import notify_follow
     
     if user_id == current_user.id:
-        return jsonify({'error': 'Cannot follow yourself'}), 400
+        if request.headers.get('Accept') == 'application/json':
+            return jsonify({'error': 'Cannot follow yourself'}), 400
+        flash('Cannot follow yourself', 'error')
+        return redirect(request.referrer or url_for('main.network'))
     
     user = User.query.get_or_404(user_id)
     
@@ -721,7 +724,9 @@ def follow_user(user_id):
         # Unfollow
         db.session.delete(existing)
         db.session.commit()
-        return jsonify({'success': True, 'following': False})
+        if request.headers.get('Accept') == 'application/json':
+            return jsonify({'success': True, 'following': False})
+        flash(f'Unfollowed {user.first_name}', 'info')
     else:
         # Follow
         follow = Follow(follower_id=current_user.id, following_id=user_id)
@@ -731,5 +736,9 @@ def follow_user(user_id):
         notify_follow(user_id, current_user)
         
         db.session.commit()
-        return jsonify({'success': True, 'following': True})
+        if request.headers.get('Accept') == 'application/json':
+            return jsonify({'success': True, 'following': True})
+        flash(f'Now connected with {user.first_name}!', 'success')
+    
+    return redirect(request.referrer or url_for('main.network'))
 
