@@ -1846,6 +1846,69 @@ class UserFeedPreference(db.Model):
     user = db.relationship('User', backref=db.backref('feed_preferences', uselist=False))
 
 
+# =============================================================================
+# PROFILE ENHANCEMENT MODELS
+# =============================================================================
+
+class InvestmentSkill(db.Model):
+    """Investment skills that users can add to their profile"""
+    __tablename__ = 'investment_skills'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    name = db.Column(db.String(100), nullable=False)
+    category = db.Column(db.String(50), default='general')  # industry_knowledge, tools, general
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('skills', lazy='dynamic'))
+    endorsements = db.relationship('SkillEndorsement', back_populates='skill', lazy='dynamic', cascade='all, delete-orphan')
+    
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'name'),
+    )
+    
+    @property
+    def endorsement_count(self):
+        return self.endorsements.count()
+
+
+class SkillEndorsement(db.Model):
+    """Endorsements for user skills from other users"""
+    __tablename__ = 'skill_endorsements'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    skill_id = db.Column(db.Integer, db.ForeignKey('investment_skills.id'), nullable=False, index=True)
+    endorser_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    skill = db.relationship('InvestmentSkill', back_populates='endorsements')
+    endorser = db.relationship('User', backref=db.backref('given_endorsements', lazy='dynamic'))
+    
+    __table_args__ = (
+        db.UniqueConstraint('skill_id', 'endorser_id'),
+    )
+
+
+class Recommendation(db.Model):
+    """Professional recommendations from other physicians"""
+    __tablename__ = 'recommendations'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    
+    relationship_type = db.Column(db.String(50))  # colleague, mentor, mentee, co-investor
+    content = db.Column(db.Text, nullable=False)
+    is_visible = db.Column(db.Boolean, default=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', foreign_keys=[user_id], backref=db.backref('received_recommendations', lazy='dynamic'))
+    author = db.relationship('User', foreign_keys=[author_id], backref=db.backref('given_recommendations', lazy='dynamic'))
+
+
 class EngagementSnapshot(db.Model):
     """Hourly snapshots of post engagement for velocity calculation"""
     __tablename__ = 'engagement_snapshots'

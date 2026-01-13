@@ -134,6 +134,114 @@
             </div>
             {% endif %}
             
+            <!-- Investment Skills Section -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Investment Skills</h5>
+                    {% if user.id == current_user.id %}
+                    <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addSkillModal">
+                        <i class="fas fa-plus me-1"></i>Add Skill
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if skills %}
+                    <div class="row">
+                        {% for skill in skills %}
+                        <div class="col-md-6 mb-3">
+                            <div class="border rounded p-3 h-100">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1">{{ skill.name }}</h6>
+                                        <span class="badge bg-secondary mb-2">{{ skill.category|replace('_', ' ')|title }}</span>
+                                        <div class="text-muted small">
+                                            <i class="fas fa-users me-1"></i>{{ skill.endorsement_count }} endorsement{{ 's' if skill.endorsement_count != 1 else '' }}
+                                        </div>
+                                    </div>
+                                    {% if user.id != current_user.id %}
+                                    <form method="POST" action="{{ url_for('main.endorse_skill', skill_id=skill.id) }}">
+                                        <button type="submit" class="btn btn-sm {% if user_endorsements.get(skill.id) %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                            <i class="fas fa-thumbs-up me-1"></i>{% if user_endorsements.get(skill.id) %}Endorsed{% else %}Endorse{% endif %}
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <form method="POST" action="{{ url_for('main.delete_skill', skill_id=skill.id) }}" onsubmit="return confirm('Remove this skill?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">
+                        {% if user.id == current_user.id %}
+                        Add your investment skills to showcase your expertise and get endorsed by colleagues.
+                        {% else %}
+                        No skills added yet.
+                        {% endif %}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Recommendations Section -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-award me-2"></i>Recommendations</h5>
+                    {% if user.id != current_user.id %}
+                    <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#writeRecommendationModal">
+                        <i class="fas fa-pen me-1"></i>Write Recommendation
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if recommendations %}
+                    {% for rec in recommendations %}
+                    <div class="border rounded p-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="d-flex align-items-center">
+                                {% if rec.author.profile_image_url %}
+                                <img src="{{ rec.author.profile_image_url }}" class="rounded-circle me-2" style="width:40px;height:40px;object-fit:cover;">
+                                {% else %}
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style="width:40px;height:40px;">
+                                    {{ rec.author.first_name[0] }}{{ rec.author.last_name[0] }}
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <a href="{{ url_for('main.profile', user_id=rec.author.id) }}" class="fw-bold text-decoration-none">
+                                        {{ rec.author.first_name }} {{ rec.author.last_name }}
+                                    </a>
+                                    <div class="text-muted small">{{ rec.author.specialty or 'Physician' }} • {{ rec.relationship_type|replace('_', ' ')|title }}</div>
+                                </div>
+                            </div>
+                            {% if rec.author_id == current_user.id or rec.user_id == current_user.id %}
+                            <form method="POST" action="{{ url_for('main.delete_recommendation', rec_id=rec.id) }}" onsubmit="return confirm('Delete this recommendation?');">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        <p class="mb-1">{{ rec.content }}</p>
+                        <small class="text-muted">{{ rec.created_at.strftime('%B %Y') }}</small>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p class="text-muted mb-0">
+                        {% if user.id == current_user.id %}
+                        No recommendations yet. Ask colleagues to write a recommendation for you!
+                        {% else %}
+                        Be the first to recommend {{ user.first_name }}!
+                        {% endif %}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+            
             <div class="card">
                 <div class="card-header"><h5 class="mb-0">Recent Posts</h5></div>
                 <div class="list-group list-group-flush">
@@ -150,4 +258,82 @@
         </div>
     </div>
 </div>
+
+<!-- Add Skill Modal -->
+{% if user.id == current_user.id %}
+<div class="modal fade" id="addSkillModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Add Investment Skill</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('main.add_skill') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Skill Name</label>
+                        <input type="text" name="skill_name" class="form-control" required 
+                               placeholder="e.g., Real Estate Syndication, Tax Planning">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Category</label>
+                        <select name="skill_category" class="form-select">
+                            <option value="industry_knowledge">Industry Knowledge</option>
+                            <option value="tools">Tools & Technologies</option>
+                            <option value="general" selected>General</option>
+                        </select>
+                    </div>
+                    <div class="text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Popular skills: Real Estate, Tax Strategy, Index Funds, Stock Analysis, 
+                        Private Equity, Retirement Planning, Passive Income, REITs, Cryptocurrency
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Skill</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Write Recommendation Modal -->
+{% if user.id != current_user.id %}
+<div class="modal fade" id="writeRecommendationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-pen me-2"></i>Recommend {{ user.first_name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('main.add_recommendation', user_id=user.id) }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Your Relationship</label>
+                        <select name="relationship_type" class="form-select">
+                            <option value="colleague">Colleague</option>
+                            <option value="mentor">Mentor</option>
+                            <option value="mentee">Mentee</option>
+                            <option value="co_investor">Co-Investor</option>
+                            <option value="fellow_physician">Fellow Physician</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Your Recommendation</label>
+                        <textarea name="content" class="form-control" rows="5" required minlength="20"
+                                  placeholder="Share your experience working with {{ user.first_name }}. What makes them a great physician investor?"></textarea>
+                        <small class="text-muted">Minimum 20 characters</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Submit Recommendation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

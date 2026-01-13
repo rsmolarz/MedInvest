@@ -5,7 +5,7 @@ import json
 from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify
 from flask_login import login_required, current_user
 from app import db
-from models import Post, Room, PostVote, Bookmark, PostMedia, User, Hashtag, NotificationType, PostScore, UserFeedPreference
+from models import Post, Room, PostVote, Bookmark, PostMedia, User, Hashtag, NotificationType, PostScore, UserFeedPreference, InvestmentSkill, SkillEndorsement, Recommendation
 from utils.content import (
     extract_mentions, extract_hashtags, process_hashtags, 
     link_hashtag, render_content_with_links, get_trending_hashtags,
@@ -404,7 +404,21 @@ def profile(user_id=None):
     posts = Post.query.filter_by(author_id=user.id, is_anonymous=False)\
                       .order_by(Post.created_at.desc()).limit(10).all()
     
-    return render_template('profile.html', user=user, posts=posts)
+    skills = InvestmentSkill.query.filter_by(user_id=user.id).all()
+    
+    user_endorsements = {}
+    for skill in skills:
+        user_endorsements[skill.id] = SkillEndorsement.query.filter_by(
+            skill_id=skill.id, endorser_id=current_user.id
+        ).first() is not None
+    
+    recommendations = Recommendation.query.filter_by(
+        user_id=user.id, is_visible=True
+    ).order_by(Recommendation.created_at.desc()).all()
+    
+    return render_template('profile.html', user=user, posts=posts, 
+                          skills=skills, user_endorsements=user_endorsements,
+                          recommendations=recommendations)
 
 
 @main_bp.route('/profile/edit', methods=['POST'])
@@ -469,6 +483,141 @@ def upload_profile_picture():
     
     flash('Profile picture updated!', 'success')
     return redirect(url_for('main.profile'))
+
+
+@main_bp.route('/profile/skill/add', methods=['POST'])
+@login_required
+def add_skill():
+    """Add a new investment skill to profile"""
+    name = request.form.get('skill_name', '').strip()
+    category = request.form.get('skill_category', 'general')
+    
+    if not name:
+        flash('Please enter a skill name', 'error')
+        return redirect(url_for('main.profile'))
+    
+    existing = InvestmentSkill.query.filter_by(
+        user_id=current_user.id, name=name
+    ).first()
+    
+    if existing:
+        flash('You already have this skill', 'info')
+        return redirect(url_for('main.profile'))
+    
+    skill = InvestmentSkill(
+        user_id=current_user.id,
+        name=name,
+        category=category
+    )
+    db.session.add(skill)
+    db.session.commit()
+    
+    flash(f'Added "{name}" to your skills!', 'success')
+    return redirect(url_for('main.profile'))
+
+
+@main_bp.route('/profile/skill/<int:skill_id>/delete', methods=['POST'])
+@login_required
+def delete_skill(skill_id):
+    """Delete a skill from profile"""
+    skill = InvestmentSkill.query.get_or_404(skill_id)
+    
+    if skill.user_id != current_user.id:
+        flash('Unauthorized', 'error')
+        return redirect(url_for('main.profile'))
+    
+    db.session.delete(skill)
+    db.session.commit()
+    
+    flash('Skill removed', 'info')
+    return redirect(url_for('main.profile'))
+
+
+@main_bp.route('/profile/skill/<int:skill_id>/endorse', methods=['POST'])
+@login_required
+def endorse_skill(skill_id):
+    """Endorse a user's skill"""
+    skill = InvestmentSkill.query.get_or_404(skill_id)
+    
+    if skill.user_id == current_user.id:
+        flash("You can't endorse your own skills", 'error')
+        return redirect(url_for('main.profile', user_id=skill.user_id))
+    
+    existing = SkillEndorsement.query.filter_by(
+        skill_id=skill_id, endorser_id=current_user.id
+    ).first()
+    
+    if existing:
+        db.session.delete(existing)
+        db.session.commit()
+        flash('Endorsement removed', 'info')
+    else:
+        endorsement = SkillEndorsement(
+            skill_id=skill_id,
+            endorser_id=current_user.id
+        )
+        db.session.add(endorsement)
+        db.session.commit()
+        flash(f'You endorsed {skill.user.first_name}\'s {skill.name} skill!', 'success')
+    
+    return redirect(url_for('main.profile', user_id=skill.user_id))
+
+
+@main_bp.route('/profile/<int:user_id>/recommend', methods=['POST'])
+@login_required
+def add_recommendation(user_id):
+    """Write a recommendation for another user"""
+    user = User.query.get_or_404(user_id)
+    
+    if user.id == current_user.id:
+        flash("You can't recommend yourself", 'error')
+        return redirect(url_for('main.profile'))
+    
+    content = request.form.get('content', '').strip()
+    relationship_type = request.form.get('relationship_type', 'colleague')
+    
+    if not content or len(content) < 20:
+        flash('Please write at least 20 characters', 'error')
+        return redirect(url_for('main.profile', user_id=user_id))
+    
+    existing = Recommendation.query.filter_by(
+        user_id=user_id, author_id=current_user.id
+    ).first()
+    
+    if existing:
+        existing.content = content
+        existing.relationship_type = relationship_type
+        flash('Recommendation updated!', 'success')
+    else:
+        recommendation = Recommendation(
+            user_id=user_id,
+            author_id=current_user.id,
+            content=content,
+            relationship_type=relationship_type
+        )
+        db.session.add(recommendation)
+        flash(f'Your recommendation for {user.first_name} has been added!', 'success')
+    
+    db.session.commit()
+    return redirect(url_for('main.profile', user_id=user_id))
+
+
+@main_bp.route('/recommendation/<int:rec_id>/delete', methods=['POST'])
+@login_required
+def delete_recommendation(rec_id):
+    """Delete a recommendation (by author or recipient)"""
+    rec = Recommendation.query.get_or_404(rec_id)
+    
+    if rec.author_id != current_user.id and rec.user_id != current_user.id:
+        flash('Unauthorized', 'error')
+        return redirect(url_for('main.profile'))
+    
+    user_id = rec.user_id
+    db.session.delete(rec)
+    db.session.commit()
+    
+    flash('Recommendation removed', 'info')
+    return redirect(url_for('main.profile', user_id=user_id))
 
 
 @main_bp.route('/dashboard')
