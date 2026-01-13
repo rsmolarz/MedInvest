@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Get Verified - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow">
+                <div class="card-body p-4">
+                    <h2 class="text-center mb-2 fw-bold">Get Verified to use MedInvest</h2>
+                    <p class="text-center text-muted mb-4">Complete both of the following methods to get verified.</p>
+                    
+                    <ul class="nav nav-tabs nav-justified mb-4" id="verificationTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active d-flex flex-column align-items-center py-3" id="email-tab" data-bs-toggle="tab" data-bs-target="#email-pane" type="button" role="tab">
+                                <div class="mb-2 position-relative">
+                                    <i class="fas fa-envelope fa-2x text-primary"></i>
+                                    {% if current_user.professional_email_verified %}
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">
+                                        <i class="fas fa-check"></i>
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <span class="{% if current_user.professional_email_verified %}text-success{% endif %}">Professional Email</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link d-flex flex-column align-items-center py-3" id="license-tab" data-bs-toggle="tab" data-bs-target="#license-pane" type="button" role="tab">
+                                <div class="mb-2 position-relative">
+                                    <i class="fas fa-id-card fa-2x text-secondary"></i>
+                                    {% if current_user.license_verified %}
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">
+                                        <i class="fas fa-check"></i>
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <span class="{% if current_user.license_verified %}text-success{% endif %}">Upload License/ID</span>
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content" id="verificationTabContent">
+                        <div class="tab-pane fade show active" id="email-pane" role="tabpanel">
+                            {% if current_user.professional_email_verified %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-check-circle text-success fa-4x mb-3"></i>
+                                <h5 class="text-success">Email Verified</h5>
+                                <p class="text-muted">Your professional email <strong>{{ current_user.professional_email }}</strong> has been verified.</p>
+                            </div>
+                            {% elif show_code_form %}
+                            <p class="mb-3">We've sent a verification code to <strong>{{ current_user.professional_email }}</strong>. Enter it below:</p>
+                            <form action="{{ url_for('auth.verify_email_code') }}" method="POST">
+                                <div class="mb-3">
+                                    <label class="form-label">Verification Code</label>
+                                    <input type="text" name="code" class="form-control form-control-lg text-center" placeholder="Enter 6-digit code" maxlength="6" required pattern="[0-9]{6}">
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100 py-2">Verify Code</button>
+                            </form>
+                            <div class="text-center mt-3">
+                                <form action="{{ url_for('auth.send_verification_email') }}" method="POST" class="d-inline">
+                                    <input type="hidden" name="email" value="{{ current_user.professional_email }}">
+                                    <button type="submit" class="btn btn-link">Resend code</button>
+                                </form>
+                                <span class="mx-2">|</span>
+                                <a href="{{ url_for('auth.verify_physician') }}" class="btn btn-link">Use different email</a>
+                            </div>
+                            {% else %}
+                            <p class="mb-3">Please submit your professional email address so we can verify your account. You must have access to this email address to complete your verification.</p>
+                            <form action="{{ url_for('auth.send_verification_email') }}" method="POST">
+                                <div class="mb-3">
+                                    <input type="email" name="email" class="form-control form-control-lg" placeholder="Enter email address here" required>
+                                    <small class="text-muted d-block mt-2">
+                                        <em>example: you@ucsf.edu, you@kp.org, you@memorialhealth.com</em>
+                                    </small>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100 py-2">Submit</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="tab-pane fade" id="license-pane" role="tabpanel">
+                            {% if current_user.license_verified %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-check-circle text-success fa-4x mb-3"></i>
+                                <h5 class="text-success">License Verified</h5>
+                                <p class="text-muted">Your medical license has been verified by our team.</p>
+                            </div>
+                            {% elif current_user.license_document_url %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-clock text-warning fa-4x mb-3"></i>
+                                <h5 class="text-warning">Under Review</h5>
+                                <p class="text-muted">Your license document has been submitted and is being reviewed by our team. This typically takes 1-2 business days.</p>
+                                <p class="text-muted small">Submitted: {{ current_user.license_document_uploaded_at.strftime('%B %d, %Y') if current_user.license_document_uploaded_at else 'N/A' }}</p>
+                            </div>
+                            {% else %}
+                            <p class="mb-3">Upload a clear photo or scan of your medical license or hospital ID to verify your physician status.</p>
+                            <form action="{{ url_for('auth.upload_license') }}" method="POST" enctype="multipart/form-data">
+                                <div class="mb-4">
+                                    <label class="form-label">License/ID Document</label>
+                                    <div class="border rounded p-4 text-center bg-light" id="dropZone">
+                                        <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-2"></i>
+                                        <p class="mb-2">Drag and drop your file here or</p>
+                                        <label for="licenseFile" class="btn btn-outline-primary">
+                                            <i class="fas fa-file-upload me-1"></i>Browse Files
+                                        </label>
+                                        <input type="file" id="licenseFile" name="license_file" class="d-none" accept="image/*,.pdf" required>
+                                        <p class="text-muted small mt-2 mb-0">Accepted: JPG, PNG, PDF (max 10MB)</p>
+                                    </div>
+                                    <div id="filePreview" class="mt-2 d-none">
+                                        <span class="text-success"><i class="fas fa-check-circle me-1"></i>File selected: </span>
+                                        <span id="fileName"></span>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100 py-2">Upload Document</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if current_user.professional_email_verified and current_user.license_verified %}
+                    <div class="alert alert-success text-center mt-4 mb-0">
+                        <i class="fas fa-shield-check me-2"></i>
+                        <strong>Congratulations!</strong> You are now a verified physician on MedInvest.
+                    </div>
+                    {% elif current_user.professional_email_verified or current_user.license_document_url %}
+                    <div class="alert alert-info text-center mt-4 mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Complete both steps to become fully verified.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="text-center mt-4">
+                <a href="{{ url_for('main.feed') }}" class="text-muted">
+                    <i class="fas fa-arrow-left me-1"></i>Skip for now
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('licenseFile');
+    const filePreview = document.getElementById('filePreview');
+    const fileName = document.getElementById('fileName');
+    const dropZone = document.getElementById('dropZone');
+    
+    if (fileInput) {
+        fileInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                fileName.textContent = this.files[0].name;
+                filePreview.classList.remove('d-none');
+            }
+        });
+    }
+    
+    if (dropZone) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight(e) {
+            dropZone.classList.add('border-primary', 'bg-light');
+        }
+        
+        function unhighlight(e) {
+            dropZone.classList.remove('border-primary');
+        }
+        
+        dropZone.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            fileInput.files = files;
+            if (files && files[0]) {
+                fileName.textContent = files[0].name;
+                filePreview.classList.remove('d-none');
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

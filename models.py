@@ -114,6 +114,15 @@ class User(UserMixin, db.Model):
     password_reset_token = db.Column(db.String(100))
     password_reset_expires = db.Column(db.DateTime)
     
+    # Physician verification fields
+    professional_email = db.Column(db.String(120))
+    professional_email_verified = db.Column(db.Boolean, default=False)
+    professional_email_code = db.Column(db.String(6))
+    professional_email_code_expires = db.Column(db.DateTime)
+    license_document_url = db.Column(db.String(500))
+    license_document_uploaded_at = db.Column(db.DateTime)
+    license_verified = db.Column(db.Boolean, default=False)
+    
     # Relationships
     progress = db.relationship('UserProgress', back_populates='user', lazy='dynamic')
     forum_posts = db.relationship('ForumPost', back_populates='author', lazy='dynamic')

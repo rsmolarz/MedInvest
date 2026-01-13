@@ -1,16 +1,19 @@
 """
-Authentication Routes - Login, Register, Logout
+Authentication Routes - Login, Register, Logout, Verification
 """
 import os
 import logging
+import random
 from flask import Blueprint, render_template, redirect, url_for, request, flash, session
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_dance.contrib.google import make_google_blueprint, google
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import urlencode
+from werkzeug.utils import secure_filename
 import secrets
 from app import db
 from models import User, Referral
+from mailer import send_email
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -852,3 +855,190 @@ def google_callback():
         logging.error(f"Google OAuth error: {str(e)}")
         flash('An error occurred during Google login.', 'error')
         return redirect(url_for('auth.login'))
+
+
+
+# Physician Verification Routes
+ALLOWED_DOCUMENT_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
+
+def allowed_document_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_DOCUMENT_EXTENSIONS
+
+
+@auth_bp.route('/verify')
+@login_required
+def verify_physician():
+    """Physician verification page"""
+    show_code_form = bool(current_user.professional_email and 
+                          current_user.professional_email_code and 
+                          not current_user.professional_email_verified)
+    return render_template('verification.html', show_code_form=show_code_form)
+
+
+@auth_bp.route('/verify/email', methods=['POST'])
+@login_required
+def send_verification_email():
+    """Send verification code to professional email"""
+    email = request.form.get('email', '').strip().lower()
+    
+    if not email:
+        flash('Please enter an email address', 'error')
+        return redirect(url_for('auth.verify_physician'))
+    
+    # Extract domain from email
+    if '@' not in email:
+        flash('Please enter a valid email address', 'error')
+        return redirect(url_for('auth.verify_physician'))
+    
+    domain = email.split('@')[1].lower()
+    
+    # Allowed domain suffixes (must end with these)
+    allowed_suffixes = ['.edu', '.gov']
+    
+    # Specific allowed hospital/healthcare domains
+    allowed_domains = [
+        'kp.org', 'mayoclinic.org', 'clevelandclinic.org', 'cedars-sinai.org',
+        'upmc.edu', 'jhmi.edu', 'stanford.edu', 'harvard.edu', 'yale.edu',
+        'columbia.edu', 'ucsf.edu', 'ucla.edu', 'ucsd.edu', 'upenn.edu',
+        'northwestern.edu', 'duke.edu', 'emory.edu', 'unc.edu', 'osu.edu',
+        'memorialhealth.com', 'hcahealthcare.com', 'commonspirit.org',
+        'ascension.org', 'dignityhealth.org', 'sutter.org', 'providence.org',
+        'trinityhealthmichigan.org', 'beaumont.org', 'nhs.uk', 'nhs.net'
+    ]
+    
+    is_institutional = (
+        any(domain.endswith(suffix) for suffix in allowed_suffixes) or
+        domain in allowed_domains or
+        domain.endswith('.hospital.org') or
+        domain.endswith('.medcenter.org')
+    )
+    
+    if not is_institutional:
+        flash('Please use an institutional email (.edu, .gov) or recognized hospital domain (e.g., @ucsf.edu, @kp.org)', 'warning')
+        return redirect(url_for('auth.verify_physician'))
+    
+    # Generate 6-digit code
+    code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+    
+    # Store code and email
+    current_user.professional_email = email
+    current_user.professional_email_code = code
+    current_user.professional_email_code_expires = datetime.utcnow() + timedelta(minutes=30)
+    db.session.commit()
+    
+    # Send verification email
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #1a73e8;">MedInvest Email Verification</h2>
+        <p>Hello,</p>
+        <p>Your verification code is:</p>
+        <div style="background: #f5f5f5; padding: 20px; text-align: center; font-size: 32px; letter-spacing: 8px; font-weight: bold; margin: 20px 0;">
+            {code}
+        </div>
+        <p>This code will expire in 30 minutes.</p>
+        <p>If you didn't request this verification, please ignore this email.</p>
+        <p style="color: #666; font-size: 12px; margin-top: 30px;">
+            MedInvest - Investment Education for Medical Professionals
+        </p>
+    </div>
+    """
+    
+    success = send_email(email, 'MedInvest - Verify Your Professional Email', html_content)
+    
+    if success:
+        flash(f'Verification code sent to {email}. Check your inbox!', 'success')
+    else:
+        flash('Unable to send verification email. Please try again later.', 'error')
+    
+    return redirect(url_for('auth.verify_physician'))
+
+
+@auth_bp.route('/verify/email/code', methods=['POST'])
+@login_required
+def verify_email_code():
+    """Verify the email code"""
+    code = request.form.get('code', '').strip()
+    
+    if not code:
+        flash('Please enter the verification code', 'error')
+        return redirect(url_for('auth.verify_physician'))
+    
+    if not current_user.professional_email_code:
+        flash('No verification code pending. Please request a new one.', 'error')
+        return redirect(url_for('auth.verify_physician'))
+    
+    if datetime.utcnow() > current_user.professional_email_code_expires:
+        flash('Verification code has expired. Please request a new one.', 'error')
+        current_user.professional_email_code = None
+        db.session.commit()
+        return redirect(url_for('auth.verify_physician'))
+    
+    if code != current_user.professional_email_code:
+        flash('Invalid verification code. Please try again.', 'error')
+        return redirect(url_for('auth.verify_physician'))
+    
+    # Mark email as verified
+    current_user.professional_email_verified = True
+    current_user.professional_email_code = None
+    current_user.professional_email_code_expires = None
+    
+    # Update overall verification status if both steps complete
+    if current_user.license_verified:
+        current_user.is_verified = True
+        current_user.verification_status = 'verified'
+        current_user.verified_at = datetime.utcnow()
+    
+    db.session.commit()
+    
+    flash('Professional email verified successfully!', 'success')
+    return redirect(url_for('auth.verify_physician'))
+
+
+@auth_bp.route('/verify/license', methods=['POST'])
+@login_required
+def upload_license():
+    """Upload medical license or ID document"""
+    if 'license_file' not in request.files:
+        flash('No file selected', 'error')
+        return redirect(url_for('auth.verify_physician'))
+    
+    file = request.files['license_file']
+    
+    if file.filename == '':
+        flash('No file selected', 'error')
+        return redirect(url_for('auth.verify_physician'))
+    
+    if not allowed_document_file(file.filename):
+        flash('Invalid file type. Please upload JPG, PNG, or PDF.', 'error')
+        return redirect(url_for('auth.verify_physician'))
+    
+    # Check file size (max 10MB)
+    file.seek(0, 2)
+    size = file.tell()
+    file.seek(0)
+    
+    if size > 10 * 1024 * 1024:
+        flash('File too large. Maximum size is 10MB.', 'error')
+        return redirect(url_for('auth.verify_physician'))
+    
+    # Generate unique filename
+    ext = file.filename.rsplit('.', 1)[1].lower()
+    unique_filename = f"license_{current_user.id}_{secrets.token_hex(8)}.{ext}"
+    
+    # Ensure upload directory exists
+    upload_dir = os.path.join('media', 'uploads', 'licenses')
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    # Save file
+    filepath = os.path.join(upload_dir, unique_filename)
+    file.save(filepath)
+    
+    # Update user record
+    current_user.license_document_url = f"/media/uploads/licenses/{unique_filename}"
+    current_user.license_document_uploaded_at = datetime.utcnow()
+    current_user.verification_status = 'pending'
+    current_user.verification_submitted_at = datetime.utcnow()
+    db.session.commit()
+    
+    flash('License document uploaded successfully! Our team will review it within 1-2 business days.', 'success')
+    return redirect(url_for('auth.verify_physician'))
