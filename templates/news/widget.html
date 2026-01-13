@@ -1,0 +1,37 @@
+<div class="card mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="fas fa-newspaper me-2 text-primary"></i>Business News</h6>
+        <a href="{{ url_for('news.news_feed') }}" class="small text-decoration-none">See all</a>
+    </div>
+    <div class="card-body p-0">
+        {% if articles %}
+        <div class="list-group list-group-flush">
+            {% for article in articles[:5] %}
+            <a href="{{ article.url }}" target="_blank" rel="noopener" 
+               class="list-group-item list-group-item-action py-3">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1 pe-2">
+                        <p class="mb-1 small fw-medium" style="line-height: 1.4;">
+                            {{ article.title[:80] }}{% if article.title|length > 80 %}...{% endif %}
+                        </p>
+                        <div class="d-flex align-items-center gap-2">
+                            <small class="text-muted">{{ article.source }}</small>
+                            <small class="text-muted">&bull;</small>
+                            <small class="text-muted">{{ article.time_formatted }}</small>
+                        </div>
+                    </div>
+                    <span class="badge bg-{{ article.sentiment.color }} rounded-pill" style="font-size: 10px;">
+                        <i class="fas fa-{{ article.sentiment.icon }}"></i>
+                    </span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <i class="fas fa-newspaper text-muted mb-2"></i>
+            <p class="small text-muted mb-0">No news available</p>
+        </div>
+        {% endif %}
+    </div>
+</div>

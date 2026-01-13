@@ -12,6 +12,7 @@ from utils.content import (
     search_users_for_mention, search_hashtags
 )
 from utils.algorithm import generate_feed, get_user_interests, get_people_you_may_know
+from utils.news import get_personalized_news
 from routes.notifications import create_notification, notify_mention
 
 main_bp = Blueprint('main', __name__)
@@ -85,6 +86,12 @@ def feed():
     # Get people you may know suggestions
     suggested_users = get_people_you_may_know(current_user, limit=6)
     
+    # Get personalized news for sidebar widget
+    try:
+        articles = get_personalized_news(current_user, limit=5)
+    except:
+        articles = []
+    
     # Create a pagination-like object for template compatibility
     class FeedPagination:
         def __init__(self, items, page, has_next, has_prev, pages):
@@ -104,6 +111,7 @@ def feed():
                          trending=trending,
                          suggested_users=suggested_users,
                          feed_type=feed_type,
+                         articles=articles,
                          render_content=render_content_with_links)
 
 

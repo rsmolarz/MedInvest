@@ -388,12 +388,18 @@
             </div>
             {% endif %}
 
+            <!-- Business News Widget -->
+            {% include 'news/widget.html' ignore missing %}
+
             <!-- Quick Links -->
             <div class="card mb-4">
                 <div class="card-header bg-white">
                     <h6 class="mb-0">Explore</h6>
                 </div>
                 <div class="list-group list-group-flush">
+                    <a href="{{ url_for('news.news_feed') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-newspaper text-info me-2"></i>Business News
+                    </a>
                     <a href="{{ url_for('rooms.list_rooms') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-comments text-primary me-2"></i>Discussion Rooms
                     </a>

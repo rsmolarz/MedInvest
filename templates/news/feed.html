@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} - MedInvest{% endblock %}
+
+{% block extra_css %}
+<style>
+    .news-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        border: none;
+        border-radius: 12px;
+    }
+    .news-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .news-image {
+        height: 180px;
+        object-fit: cover;
+        border-radius: 12px 12px 0 0;
+    }
+    .news-image-placeholder {
+        height: 180px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px 12px 0 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .sentiment-badge {
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 12px;
+    }
+    .topic-pill {
+        font-size: 10px;
+        padding: 2px 8px;
+        border-radius: 10px;
+        background: #f0f0f0;
+        color: #666;
+    }
+    .ticker-badge {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: #e3f2fd;
+        color: #1976d2;
+    }
+    .topic-nav {
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .topic-nav::-webkit-scrollbar {
+        display: none;
+    }
+    .topic-btn {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 16px;
+        border-radius: 20px;
+        border: 1px solid #ddd;
+        background: white;
+        color: #333;
+        text-decoration: none;
+        margin-right: 8px;
+        transition: all 0.2s;
+    }
+    .topic-btn:hover {
+        border-color: #2563eb;
+        color: #2563eb;
+    }
+    .topic-btn.active {
+        background: #2563eb;
+        border-color: #2563eb;
+        color: white;
+    }
+    .news-source {
+        font-size: 12px;
+        color: #666;
+    }
+    .news-time {
+        font-size: 12px;
+        color: #999;
+    }
+    .search-ticker {
+        max-width: 300px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="mb-0"><i class="fas fa-newspaper me-2 text-primary"></i>{{ page_title }}</h4>
+            </div>
+            
+            <div class="topic-nav mb-4 pb-2">
+                {% for topic in topics %}
+                <a href="{{ url_for('news.news_feed', topic=topic.id) }}" 
+                   class="topic-btn {% if current_topic == topic.id and not current_ticker %}active{% endif %}">
+                    <i class="fas fa-{{ topic.icon }} me-2"></i>{{ topic.name }}
+                </a>
+                {% endfor %}
+            </div>
+            
+            {% if not articles %}
+            <div class="text-center py-5">
+                <i class="fas fa-newspaper fa-3x text-muted mb-3"></i>
+                <h5>No news available</h5>
+                <p class="text-muted">Check back later for the latest updates, or try a different topic.</p>
+            </div>
+            {% else %}
+            <div class="row">
+                {% for article in articles %}
+                <div class="col-md-6 mb-4">
+                    <div class="card news-card h-100">
+                        {% if article.banner_image %}
+                        <img src="{{ article.banner_image }}" alt="" class="news-image" 
+                             onerror="this.parentElement.innerHTML='<div class=\'news-image-placeholder\'><i class=\'fas fa-chart-line fa-3x text-white-50\'></i></div>' + this.parentElement.innerHTML.replace(this.outerHTML, '');">
+                        {% else %}
+                        <div class="news-image-placeholder">
+                            <i class="fas fa-chart-line fa-3x text-white-50"></i>
+                        </div>
+                        {% endif %}
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="news-source">{{ article.source }}</span>
+                                <span class="badge bg-{{ article.sentiment.color }} sentiment-badge">
+                                    <i class="fas fa-{{ article.sentiment.icon }} me-1"></i>{{ article.sentiment.label }}
+                                </span>
+                            </div>
+                            <h6 class="card-title mb-2">
+                                <a href="{{ article.url }}" target="_blank" rel="noopener" class="text-decoration-none text-dark stretched-link">
+                                    {{ article.title[:100] }}{% if article.title|length > 100 %}...{% endif %}
+                                </a>
+                            </h6>
+                            <p class="card-text small text-muted mb-2">{{ article.summary[:150] }}{% if article.summary|length > 150 %}...{% endif %}</p>
+                            
+                            {% if article.ticker_sentiments %}
+                            <div class="mb-2">
+                                {% for ticker in article.ticker_sentiments[:3] %}
+                                <a href="{{ url_for('news.news_feed', ticker=ticker.ticker) }}" 
+                                   class="ticker-badge text-decoration-none me-1"
+                                   onclick="event.stopPropagation();">
+                                    ${{ ticker.ticker }}
+                                </a>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    {% for topic in article.topics[:2] %}
+                                    <span class="topic-pill me-1">{{ topic }}</span>
+                                    {% endfor %}
+                                </div>
+                                <span class="news-time">{{ article.time_formatted }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-search me-2"></i>Search by Ticker</h6>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('news.news_feed') }}" method="GET">
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="text" name="ticker" class="form-control" placeholder="AAPL, MSFT, etc." 
+                                   value="{{ current_ticker }}" maxlength="10">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </form>
+                    <small class="text-muted mt-2 d-block">Enter a stock ticker to see related news</small>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>About Sentiment Scores</h6>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted mb-3">AI-powered sentiment analysis from 50+ financial news sources.</p>
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-success me-2"><i class="fas fa-arrow-up"></i></span>
+                        <small>Bullish (score &ge; 0.35)</small>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-secondary me-2"><i class="fas fa-minus"></i></span>
+                        <small>Neutral (-0.15 to 0.15)</small>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-danger me-2"><i class="fas fa-arrow-down"></i></span>
+                        <small>Bearish (score &le; -0.35)</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Popular Tickers</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for ticker in ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'JNJ', 'UNH', 'PFE'] %}
+                        <a href="{{ url_for('news.news_feed', ticker=ticker) }}" 
+                           class="btn btn-sm btn-outline-primary">${{ ticker }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
