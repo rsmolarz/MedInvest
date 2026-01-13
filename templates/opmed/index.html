@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Op-MedInvest - Voices from the Medical Investing Community{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4" style="max-width:1200px;">
+    <div class="text-center mb-5">
+        <h1 class="display-5 fw-bold mb-2">
+            <i class="fas fa-pen-nib text-primary me-2"></i>Op-MedInvest
+        </h1>
+        <p class="lead text-muted">Voices from the Medical Investing Community</p>
+    </div>
+    
+    <nav class="mb-4">
+        <ul class="nav nav-pills justify-content-center">
+            {% for key, name in categories.items() %}
+            <li class="nav-item">
+                <a class="nav-link {% if current_category == key %}active{% endif %}" 
+                   href="{{ url_for('opmed.index', category=key) }}">{{ name }}</a>
+            </li>
+            {% endfor %}
+        </ul>
+    </nav>
+    
+    {% if featured and current_category == 'all' %}
+    <div class="row mb-5">
+        {% for article in featured %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm border-warning">
+                <span class="position-absolute top-0 start-0 badge bg-warning text-dark m-2">
+                    <i class="fas fa-star me-1"></i>Featured
+                </span>
+                {% if article.cover_image_url %}
+                <img src="{{ article.cover_image_url }}" class="card-img-top" alt="{{ article.title }}" style="height:180px;object-fit:cover;">
+                {% else %}
+                <div class="card-img-top bg-gradient d-flex align-items-center justify-content-center" 
+                     style="height:180px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <i class="fas fa-file-alt fa-3x text-white opacity-50"></i>
+                </div>
+                {% endif %}
+                <div class="card-body position-relative">
+                    <div class="position-absolute" style="top:-25px;left:50%;transform:translateX(-50%);">
+                        {% if article.author.profile_image_url %}
+                        <img src="{{ article.author.profile_image_url }}" class="rounded-circle border border-3 border-white" 
+                             style="width:50px;height:50px;object-fit:cover;">
+                        {% else %}
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center border border-3 border-white" 
+                             style="width:50px;height:50px;">
+                            {{ article.author.first_name[0] }}{{ article.author.last_name[0] }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <h5 class="card-title mt-4 text-center">
+                        <a href="{{ url_for('opmed.view_article', slug=article.slug) }}" class="text-decoration-none text-dark">
+                            {{ article.title }}
+                        </a>
+                    </h5>
+                    <p class="text-center text-muted small mb-0">
+                        {{ article.author.first_name }} {{ article.author.last_name }}{% if article.author.specialty %}, {{ article.author.specialty }}{% endif %}
+                    </p>
+                    <p class="text-center text-muted small">{{ article.published_at.strftime('%b %d, %Y') if article.published_at else '' }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <h4 class="mb-4">{{ categories.get(current_category, 'All Articles') }}</h4>
+    
+    <div class="row">
+        {% for article in articles.items %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                {% if article.cover_image_url %}
+                <img src="{{ article.cover_image_url }}" class="card-img-top" alt="{{ article.title }}" style="height:160px;object-fit:cover;">
+                {% else %}
+                <div class="card-img-top d-flex align-items-center justify-content-center" 
+                     style="height:160px;background:linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                    <i class="fas fa-file-alt fa-3x text-white opacity-50"></i>
+                </div>
+                {% endif %}
+                <div class="card-body position-relative">
+                    <div class="position-absolute" style="top:-25px;left:50%;transform:translateX(-50%);">
+                        {% if article.author.profile_image_url %}
+                        <img src="{{ article.author.profile_image_url }}" class="rounded-circle border border-3 border-white" 
+                             style="width:50px;height:50px;object-fit:cover;">
+                        {% else %}
+                        <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center border border-3 border-white" 
+                             style="width:50px;height:50px;font-size:14px;">
+                            {{ article.author.first_name[0] }}{{ article.author.last_name[0] }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <h6 class="card-title mt-4 text-center">
+                        <a href="{{ url_for('opmed.view_article', slug=article.slug) }}" class="text-decoration-none text-dark">
+                            {{ article.title|truncate(80) }}
+                        </a>
+                    </h6>
+                    <p class="text-center text-muted small mb-0">
+                        {{ article.author.first_name }} {{ article.author.last_name }}{% if article.specialty_tag %}, {{ article.specialty_tag }}{% endif %}
+                    </p>
+                    <p class="text-center text-muted small">{{ article.published_at.strftime('%b %d, %Y') if article.published_at else '' }}</p>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12 text-center py-5">
+            <i class="fas fa-file-alt fa-4x text-muted mb-3"></i>
+            <h5>No articles yet</h5>
+            <p class="text-muted">Be the first to share your insights with the community!</p>
+            <a href="{{ url_for('opmed.submit') }}" class="btn btn-primary">
+                <i class="fas fa-pen me-1"></i>Submit an Article
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    
+    {% if articles.pages > 1 %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if articles.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('opmed.index', category=current_category, page=articles.prev_num) }}">Previous</a>
+            </li>
+            {% endif %}
+            {% for p in articles.iter_pages() %}
+            {% if p %}
+            <li class="page-item {% if p == articles.page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('opmed.index', category=current_category, page=p) }}">{{ p }}</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+            {% endfor %}
+            {% if articles.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('opmed.index', category=current_category, page=articles.next_num) }}">Next</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+    
+    <div class="text-center mt-5 pt-4 border-top">
+        <p class="text-muted mb-3">Share your investment insights with the medical community</p>
+        <a href="{{ url_for('opmed.why_publish') }}" class="btn btn-outline-primary me-2">
+            <i class="fas fa-info-circle me-1"></i>Why Publish
+        </a>
+        <a href="{{ url_for('opmed.submit') }}" class="btn btn-primary">
+            <i class="fas fa-pen me-1"></i>Submit Your Article
+        </a>
+    </div>
+</div>
+{% endblock %}

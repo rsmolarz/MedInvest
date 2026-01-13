@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Submit Article - Op-MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:800px;">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('opmed.index') }}">Op-MedInvest</a></li>
+            <li class="breadcrumb-item active">Submit Article</li>
+        </ol>
+    </nav>
+    
+    <div class="card shadow">
+        <div class="card-body p-4">
+            <h2 class="mb-1">Submit Your Article</h2>
+            <p class="text-muted mb-4">Share your investment insights with the medical community</p>
+            
+            <form method="POST" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label class="form-label">Title <span class="text-danger">*</span></label>
+                    <input type="text" name="title" class="form-control form-control-lg" placeholder="Enter a compelling title" required minlength="10" maxlength="300">
+                    <small class="text-muted">Minimum 10 characters</small>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Category</label>
+                    <select name="category" class="form-select">
+                        {% for key, name in categories.items() if key != 'all' and key != 'from_editors' %}
+                        <option value="{{ key }}">{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Cover Image</label>
+                    <input type="file" name="cover_image" class="form-control" accept="image/*">
+                    <small class="text-muted">Recommended: 1200x630px for best display</small>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Excerpt (Optional)</label>
+                    <textarea name="excerpt" class="form-control" rows="2" placeholder="A brief summary that appears on article cards..." maxlength="500"></textarea>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="form-label">Article Content <span class="text-danger">*</span></label>
+                    <textarea name="content" id="articleContent" class="form-control" rows="15" 
+                              placeholder="Write your article here. You can use Markdown formatting..." 
+                              required minlength="500"></textarea>
+                    <small class="text-muted">Minimum 500 characters. HTML formatting is supported.</small>
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Submission Guidelines:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Original content only - no plagiarism</li>
+                        <li>Focus on investment education, not financial advice</li>
+                        <li>Include your medical perspective and experience</li>
+                        <li>Articles are reviewed before publication (1-2 business days)</li>
+                    </ul>
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane me-1"></i>Submit for Review
+                    </button>
+                    <a href="{{ url_for('opmed.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

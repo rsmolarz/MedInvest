@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}{{ article.title }} - Op-MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:800px;">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('opmed.index') }}">Op-MedInvest</a></li>
+            <li class="breadcrumb-item active">{{ article.title|truncate(40) }}</li>
+        </ol>
+    </nav>
+    
+    {% if article.cover_image_url %}
+    <img src="{{ article.cover_image_url }}" class="img-fluid rounded mb-4 w-100" alt="{{ article.title }}" style="max-height:400px;object-fit:cover;">
+    {% endif %}
+    
+    <h1 class="display-6 fw-bold mb-3">{{ article.title }}</h1>
+    
+    <div class="d-flex align-items-center mb-4">
+        {% if article.author.profile_image_url %}
+        <img src="{{ article.author.profile_image_url }}" class="rounded-circle me-3" 
+             style="width:60px;height:60px;object-fit:cover;">
+        {% else %}
+        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" 
+             style="width:60px;height:60px;font-size:18px;">
+            {{ article.author.first_name[0] }}{{ article.author.last_name[0] }}
+        </div>
+        {% endif %}
+        <div>
+            <a href="{{ url_for('main.profile', user_id=article.author.id) }}" class="fw-bold text-decoration-none">
+                {{ article.author.first_name }} {{ article.author.last_name }}
+            </a>
+            {% if article.author.is_verified %}<i class="fas fa-check-circle text-primary ms-1"></i>{% endif %}
+            <p class="text-muted mb-0 small">
+                {% if article.author.specialty %}{{ article.author.specialty }} | {% endif %}
+                {{ article.published_at.strftime('%B %d, %Y') if article.published_at else '' }}
+            </p>
+        </div>
+    </div>
+    
+    <div class="d-flex gap-3 mb-4 text-muted small">
+        <span><i class="fas fa-eye me-1"></i>{{ article.view_count }} views</span>
+        <span><i class="fas fa-heart me-1"></i>{{ article.like_count }} likes</span>
+        <span><i class="fas fa-comment me-1"></i>{{ article.comment_count }} comments</span>
+    </div>
+    
+    <hr>
+    
+    <article class="mb-5" style="font-size:1.1rem;line-height:1.8;">
+        {{ article.content|safe }}
+    </article>
+    
+    <div class="d-flex justify-content-between align-items-center py-3 border-top border-bottom mb-4">
+        <div class="d-flex gap-2">
+            <form method="POST" action="{{ url_for('opmed.like_article', article_id=article.id) }}">
+                <button type="submit" class="btn {% if user_liked %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    <i class="fas fa-heart me-1"></i>{% if user_liked %}Liked{% else %}Like{% endif %}
+                </button>
+            </form>
+            <button class="btn btn-outline-secondary" onclick="navigator.share({title: '{{ article.title }}', url: window.location.href})">
+                <i class="fas fa-share me-1"></i>Share
+            </button>
+        </div>
+        <div>
+            <span class="badge bg-secondary">{{ article.category|replace('_', ' ')|title }}</span>
+        </div>
+    </div>
+    
+    <div class="mb-5">
+        <h5 class="mb-3">Comments ({{ article.comment_count }})</h5>
+        
+        {% if current_user.is_authenticated %}
+        <form method="POST" action="{{ url_for('opmed.add_comment', article_id=article.id) }}" class="mb-4">
+            <div class="mb-2">
+                <textarea name="content" class="form-control" rows="3" placeholder="Share your thoughts..." required minlength="10"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Post Comment</button>
+        </form>
+        {% else %}
+        <p class="text-muted"><a href="{{ url_for('auth.login') }}">Log in</a> to leave a comment.</p>
+        {% endif %}
+        
+        {% for comment in comments %}
+        <div class="d-flex mb-3">
+            {% if comment.author.profile_image_url %}
+            <img src="{{ comment.author.profile_image_url }}" class="rounded-circle me-2" style="width:40px;height:40px;object-fit:cover;">
+            {% else %}
+            <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2" 
+                 style="width:40px;height:40px;font-size:12px;">
+                {{ comment.author.first_name[0] }}{{ comment.author.last_name[0] }}
+            </div>
+            {% endif %}
+            <div class="flex-grow-1">
+                <div class="bg-light rounded p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <a href="{{ url_for('main.profile', user_id=comment.author.id) }}" class="fw-bold text-decoration-none small">
+                            {{ comment.author.first_name }} {{ comment.author.last_name }}
+                        </a>
+                        <small class="text-muted">{{ comment.created_at.strftime('%b %d, %Y') }}</small>
+                    </div>
+                    <p class="mb-0">{{ comment.content }}</p>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-muted text-center py-3">No comments yet. Be the first to share your thoughts!</p>
+        {% endfor %}
+    </div>
+    
+    {% if related %}
+    <div class="border-top pt-4">
+        <h5 class="mb-3">Related Articles</h5>
+        <div class="row">
+            {% for rel in related %}
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    {% if rel.cover_image_url %}
+                    <img src="{{ rel.cover_image_url }}" class="card-img-top" style="height:100px;object-fit:cover;">
+                    {% endif %}
+                    <div class="card-body">
+                        <h6><a href="{{ url_for('opmed.view_article', slug=rel.slug) }}" class="text-decoration-none">{{ rel.title|truncate(50) }}</a></h6>
+                        <small class="text-muted">{{ rel.author.first_name }} {{ rel.author.last_name }}</small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

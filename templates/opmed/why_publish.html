@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Why Publish on Op-MedInvest{% endblock %}
+
+{% block content %}
+<div class="bg-primary text-white py-5 mb-5">
+    <div class="container text-center">
+        <h1 class="display-4 fw-bold mb-2">
+            <i class="fas fa-pen-nib me-2"></i>Op-MedInvest
+        </h1>
+        <p class="lead">Voices from the Medical Investing Community</p>
+    </div>
+</div>
+
+<div class="container" style="max-width:900px;">
+    <nav class="mb-5">
+        <ul class="nav nav-pills justify-content-center">
+            <li class="nav-item"><a class="nav-link active" href="#why-publish">Why Publish</a></li>
+            <li class="nav-item"><a class="nav-link" href="#popular">Popular Articles</a></li>
+            <li class="nav-item"><a class="nav-link" href="#how-to-submit">How to Submit</a></li>
+        </ul>
+    </nav>
+    
+    <section id="why-publish" class="mb-5">
+        <h2 class="fw-bold mb-4">Why publish on Op-MedInvest</h2>
+        <p class="lead">From retirement planning, to real estate investments, to tax strategies - we know you have important insights that could positively impact the financial lives of your peers.</p>
+        <p>With thousands of medical professionals in our community, MedInvest can help you reach your peers directly. Op-MedInvest provides clinician authors like you a place to share thoughts, opinions, and knowledge with the largest medical investing community.</p>
+        <p>Articles submitted to Op-MedInvest have the potential to be featured in our weekly emails and be viewed by thousands of members.</p>
+    </section>
+    
+    <section id="benefits" class="mb-5">
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 text-center p-4">
+                    <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                    <h5>Reach Your Peers</h5>
+                    <p class="text-muted">Share your expertise with thousands of medical professionals interested in investing.</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 text-center p-4">
+                    <i class="fas fa-award fa-3x text-primary mb-3"></i>
+                    <h5>Build Your Reputation</h5>
+                    <p class="text-muted">Establish yourself as a thought leader in medical professional investing.</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 text-center p-4">
+                    <i class="fas fa-network-wired fa-3x text-primary mb-3"></i>
+                    <h5>Grow Your Network</h5>
+                    <p class="text-muted">Connect with like-minded physicians who share your interest in financial growth.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    {% if popular_articles %}
+    <section id="popular" class="mb-5">
+        <h2 class="fw-bold mb-4">Popular Articles</h2>
+        <div class="row">
+            {% for article in popular_articles %}
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    {% if article.cover_image_url %}
+                    <img src="{{ article.cover_image_url }}" class="card-img-top" style="height:120px;object-fit:cover;">
+                    {% endif %}
+                    <div class="card-body">
+                        <h6><a href="{{ url_for('opmed.view_article', slug=article.slug) }}" class="text-decoration-none">{{ article.title|truncate(60) }}</a></h6>
+                        <small class="text-muted">{{ article.author.first_name }} {{ article.author.last_name }}</small>
+                        <div class="mt-2 small text-muted">
+                            <i class="fas fa-eye me-1"></i>{{ article.view_count }} views
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+    
+    <section id="how-to-submit" class="mb-5">
+        <h2 class="fw-bold mb-4">How to Submit</h2>
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <ol class="list-group list-group-numbered">
+                    <li class="list-group-item border-0">
+                        <strong>Write your article</strong><br>
+                        <small class="text-muted">Focus on investment topics relevant to medical professionals</small>
+                    </li>
+                    <li class="list-group-item border-0">
+                        <strong>Submit for review</strong><br>
+                        <small class="text-muted">Our editorial team reviews all submissions</small>
+                    </li>
+                    <li class="list-group-item border-0">
+                        <strong>Get published</strong><br>
+                        <small class="text-muted">Approved articles go live within 1-2 business days</small>
+                    </li>
+                </ol>
+            </div>
+            <div class="col-md-6 text-center">
+                <a href="{{ url_for('opmed.submit') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-pen me-2"></i>Submit Your Article
+                </a>
+            </div>
+        </div>
+    </section>
+    
+    <div class="alert alert-light border text-center py-4">
+        <h5>Questions about submitting?</h5>
+        <p class="text-muted mb-0">Contact us at <a href="mailto:opmed@medmoneyincubator.com">opmed@medmoneyincubator.com</a></p>
+    </div>
+</div>
+{% endblock %}

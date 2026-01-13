@@ -1941,3 +1941,86 @@ class EngagementSnapshot(db.Model):
         db.UniqueConstraint('post_id', 'snapshot_hour'),
         db.Index('idx_engagement_time', 'post_id', 'snapshot_hour'),
     )
+
+
+class OpMedArticle(db.Model):
+    """Op-MedInvest articles - essays from medical professionals about investing"""
+    __tablename__ = 'opmed_articles'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    
+    title = db.Column(db.String(300), nullable=False)
+    slug = db.Column(db.String(350), unique=True, nullable=False)
+    excerpt = db.Column(db.Text)  # Short summary for cards
+    content = db.Column(db.Text, nullable=False)
+    
+    # Media
+    cover_image_url = db.Column(db.String(500))
+    
+    # Categorization
+    category = db.Column(db.String(50), default='general')  # general, market_insights, retirement, real_estate, tax_strategy, from_editors
+    specialty_tag = db.Column(db.String(100))  # Author's specialty
+    
+    # Status
+    status = db.Column(db.String(20), default='draft')  # draft, pending_review, published, rejected
+    is_featured = db.Column(db.Boolean, default=False)
+    is_editors_pick = db.Column(db.Boolean, default=False)
+    
+    # Engagement
+    view_count = db.Column(db.Integer, default=0)
+    like_count = db.Column(db.Integer, default=0)
+    comment_count = db.Column(db.Integer, default=0)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    published_at = db.Column(db.DateTime)
+    
+    author = db.relationship('User', backref=db.backref('opmed_articles', lazy='dynamic'))
+    
+    def generate_slug(self):
+        """Generate URL-friendly slug from title"""
+        import re
+        slug = self.title.lower()
+        slug = re.sub(r'[^\w\s-]', '', slug)
+        slug = re.sub(r'[\s_-]+', '-', slug)
+        slug = slug.strip('-')
+        # Add timestamp for uniqueness
+        from datetime import datetime
+        slug = f"{slug}-{datetime.utcnow().strftime('%Y%m%d%H%M')}"
+        return slug[:350]
+
+
+class OpMedArticleLike(db.Model):
+    """Likes on Op-MedInvest articles"""
+    __tablename__ = 'opmed_article_likes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    article_id = db.Column(db.Integer, db.ForeignKey('opmed_articles.id'), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    article = db.relationship('OpMedArticle', backref=db.backref('likes', lazy='dynamic'))
+    user = db.relationship('User', backref=db.backref('opmed_article_likes', lazy='dynamic'))
+    
+    __table_args__ = (
+        db.UniqueConstraint('article_id', 'user_id'),
+    )
+
+
+class OpMedComment(db.Model):
+    """Comments on Op-MedInvest articles"""
+    __tablename__ = 'opmed_comments'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    article_id = db.Column(db.Integer, db.ForeignKey('opmed_articles.id'), nullable=False, index=True)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    
+    content = db.Column(db.Text, nullable=False)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    article = db.relationship('OpMedArticle', backref=db.backref('comments', lazy='dynamic'))
+    author = db.relationship('User', backref=db.backref('opmed_comments', lazy='dynamic'))
