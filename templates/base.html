@@ -79,10 +79,10 @@
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('ama.list_amas') }}"><i class="fas fa-video me-1"></i>AMAs</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('deals.list_deals') }}"><i class="fas fa-handshake me-1"></i>Deals</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('news.news_feed') }}"><i class="fas fa-newspaper me-1"></i>News</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('opmed.index') }}"><i class="fas fa-pen-nib me-1"></i>Op-Med</a></li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">More</a>
                         <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('opmed.index') }}"><i class="fas fa-pen-nib me-2"></i>Op-Med</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('courses.list_courses') }}"><i class="fas fa-graduation-cap me-2"></i>Courses</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('events.list_events') }}"><i class="fas fa-calendar me-2"></i>Events</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('mentorship.index') }}"><i class="fas fa-users me-2"></i>Mentorship</a></li>
