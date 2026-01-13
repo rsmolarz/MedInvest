@@ -623,6 +623,16 @@ def network():
     else:
         near_me = []
     
+    # People in the same specialty
+    if current_user.specialty:
+        same_specialty = User.query.filter(
+            User.specialty == current_user.specialty,
+            User.id != current_user.id,
+            User.id.notin_(following_ids) if following_ids else True
+        ).order_by(User.points.desc()).limit(20).all()
+    else:
+        same_specialty = []
+    
     colleagues = User.query.filter(
         User.id.in_(following_ids)
     ).order_by(User.last_name).all() if following_ids else []
@@ -632,6 +642,7 @@ def network():
                           pending_users=pending_users,
                           suggestions=suggestions,
                           near_me=near_me,
+                          same_specialty=same_specialty,
                           colleagues=colleagues,
                           pending_count=len(pending_users),
                           colleague_count=len(colleagues))

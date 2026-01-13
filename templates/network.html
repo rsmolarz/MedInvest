@@ -152,6 +152,11 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link {% if tab == 'specialty' %}active{% endif %}" href="{{ url_for('main.network', tab='specialty') }}">
+                                <i class="fas fa-stethoscope me-1"></i>Your Specialty
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link {% if tab == 'colleagues' %}active{% endif %}" href="{{ url_for('main.network', tab='colleagues') }}">
                                 Your {{ colleague_count }} Colleagues
                             </a>
@@ -252,6 +257,36 @@
                         <div class="text-center text-muted py-5 col-12">
                             <i class="fas fa-map-marker-alt fa-3x mb-3"></i>
                             <p>{% if not current_user.license_state %}Add your license state in your profile to see nearby colleagues{% else %}No nearby colleagues found{% endif %}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    {% elif tab == 'specialty' %}
+                    <div class="colleague-grid">
+                        {% for user in same_specialty %}
+                        <div class="colleague-card">
+                            <button class="dismiss-btn" title="Dismiss"><i class="fas fa-times"></i></button>
+                            <div class="colleague-avatar {% if not user.profile_image_url %}initials{% endif %}">
+                                {% if user.profile_image_url %}
+                                <img src="{{ user.profile_image_url }}" alt="{{ user.full_name }}">
+                                {% else %}
+                                {{ user.first_name[0] }}{{ user.last_name[0] }}
+                                {% endif %}
+                            </div>
+                            <div class="colleague-name">{{ user.full_name }}</div>
+                            <div class="colleague-specialty">{{ (user.specialty or 'Physician')|replace('_', ' ')|title }}</div>
+                            <div class="colleague-location">{{ user.license_state or '' }}</div>
+                            <div class="colleague-reason"><i class="fas fa-stethoscope text-primary me-1"></i>Same specialty as you</div>
+                            <form action="{{ url_for('main.follow_user', user_id=user.id) }}" method="POST" style="display:inline;">
+                                <button type="submit" class="btn-colleague">
+                                    <i class="fas fa-user-plus"></i> Colleague
+                                </button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <div class="text-center text-muted py-5 col-12">
+                            <i class="fas fa-stethoscope fa-3x mb-3"></i>
+                            <p>{% if not current_user.specialty %}Add your specialty in your profile to see colleagues in your field{% else %}No other {{ (current_user.specialty or '')|replace('_', ' ')|title }} physicians found{% endif %}</p>
                         </div>
                         {% endfor %}
                     </div>
