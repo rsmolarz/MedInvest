@@ -92,6 +92,22 @@ def feed():
     except:
         articles = []
     
+    # Get news articles for feed integration (interspersed with posts)
+    try:
+        feed_articles = get_personalized_news(current_user, limit=3) if page == 1 else []
+    except:
+        feed_articles = []
+    
+    # Create mixed feed items (posts + news)
+    mixed_feed = []
+    news_positions = [2, 7, 14]  # Insert news after these post positions
+    news_idx = 0
+    for i, post in enumerate(post_items):
+        mixed_feed.append({'type': 'post', 'item': post})
+        if i + 1 in news_positions and news_idx < len(feed_articles):
+            mixed_feed.append({'type': 'news', 'item': feed_articles[news_idx]})
+            news_idx += 1
+    
     # Create a pagination-like object for template compatibility
     class FeedPagination:
         def __init__(self, items, page, has_next, has_prev, pages):
@@ -112,6 +128,7 @@ def feed():
                          suggested_users=suggested_users,
                          feed_type=feed_type,
                          articles=articles,
+                         mixed_feed=mixed_feed,
                          render_content=render_content_with_links)
 
 
