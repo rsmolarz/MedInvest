@@ -267,7 +267,7 @@ def get_user_interests(user, db):
     interests['following_ids'] = {f.following_id for f in follows}
     
     # Get authors user has interacted with (liked, commented, bookmarked)
-    voted_posts = db.session.query(Post.user_id).join(PostVote).filter(
+    voted_posts = db.session.query(Post.author_id).join(PostVote).filter(
         PostVote.user_id == user.id
     ).distinct().all()
     interests['interacted_authors'] = {p[0] for p in voted_posts}
@@ -287,7 +287,7 @@ def get_user_interests(user, db):
     # Get favorite rooms (rooms user posts/comments in most)
     from models import Comment
     user_room_posts = db.session.query(Post.room_id, db.func.count(Post.id))\
-        .filter(Post.user_id == user.id, Post.room_id.isnot(None))\
+        .filter(Post.author_id == user.id, Post.room_id.isnot(None))\
         .group_by(Post.room_id)\
         .order_by(db.func.count(Post.id).desc())\
         .limit(5).all()
