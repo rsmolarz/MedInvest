@@ -219,9 +219,32 @@ export const ROOM_SPECIALTIES = [
 export type RoomSpecialty = (typeof ROOM_SPECIALTIES)[number];
 
 // =============================================================================
-// MESSAGE TYPES
+// MESSAGE / DM TYPES
 // =============================================================================
 
+export interface DMThread {
+  id: number;
+  other_user: UserPreview;
+  last_message?: DirectMessage;
+  unread_count: number;
+  created_at: string;
+}
+
+export interface DirectMessage {
+  id: number;
+  thread_id: number;
+  sender_id: number;
+  sender: UserPreview;
+  content: string;
+  read_at?: string;
+  created_at: string;
+}
+
+export interface DirectMessageCreate {
+  content: string;
+}
+
+// Legacy types for backwards compatibility
 export interface Conversation {
   id: number;
   participants: UserPreview[];

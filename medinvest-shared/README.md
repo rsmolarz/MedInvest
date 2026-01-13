@@ -273,6 +273,36 @@ await storage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
 Linking.openURL(DEEP_LINKS.POST + '/123');
 ```
 
+## Direct Messaging (DMs)
+
+The shared package includes full DM support for 1:1 private messaging:
+
+```typescript
+import { 
+  DMThread, 
+  DirectMessage, 
+  sendDirectMessageSchema,
+  createApiClient 
+} from '@medinvest/shared';
+
+const api = createApiClient({ /* config */ });
+
+// Get inbox (list of conversations)
+const inbox: DMThread[] = await api.getDMInbox();
+
+// Start a conversation with a user
+const { thread_id } = await api.startDMThread(userId);
+
+// Get messages in a thread
+const { thread, messages, other_user } = await api.getDMThread(threadId);
+
+// Send a message
+const message = await api.sendDirectMessage(threadId, 'Hello!');
+
+// Get unread count
+const { count } = await api.getDMUnreadCount();
+```
+
 ## Types Reference
 
 ### User Types
@@ -285,10 +315,15 @@ Linking.openURL(DEEP_LINKS.POST + '/123');
 - `PostCreate` - Creating a post
 - `PostUpdate` - Updating a post
 
+### Direct Message Types
+- `DMThread` - A conversation thread with another user
+- `DirectMessage` - A single message in a thread
+- `DirectMessageCreate` - Creating a new message
+
 ### Other Types
 - `Comment`, `CommentCreate`
-- `Message`, `MessageCreate`
-- `Conversation`
+- `Message`, `MessageCreate` (legacy)
+- `Conversation` (legacy)
 - `Notification`
 - `Room`
 - `Deal`

@@ -128,7 +128,7 @@ export const createCommentSchema = z.object({
 });
 
 // =============================================================================
-// MESSAGE VALIDATORS
+// MESSAGE / DM VALIDATORS
 // =============================================================================
 
 export const messageContentSchema = z
@@ -139,6 +139,13 @@ export const messageContentSchema = z
 export const sendMessageSchema = z.object({
   content: messageContentSchema,
   attachments: z.array(z.string().url()).max(5).optional(),
+});
+
+export const sendDirectMessageSchema = z.object({
+  content: z
+    .string()
+    .min(1, 'Message cannot be empty')
+    .max(5000, 'Message must be less than 5000 characters'),
 });
 
 // =============================================================================
@@ -303,6 +310,7 @@ export type CreatePostInput = z.infer<typeof createPostSchema>;
 export type UpdatePostInput = z.infer<typeof updatePostSchema>;
 export type CreateCommentInput = z.infer<typeof createCommentSchema>;
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
+export type SendDirectMessageInput = z.infer<typeof sendDirectMessageSchema>;
 export type ReactInput = z.infer<typeof reactSchema>;
 export type PollVoteInput = z.infer<typeof pollVoteSchema>;
 export type SearchInput = z.infer<typeof searchSchema>;

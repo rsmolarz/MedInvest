@@ -13,6 +13,8 @@ import type {
   Room,
   Conversation,
   Message,
+  DMThread,
+  DirectMessage,
   Notification,
   Deal,
   SearchResults,
@@ -431,7 +433,36 @@ export class ApiClient {
   }
 
   // ===========================================================================
-  // MESSAGES
+  // DIRECT MESSAGES (DMs)
+  // ===========================================================================
+
+  /** Get all DM threads (inbox) */
+  async getDMInbox(): Promise<DMThread[]> {
+    return this.get('/messages/');
+  }
+
+  /** Get a specific DM thread with messages */
+  async getDMThread(threadId: number): Promise<{ thread: DMThread; messages: DirectMessage[]; other_user: User }> {
+    return this.get(`/messages/thread/${threadId}`);
+  }
+
+  /** Start or continue a conversation with a user */
+  async startDMThread(userId: number): Promise<{ thread_id: number }> {
+    return this.get(`/messages/new/${userId}`);
+  }
+
+  /** Send a direct message */
+  async sendDirectMessage(threadId: number, content: string): Promise<DirectMessage> {
+    return this.post(`/messages/thread/${threadId}/send`, { content });
+  }
+
+  /** Get unread DM count */
+  async getDMUnreadCount(): Promise<{ count: number }> {
+    return this.get('/messages/api/unread-count');
+  }
+
+  // ===========================================================================
+  // MESSAGES (Legacy - for backwards compatibility)
   // ===========================================================================
 
   async getConversations(page = 1, limit = 20): Promise<PaginatedResponse<Conversation>> {
