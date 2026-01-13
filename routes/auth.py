@@ -461,61 +461,67 @@ def register():
         return redirect(url_for('main.feed'))
     
     if request.method == 'POST':
-        email = request.form.get('email', '').strip().lower()
-        password = request.form.get('password', '')
-        first_name = request.form.get('first_name', '').strip()
-        last_name = request.form.get('last_name', '').strip()
-        specialty = request.form.get('specialty', '')
-        referral_code = request.form.get('referral_code', '').strip().upper()
-        
-        # Validation
-        if not all([email, password, first_name, last_name]):
-            flash('All fields are required', 'error')
-            return render_template('auth/register.html')
-        
-        if len(password) < 8:
-            flash('Password must be at least 8 characters', 'error')
-            return render_template('auth/register.html')
-        
-        if User.query.filter_by(email=email).first():
-            flash('Email already registered', 'error')
-            return render_template('auth/register.html')
-        
-        # Create user
-        user = User(
-            email=email,
-            first_name=first_name,
-            last_name=last_name,
-            specialty=specialty if specialty else None
-        )
-        user.set_password(password)
-        user.generate_referral_code()
-        
-        # Handle referral
-        referred_by = None
-        if referral_code:
-            referred_by = User.query.filter_by(referral_code=referral_code).first()
-            if referred_by:
-                user.referred_by_id = referred_by.id
-                user.add_points(50)  # Bonus for being referred
-        
-        db.session.add(user)
-        db.session.commit()
-        
-        # Create referral record and reward referrer
-        if referred_by:
-            referral = Referral(
-                referrer_id=referred_by.id,
-                referred_user_id=user.id,
-                referred_user_activated=True
+        try:
+            email = request.form.get('email', '').strip().lower()
+            password = request.form.get('password', '')
+            first_name = request.form.get('first_name', '').strip()
+            last_name = request.form.get('last_name', '').strip()
+            specialty = request.form.get('specialty', '')
+            referral_code = request.form.get('referral_code', '').strip().upper()
+            
+            # Validation
+            if not all([email, password, first_name, last_name]):
+                flash('All fields are required', 'error')
+                return render_template('auth/register.html')
+            
+            if len(password) < 8:
+                flash('Password must be at least 8 characters', 'error')
+                return render_template('auth/register.html')
+            
+            if User.query.filter_by(email=email).first():
+                flash('Email already registered', 'error')
+                return render_template('auth/register.html')
+            
+            # Create user
+            user = User(
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                specialty=specialty if specialty else None
             )
-            referred_by.add_points(100)  # Reward for referring
-            db.session.add(referral)
+            user.set_password(password)
+            user.generate_referral_code()
+            
+            # Handle referral
+            referred_by = None
+            if referral_code:
+                referred_by = User.query.filter_by(referral_code=referral_code).first()
+                if referred_by:
+                    user.referred_by_id = referred_by.id
+                    user.add_points(50)  # Bonus for being referred
+            
+            db.session.add(user)
             db.session.commit()
-        
-        login_user(user)
-        flash('Welcome to MedInvest! Your account has been created.', 'success')
-        return redirect(url_for('main.feed'))
+            
+            # Create referral record and reward referrer
+            if referred_by:
+                referral = Referral(
+                    referrer_id=referred_by.id,
+                    referred_user_id=user.id,
+                    referred_user_activated=True
+                )
+                referred_by.add_points(100)  # Reward for referring
+                db.session.add(referral)
+                db.session.commit()
+            
+            login_user(user)
+            flash('Welcome to MedInvest! Your account has been created.', 'success')
+            return redirect(url_for('main.feed'))
+        except Exception as e:
+            logging.error(f"Registration error: {str(e)}")
+            db.session.rollback()
+            flash('An error occurred during registration. Please try again.', 'error')
+            return render_template('auth/register.html')
     
     # Pre-fill referral code from URL
     ref_code = request.args.get('ref', '')
