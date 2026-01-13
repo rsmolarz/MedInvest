@@ -401,6 +401,12 @@ def profile(user_id=None):
     else:
         user = current_user
     
+    is_own_profile = user.id == current_user.id
+    
+    if not is_own_profile and not getattr(user, 'is_profile_public', True):
+        flash('This profile is private', 'info')
+        return redirect(url_for('main.feed'))
+    
     posts = Post.query.filter_by(author_id=user.id, is_anonymous=False)\
                       .order_by(Post.created_at.desc()).limit(10).all()
     
@@ -418,7 +424,7 @@ def profile(user_id=None):
     
     return render_template('profile.html', user=user, posts=posts, 
                           skills=skills, user_endorsements=user_endorsements,
-                          recommendations=recommendations)
+                          recommendations=recommendations, is_own_profile=is_own_profile)
 
 
 @main_bp.route('/profile/edit', methods=['POST'])
@@ -482,6 +488,18 @@ def upload_profile_picture():
     db.session.commit()
     
     flash('Profile picture updated!', 'success')
+    return redirect(url_for('main.profile'))
+
+
+@main_bp.route('/profile/privacy', methods=['POST'])
+@login_required
+def toggle_profile_privacy():
+    """Toggle profile visibility between public and private"""
+    current_user.is_profile_public = not getattr(current_user, 'is_profile_public', True)
+    db.session.commit()
+    
+    status = 'public' if current_user.is_profile_public else 'private'
+    flash(f'Your profile is now {status}', 'success')
     return redirect(url_for('main.profile'))
 
 

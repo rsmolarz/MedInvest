@@ -85,6 +85,7 @@ class User(UserMixin, db.Model):
     investment_interests = db.Column(db.Text)
     is_verified = db.Column(db.Boolean, default=False)
     account_active = db.Column(db.Boolean, default=True)
+    is_profile_public = db.Column(db.Boolean, default=True)
     # Reputation score (cached). Always derived from ReputationEvent stream.
     reputation_score = db.Column(db.Integer, default=0)
     # Invite-only growth

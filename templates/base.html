@@ -142,6 +142,21 @@
                         </div>
                     </li>
                     
+                    <!-- Profile Picture Link -->
+                    <li class="nav-item">
+                        <a class="nav-link p-1" href="{{ url_for('main.profile') }}" title="My Profile">
+                            {% if current_user.profile_image_url %}
+                            <img src="{{ current_user.profile_image_url }}" class="rounded-circle" 
+                                 style="width:32px;height:32px;object-fit:cover;">
+                            {% else %}
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" 
+                                 style="width:32px;height:32px;font-size:12px;">
+                                {{ current_user.first_name[0] }}{{ current_user.last_name[0] }}
+                            </div>
+                            {% endif %}
+                        </a>
+                    </li>
+                    
                     <!-- User Menu -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
