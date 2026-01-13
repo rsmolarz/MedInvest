@@ -252,7 +252,7 @@ def get_user_interests(user, db):
     Gather user interest data for personalization
     Returns: dict with interest data
     """
-    from models import UserFollow, PostVote, Bookmark, PostHashtag, Post
+    from models import Follow, PostVote, Bookmark, PostHashtag, Post
     
     interests = {
         'following_ids': set(),
@@ -263,7 +263,7 @@ def get_user_interests(user, db):
     }
     
     # Get users this person follows
-    follows = UserFollow.query.filter_by(follower_id=user.id).all()
+    follows = Follow.query.filter_by(follower_id=user.id).all()
     interests['following_ids'] = {f.following_id for f in follows}
     
     # Get authors user has interacted with (liked, commented, bookmarked)
@@ -311,7 +311,7 @@ def generate_feed(user, db, page=1, per_page=20, include_discovery=True):
     
     Returns: list of posts
     """
-    from models import Post, UserFollow
+    from models import Post, Follow
     
     # Get user interests for personalization
     user_interests = get_user_interests(user, db)

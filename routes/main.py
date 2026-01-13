@@ -40,17 +40,33 @@ def terms():
 @main_bp.route('/feed')
 @login_required
 def feed():
-    """Main feed with posts from all rooms"""
+    """Main feed with posts - algorithmic by default, with chronological toggle"""
     page = request.args.get('page', 1, type=int)
+    feed_type = request.args.get('sort', 'algorithm')  # 'algorithm' or 'latest'
+    per_page = 20
     
-    posts = Post.query.order_by(Post.created_at.desc()).paginate(
-        page=page, per_page=20, error_out=False
-    )
+    if feed_type == 'latest':
+        # Chronological feed (newest first)
+        posts_paginated = Post.query.order_by(Post.created_at.desc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+        post_items = posts_paginated.items
+        has_next = posts_paginated.has_next
+        has_prev = posts_paginated.has_prev
+        total_pages = posts_paginated.pages
+    else:
+        # Algorithmic feed - personalized and scored
+        post_items = generate_feed(current_user, db, page=page, per_page=per_page)
+        # For algorithm feed, estimate pagination (simplified)
+        total_posts = Post.query.count()
+        total_pages = max(1, (total_posts + per_page - 1) // per_page)
+        has_next = page < total_pages
+        has_prev = page > 1
     
     # Get user's votes for these posts
     user_votes = {}
-    if current_user.is_authenticated:
-        post_ids = [p.id for p in posts.items]
+    if current_user.is_authenticated and post_items:
+        post_ids = [p.id for p in post_items]
         votes = PostVote.query.filter(
             PostVote.post_id.in_(post_ids),
             PostVote.user_id == current_user.id
@@ -69,11 +85,25 @@ def feed():
     # Get people you may know suggestions
     suggested_users = get_people_you_may_know(current_user, limit=6)
     
+    # Create a pagination-like object for template compatibility
+    class FeedPagination:
+        def __init__(self, items, page, has_next, has_prev, pages):
+            self.items = items
+            self.page = page
+            self.has_next = has_next
+            self.has_prev = has_prev
+            self.pages = pages
+            self.prev_num = page - 1 if has_prev else None
+            self.next_num = page + 1 if has_next else None
+    
+    posts = FeedPagination(post_items, page, has_next, has_prev, total_pages)
+    
     return render_template('feed.html', 
                          posts=posts, 
                          user_votes=user_votes,
                          trending=trending,
                          suggested_users=suggested_users,
+                         feed_type=feed_type,
                          render_content=render_content_with_links)
 
 

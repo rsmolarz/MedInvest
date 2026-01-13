@@ -128,6 +128,21 @@
                 </div>
             </div>
 
+            <!-- Feed Type Toggle -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Your Feed</h5>
+                <div class="btn-group btn-group-sm" role="group">
+                    <a href="{{ url_for('main.feed', sort='algorithm') }}" 
+                       class="btn {% if feed_type != 'latest' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                        <i class="fas fa-magic me-1"></i>For You
+                    </a>
+                    <a href="{{ url_for('main.feed', sort='latest') }}" 
+                       class="btn {% if feed_type == 'latest' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                        <i class="fas fa-clock me-1"></i>Latest
+                    </a>
+                </div>
+            </div>
+
             <!-- Posts Feed -->
             {% for post in posts.items %}
             <div class="card mb-3" data-post-id="{{ post.id }}">
