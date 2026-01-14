@@ -42,13 +42,17 @@ APPLE_PRIVATE_KEY = os.environ.get('APPLE_PRIVATE_KEY', '').replace('\\n', '\n')
 
 def get_oauth_redirect_uri(provider):
     """Get the OAuth redirect URI based on the current request URL"""
-    if request.host.endswith('.replit.app') or request.host.endswith('.replit.dev'):
+    custom_domain = os.environ.get('CUSTOM_DOMAIN')
+    if custom_domain:
+        base_url = f"https://{custom_domain}"
+    elif request.host.endswith('.replit.app') or request.host.endswith('.replit.dev'):
         base_url = f"https://{request.host}"
     elif request.headers.get('X-Forwarded-Proto') == 'https':
         base_url = f"https://{request.host}"
     else:
         base_url = request.host_url.rstrip('/')
     
+    logging.info(f"OAuth redirect URI for {provider}: {base_url}/auth/{provider}/callback")
     return f"{base_url}/auth/{provider}/callback"
 
 
