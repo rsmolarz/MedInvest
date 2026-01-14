@@ -1961,6 +1961,9 @@ class OpMedArticle(db.Model):
     excerpt = db.Column(db.Text)  # Short summary for cards
     content = db.Column(db.Text, nullable=False)
     
+    # Ghost integration
+    ghost_id = db.Column(db.String(100), unique=True, index=True)  # Ghost post ID for syncing
+    
     # Media
     cover_image_url = db.Column(db.String(500))
     

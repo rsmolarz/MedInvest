@@ -70,3 +70,12 @@ with app.app_context():
     except Exception as e:
         db.session.rollback()
         logging.debug(f"Schema migration skipped (likely already applied): {e}")
+    
+    # Migration 3: Add ghost_id column to opmed_articles table for Ghost CMS sync
+    try:
+        db.session.execute(text("ALTER TABLE opmed_articles ADD COLUMN ghost_id VARCHAR(100) UNIQUE"))
+        db.session.commit()
+        logging.info("Applied schema migration: opmed_articles.ghost_id added")
+    except Exception as e:
+        db.session.rollback()
+        logging.debug(f"Schema migration skipped (likely already applied): {e}")

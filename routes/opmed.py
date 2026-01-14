@@ -5,12 +5,17 @@ import os
 import re
 import secrets
 import html
-from flask import Blueprint, render_template, redirect, url_for, request, flash, abort
+import logging
+import hmac
+import hashlib
+from flask import Blueprint, render_template, redirect, url_for, request, flash, abort, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime
 from werkzeug.utils import secure_filename
 from app import db
 from models import OpMedArticle, OpMedArticleLike, OpMedComment, User
+
+GHOST_WEBHOOK_SECRET = os.environ.get('GHOST_WEBHOOK_SECRET')
 
 
 def sanitize_html(content):
@@ -219,3 +224,126 @@ def why_publish():
         .order_by(OpMedArticle.view_count.desc()).limit(6).all()
     
     return render_template('opmed/why_publish.html', popular_articles=popular)
+
+
+@opmed_bp.route('/webhook/ghost', methods=['POST'])
+def ghost_webhook():
+    """
+    Webhook endpoint for Ghost CMS.
+    Automatically imports published posts from Ghost to Op-MedInvest.
+    Configure in Ghost: Settings → Integrations → Add webhook → post.published
+    """
+    if not GHOST_WEBHOOK_SECRET:
+        logging.warning("Ghost webhook received but GHOST_WEBHOOK_SECRET not configured")
+        return jsonify({'error': 'Webhook not configured'}), 500
+    
+    provided_secret = request.headers.get('X-Ghost-Signature', '')
+    if provided_secret:
+        signature_parts = provided_secret.split(', ')
+        sig_dict = {}
+        for part in signature_parts:
+            if '=' in part:
+                key, val = part.split('=', 1)
+                sig_dict[key] = val
+        
+        if 'sha256' in sig_dict:
+            body = request.get_data()
+            expected = hmac.new(
+                GHOST_WEBHOOK_SECRET.encode(),
+                body,
+                hashlib.sha256
+            ).hexdigest()
+            
+            if not hmac.compare_digest(sig_dict['sha256'], expected):
+                logging.warning("Ghost webhook signature mismatch")
+                return jsonify({'error': 'Invalid signature'}), 401
+    
+    try:
+        data = request.get_json()
+        
+        if not data or 'post' not in data:
+            return jsonify({'error': 'Invalid payload'}), 400
+        
+        post_data = data['post'].get('current', {})
+        
+        if not post_data:
+            return jsonify({'error': 'No post data'}), 400
+        
+        ghost_id = post_data.get('id')
+        title = post_data.get('title', 'Untitled')
+        ghost_slug = post_data.get('slug', '')
+        content_html = post_data.get('html', '')
+        excerpt = post_data.get('excerpt') or post_data.get('custom_excerpt', '')
+        feature_image = post_data.get('feature_image')
+        published_at_str = post_data.get('published_at')
+        
+        existing = OpMedArticle.query.filter_by(ghost_id=ghost_id).first()
+        if existing:
+            existing.title = title
+            existing.content = content_html
+            existing.excerpt = excerpt[:500] if excerpt else None
+            existing.cover_image_url = feature_image
+            existing.updated_at = datetime.utcnow()
+            db.session.commit()
+            logging.info(f"Updated Op-MedInvest article from Ghost: {title}")
+            return jsonify({'status': 'updated', 'article_id': existing.id}), 200
+        
+        admin_user = User.query.filter_by(is_admin=True).first()
+        if not admin_user:
+            admin_user = User.query.first()
+        
+        if not admin_user:
+            logging.error("No users in database to assign Ghost article to")
+            return jsonify({'error': 'No author available'}), 500
+        
+        slug = ghost_slug or title.lower()
+        slug = re.sub(r'[^\w\s-]', '', slug)
+        slug = re.sub(r'[\s_-]+', '-', slug).strip('-')
+        slug = f"{slug}-{datetime.utcnow().strftime('%Y%m%d%H%M')}"[:350]
+        
+        published_at = datetime.utcnow()
+        if published_at_str:
+            try:
+                published_at = datetime.fromisoformat(published_at_str.replace('Z', '+00:00'))
+            except:
+                pass
+        
+        tags = post_data.get('tags', [])
+        category = 'general'
+        category_map = {
+            'market': 'market_insights',
+            'retirement': 'retirement',
+            'real-estate': 'real_estate',
+            'tax': 'tax_strategy',
+            'editor': 'from_editors'
+        }
+        for tag in tags:
+            tag_slug = tag.get('slug', '').lower()
+            for key, cat in category_map.items():
+                if key in tag_slug:
+                    category = cat
+                    break
+        
+        article = OpMedArticle(
+            author_id=admin_user.id,
+            title=title,
+            slug=slug,
+            excerpt=excerpt[:500] if excerpt else None,
+            content=content_html,
+            cover_image_url=feature_image,
+            ghost_id=ghost_id,
+            category=category,
+            status='published',
+            published_at=published_at
+        )
+        
+        db.session.add(article)
+        db.session.commit()
+        
+        logging.info(f"Imported Ghost post to Op-MedInvest: {title}")
+        return jsonify({'status': 'created', 'article_id': article.id}), 201
+        
+    except Exception as e:
+        logging.error(f"Ghost webhook error: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
