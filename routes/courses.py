@@ -1,11 +1,22 @@
 """
 Courses Routes - Educational content
 """
-from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify
+from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, abort
 from flask_login import login_required, current_user
 from datetime import datetime
+from functools import wraps
 from app import db
 from models import Course, CourseModule, CourseEnrollment
+
+
+def admin_required(f):
+    """Decorator to require admin access"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not getattr(current_user, 'is_admin', False):
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
 
 courses_bp = Blueprint('courses', __name__, url_prefix='/courses')
 
@@ -155,3 +166,83 @@ def complete_module(course_id, module_id):
         'progress': enrollment.progress_percent,
         'completed': enrollment.completed
     })
+
+
+@courses_bp.route('/create', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def create_course():
+    """Create a new course (admin only)"""
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        description = request.form.get('description', '').strip()
+        instructor_name = request.form.get('instructor_name', '').strip()
+        price = request.form.get('price', '0')
+        duration_hours = request.form.get('duration_hours', '0')
+        level = request.form.get('level', 'beginner')
+        category = request.form.get('category', '').strip()
+        is_featured = request.form.get('is_featured') == 'on'
+        is_premium = request.form.get('is_premium') == 'on'
+        cover_image_url = request.form.get('cover_image_url', '').strip()
+        
+        if not title:
+            flash('Course title is required', 'error')
+            return redirect(url_for('courses.list_courses'))
+        
+        course = Course(
+            title=title,
+            description=description,
+            instructor_name=instructor_name,
+            price=float(price) if price else 0,
+            duration_hours=int(duration_hours) if duration_hours else 0,
+            level=level,
+            category=category,
+            is_featured=is_featured,
+            is_premium=is_premium,
+            cover_image_url=cover_image_url if cover_image_url else None,
+            is_published=True
+        )
+        
+        db.session.add(course)
+        db.session.commit()
+        
+        flash(f'Course "{title}" created successfully!', 'success')
+        return redirect(url_for('courses.view_course', course_id=course.id))
+    
+    return redirect(url_for('courses.list_courses'))
+
+
+@courses_bp.route('/<int:course_id>/add-module', methods=['POST'])
+@login_required
+@admin_required
+def add_module(course_id):
+    """Add a module to a course (admin only)"""
+    course = Course.query.get_or_404(course_id)
+    
+    title = request.form.get('title', '').strip()
+    content = request.form.get('content', '').strip()
+    video_url = request.form.get('video_url', '').strip()
+    duration_minutes = request.form.get('duration_minutes', '0')
+    
+    if not title:
+        flash('Module title is required', 'error')
+        return redirect(url_for('courses.view_course', course_id=course_id))
+    
+    # Get next order index
+    max_order = db.session.query(db.func.max(CourseModule.order_index)).filter_by(course_id=course_id).scalar() or 0
+    
+    module = CourseModule(
+        course_id=course_id,
+        title=title,
+        content=content,
+        video_url=video_url if video_url else None,
+        duration_minutes=int(duration_minutes) if duration_minutes else 0,
+        order_index=max_order + 1
+    )
+    
+    db.session.add(module)
+    course.total_modules = (course.total_modules or 0) + 1
+    db.session.commit()
+    
+    flash(f'Module "{title}" added!', 'success')
+    return redirect(url_for('courses.view_course', course_id=course_id))

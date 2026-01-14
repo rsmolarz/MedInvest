@@ -1,11 +1,22 @@
 """
 Events Routes - Conferences and networking events
 """
-from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify
+from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, abort
 from flask_login import login_required, current_user
 from datetime import datetime
+from functools import wraps
 from app import db
 from models import Event, EventRegistration
+
+
+def admin_required(f):
+    """Decorator to require admin access"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not getattr(current_user, 'is_admin', False):
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
 
 events_bp = Blueprint('events', __name__, url_prefix='/events')
 
@@ -102,3 +113,60 @@ def register_event(event_id):
         'success': True,
         'message': 'Registration successful! Check your email for details.'
     })
+
+
+@events_bp.route('/create', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def create_event():
+    """Create a new event (admin only)"""
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        description = request.form.get('description', '').strip()
+        event_type = request.form.get('event_type', 'conference')
+        location = request.form.get('location', '').strip()
+        venue_name = request.form.get('venue_name', '').strip()
+        start_date_str = request.form.get('start_date', '')
+        end_date_str = request.form.get('end_date', '')
+        regular_price = request.form.get('regular_price', '0')
+        max_attendees = request.form.get('max_attendees', '')
+        is_virtual = request.form.get('is_virtual') == 'on'
+        cover_image_url = request.form.get('cover_image_url', '').strip()
+        
+        if not title:
+            flash('Event title is required', 'error')
+            return redirect(url_for('events.list_events'))
+        
+        if not start_date_str:
+            flash('Start date is required', 'error')
+            return redirect(url_for('events.list_events'))
+        
+        try:
+            start_date = datetime.fromisoformat(start_date_str)
+            end_date = datetime.fromisoformat(end_date_str) if end_date_str else start_date
+        except ValueError:
+            flash('Invalid date format', 'error')
+            return redirect(url_for('events.list_events'))
+        
+        event = Event(
+            title=title,
+            description=description,
+            event_type=event_type,
+            location=location,
+            venue_name=venue_name,
+            start_date=start_date,
+            end_date=end_date,
+            regular_price=float(regular_price) if regular_price else 0,
+            max_attendees=int(max_attendees) if max_attendees else None,
+            is_virtual=is_virtual,
+            cover_image_url=cover_image_url if cover_image_url else None,
+            is_published=True
+        )
+        
+        db.session.add(event)
+        db.session.commit()
+        
+        flash(f'Event "{title}" created successfully!', 'success')
+        return redirect(url_for('events.view_event', event_id=event.id))
+    
+    return redirect(url_for('events.list_events'))
