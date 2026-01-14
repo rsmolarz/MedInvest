@@ -79,3 +79,25 @@ with app.app_context():
     except Exception as e:
         db.session.rollback()
         logging.debug(f"Schema migration skipped (likely already applied): {e}")
+    
+    # Migration 4: Add editorial workflow columns to opmed_articles
+    editorial_columns = [
+        ("submitted_at", "TIMESTAMP"),
+        ("reviewed_by_id", "INTEGER REFERENCES users(id)"),
+        ("reviewed_at", "TIMESTAMP"),
+        ("editor_notes", "TEXT"),
+        ("revision_count", "INTEGER DEFAULT 0"),
+        ("word_count", "INTEGER DEFAULT 0"),
+        ("reading_time_minutes", "INTEGER DEFAULT 0"),
+        ("meta_description", "VARCHAR(300)"),
+        ("meta_keywords", "VARCHAR(200)"),
+        ("share_count", "INTEGER DEFAULT 0"),
+    ]
+    for col_name, col_type in editorial_columns:
+        try:
+            db.session.execute(text(f"ALTER TABLE opmed_articles ADD COLUMN {col_name} {col_type}"))
+            db.session.commit()
+            logging.info(f"Applied schema migration: opmed_articles.{col_name} added")
+        except Exception as e:
+            db.session.rollback()
+            logging.debug(f"Schema migration skipped (likely already applied): {e}")

@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Review: {{ article.title }} - Op-MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('opmed.editorial_dashboard') }}">Editorial Dashboard</a></li>
+            <li class="breadcrumb-item active">Review Article</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <span class="badge {% if article.status == 'submitted' %}bg-warning text-dark{% elif article.status == 'under_review' %}bg-info{% else %}bg-secondary{% endif %}">
+                            {{ article.status.replace('_', ' ')|title }}
+                        </span>
+                        <small class="text-muted">
+                            {{ article.word_count or '~' }} words | {{ article.reading_time_minutes or '~' }} min read
+                        </small>
+                    </div>
+
+                    <h1 class="mb-3">{{ article.title }}</h1>
+                    
+                    {% if article.excerpt %}
+                    <p class="lead text-muted">{{ article.excerpt }}</p>
+                    {% endif %}
+
+                    {% if article.cover_image_url %}
+                    <img src="{{ article.cover_image_url }}" class="img-fluid rounded mb-4" alt="{{ article.title }}">
+                    {% endif %}
+
+                    <div class="article-content">
+                        {{ article.content|safe }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-user me-2"></i>Author</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        {% if article.author.profile_image_url %}
+                        <img src="{{ article.author.profile_image_url }}" class="rounded-circle me-3" style="width:50px;height:50px;object-fit:cover;">
+                        {% else %}
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;">
+                            {{ article.author.first_name[0] }}{{ article.author.last_name[0] }}
+                        </div>
+                        {% endif %}
+                        <div>
+                            <h6 class="mb-0">{{ article.author.first_name }} {{ article.author.last_name }}</h6>
+                            <small class="text-muted">{{ article.author.specialty or 'Physician' }}</small>
+                        </div>
+                    </div>
+                    <p class="small text-muted mb-0">
+                        <i class="fas fa-file-alt me-1"></i>
+                        {{ article.author.opmed_articles.filter_by(status='published').count() }} published articles
+                    </p>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Submission Details</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">
+                        <strong>Category:</strong> 
+                        <span class="badge bg-light text-dark">{{ article.category.replace('_', ' ')|title }}</span>
+                    </p>
+                    <p class="mb-2">
+                        <strong>Submitted:</strong> 
+                        {% if article.submitted_at %}
+                        {{ article.submitted_at.strftime('%b %d, %Y at %I:%M %p') }}
+                        {% else %}
+                        {{ article.created_at.strftime('%b %d, %Y at %I:%M %p') }}
+                        {% endif %}
+                    </p>
+                    {% if article.revision_count %}
+                    <p class="mb-0">
+                        <strong>Revisions:</strong> {{ article.revision_count }}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-gavel me-2"></i>Editorial Actions</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('opmed.approve_article', article_id=article.id) }}" method="POST" class="mb-3">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="editors_pick" id="editorsPick">
+                            <label class="form-check-label" for="editorsPick">
+                                <i class="fas fa-star text-warning me-1"></i>Mark as Editor's Pick
+                            </label>
+                        </div>
+                        <div class="mb-3">
+                            <textarea name="notes" class="form-control" rows="2" placeholder="Notes for author (optional)"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="fas fa-check me-2"></i>Approve & Publish
+                        </button>
+                    </form>
+
+                    <hr>
+
+                    <form action="{{ url_for('opmed.request_revision', article_id=article.id) }}" method="POST">
+                        <div class="mb-3">
+                            <label class="form-label">Revision Feedback</label>
+                            <textarea name="feedback" class="form-control" rows="4" placeholder="Explain what changes are needed..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Areas to Address</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" name="areas" value="structure" id="structure">
+                                <label class="form-check-label small" for="structure">Structure</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" name="areas" value="clarity" id="clarity">
+                                <label class="form-check-label small" for="clarity">Clarity</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" name="areas" value="content" id="content">
+                                <label class="form-check-label small" for="content">Content</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" name="areas" value="grammar" id="grammar">
+                                <label class="form-check-label small" for="grammar">Grammar</label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-warning w-100">
+                            <i class="fas fa-redo me-2"></i>Request Revision
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

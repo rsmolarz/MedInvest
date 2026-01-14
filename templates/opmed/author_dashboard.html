@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% block title %}Author Dashboard - Op-MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('opmed.index') }}">Op-MedInvest</a></li>
+            <li class="breadcrumb-item active">Author Dashboard</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-pen-nib text-primary me-2"></i>Author Dashboard</h2>
+        <a href="{{ url_for('opmed.submit') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>New Submission
+        </a>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-primary mb-1">{{ stats.total }}</h3>
+                    <small class="text-muted">Total Articles</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-success mb-1">{{ stats.published }}</h3>
+                    <small class="text-muted">Published</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-warning mb-1">{{ stats.pending }}</h3>
+                    <small class="text-muted">Under Review</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-info mb-1">{{ stats.total_views }}</h3>
+                    <small class="text-muted">Total Views</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link {% if filter == 'all' %}active{% endif %}" href="{{ url_for('opmed.author_dashboard') }}">
+                All <span class="badge bg-secondary">{{ stats.total }}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if filter == 'draft' %}active{% endif %}" href="{{ url_for('opmed.author_dashboard', filter='draft') }}">
+                Drafts <span class="badge bg-secondary">{{ stats.drafts }}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if filter == 'submitted' %}active{% endif %}" href="{{ url_for('opmed.author_dashboard', filter='submitted') }}">
+                Submitted <span class="badge bg-warning text-dark">{{ stats.submitted }}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if filter == 'revision_requested' %}active{% endif %}" href="{{ url_for('opmed.author_dashboard', filter='revision_requested') }}">
+                Needs Revision <span class="badge bg-info">{{ stats.revision_requested }}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if filter == 'published' %}active{% endif %}" href="{{ url_for('opmed.author_dashboard', filter='published') }}">
+                Published <span class="badge bg-success">{{ stats.published }}</span>
+            </a>
+        </li>
+    </ul>
+
+    {% if articles %}
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Article</th>
+                        <th>Status</th>
+                        <th>Stats</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for article in articles %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                {% if article.cover_image_url %}
+                                <img src="{{ article.cover_image_url }}" class="rounded me-3" style="width:60px;height:40px;object-fit:cover;">
+                                {% endif %}
+                                <div>
+                                    <h6 class="mb-0">{{ article.title[:50] }}{% if article.title|length > 50 %}...{% endif %}</h6>
+                                    <small class="text-muted">{{ article.category.replace('_', ' ')|title }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if article.status == 'draft' %}
+                            <span class="badge bg-secondary">Draft</span>
+                            {% elif article.status == 'submitted' %}
+                            <span class="badge bg-warning text-dark">Submitted</span>
+                            {% elif article.status == 'under_review' %}
+                            <span class="badge bg-info">Under Review</span>
+                            {% elif article.status == 'revision_requested' %}
+                            <span class="badge bg-primary">Revision Requested</span>
+                            {% elif article.status == 'approved' %}
+                            <span class="badge bg-success">Approved</span>
+                            {% elif article.status == 'published' %}
+                            <span class="badge bg-success">Published</span>
+                            {% if article.is_editors_pick %}
+                            <span class="badge bg-warning text-dark ms-1"><i class="fas fa-star"></i></span>
+                            {% endif %}
+                            {% elif article.status == 'rejected' %}
+                            <span class="badge bg-danger">Rejected</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if article.status == 'published' %}
+                            <small>
+                                <i class="fas fa-eye text-muted me-1"></i>{{ article.view_count }}
+                                <i class="fas fa-heart text-danger ms-2 me-1"></i>{{ article.like_count }}
+                                <i class="fas fa-comment text-muted ms-2 me-1"></i>{{ article.comment_count }}
+                            </small>
+                            {% else %}
+                            <small class="text-muted">-</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small class="text-muted">
+                                {% if article.published_at %}
+                                Published {{ article.published_at.strftime('%b %d, %Y') }}
+                                {% elif article.submitted_at %}
+                                Submitted {{ article.submitted_at.strftime('%b %d, %Y') }}
+                                {% else %}
+                                Created {{ article.created_at.strftime('%b %d, %Y') }}
+                                {% endif %}
+                            </small>
+                        </td>
+                        <td>
+                            {% if article.status == 'published' %}
+                            <a href="{{ url_for('opmed.article', slug=article.slug) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            {% endif %}
+                            {% if article.status in ['draft', 'revision_requested'] %}
+                            <a href="{{ url_for('opmed.edit_article', article_id=article.id) }}" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            {% endif %}
+                            {% if article.editorial_feedback.count() > 0 %}
+                            <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#feedbackModal{{ article.id }}">
+                                <i class="fas fa-comments"></i>
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% for article in articles %}
+    {% if article.editorial_feedback.count() > 0 %}
+    <div class="modal fade" id="feedbackModal{{ article.id }}" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editor Feedback: {{ article.title[:40] }}...</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {% for feedback in article.editorial_feedback.order_by(OpMedEditorialFeedback.created_at.desc()).all() %}
+                    <div class="border-bottom pb-3 mb-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <strong>{{ feedback.editor.first_name }} {{ feedback.editor.last_name }}</strong>
+                            <small class="text-muted">{{ feedback.created_at.strftime('%b %d, %Y') }}</small>
+                        </div>
+                        <p class="mb-2">{{ feedback.feedback }}</p>
+                        {% if feedback.decision %}
+                        <span class="badge {% if feedback.decision == 'approve' %}bg-success{% elif feedback.decision == 'revise' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                            {{ feedback.decision|title }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-pen-nib fa-3x text-muted mb-3"></i>
+            <h4>No articles yet</h4>
+            <p class="text-muted mb-4">Start sharing your investment insights with the medical community.</p>
+            <a href="{{ url_for('opmed.submit') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Write Your First Article
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

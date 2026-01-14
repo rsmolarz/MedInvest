@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% block title %}Editorial Dashboard - Op-MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('opmed.index') }}">Op-MedInvest</a></li>
+            <li class="breadcrumb-item active">Editorial Dashboard</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-edit text-primary me-2"></i>Editorial Dashboard</h2>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <h3 class="text-warning mb-1">{{ stats.submitted }}</h3>
+                    <small class="text-muted">Awaiting Review</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <h3 class="text-info mb-1">{{ stats.under_review }}</h3>
+                    <small class="text-muted">Under Review</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <h3 class="text-success mb-1">{{ stats.published_this_month }}</h3>
+                    <small class="text-muted">Published This Month</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 class="text-primary mb-1">{{ stats.total_published }}</h3>
+                    <small class="text-muted">Total Published</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link {% if filter == 'submitted' %}active{% endif %}" href="{{ url_for('opmed.editorial_dashboard', filter='submitted') }}">
+                <i class="fas fa-inbox me-1"></i>Queue <span class="badge bg-warning text-dark">{{ stats.submitted }}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if filter == 'under_review' %}active{% endif %}" href="{{ url_for('opmed.editorial_dashboard', filter='under_review') }}">
+                <i class="fas fa-search me-1"></i>In Review <span class="badge bg-info">{{ stats.under_review }}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if filter == 'revision_requested' %}active{% endif %}" href="{{ url_for('opmed.editorial_dashboard', filter='revision_requested') }}">
+                <i class="fas fa-redo me-1"></i>Revisions
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if filter == 'published' %}active{% endif %}" href="{{ url_for('opmed.editorial_dashboard', filter='published') }}">
+                <i class="fas fa-check-circle me-1"></i>Published
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if filter == 'featured' %}active{% endif %}" href="{{ url_for('opmed.editorial_dashboard', filter='featured') }}">
+                <i class="fas fa-star me-1"></i>Featured
+            </a>
+        </li>
+    </ul>
+
+    {% if articles %}
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Article</th>
+                        <th>Author</th>
+                        <th>Category</th>
+                        <th>Stats</th>
+                        <th>Submitted</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for article in articles %}
+                    <tr>
+                        <td style="max-width:300px;">
+                            <h6 class="mb-0">{{ article.title[:50] }}{% if article.title|length > 50 %}...{% endif %}</h6>
+                            <small class="text-muted">{{ article.word_count or '~' }} words | {{ article.reading_time_minutes or '~' }} min read</small>
+                            {% if article.is_editors_pick %}
+                            <span class="badge bg-warning text-dark ms-1"><i class="fas fa-star"></i> Editor's Pick</span>
+                            {% endif %}
+                            {% if article.is_featured %}
+                            <span class="badge bg-primary ms-1">Featured</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                {% if article.author.profile_image_url %}
+                                <img src="{{ article.author.profile_image_url }}" class="rounded-circle me-2" style="width:32px;height:32px;object-fit:cover;">
+                                {% endif %}
+                                <div>
+                                    <small class="d-block">{{ article.author.first_name }} {{ article.author.last_name }}</small>
+                                    <small class="text-muted">{{ article.author.specialty or 'Physician' }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="badge bg-light text-dark">{{ article.category.replace('_', ' ')|title }}</span></td>
+                        <td>
+                            {% if article.status == 'published' %}
+                            <small>
+                                <i class="fas fa-eye"></i> {{ article.view_count }}
+                                <i class="fas fa-heart text-danger ms-1"></i> {{ article.like_count }}
+                            </small>
+                            {% else %}
+                            <small class="text-muted">-</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small class="text-muted">
+                                {% if article.submitted_at %}
+                                {{ article.submitted_at.strftime('%b %d') }}
+                                {% else %}
+                                {{ article.created_at.strftime('%b %d') }}
+                                {% endif %}
+                            </small>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('opmed.review_article', article_id=article.id) }}" class="btn btn-outline-primary" title="Review">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if article.status in ['submitted', 'under_review'] %}
+                                <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#approveModal{{ article.id }}" title="Approve">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#reviseModal{{ article.id }}" title="Request Revision">
+                                    <i class="fas fa-redo"></i>
+                                </button>
+                                {% endif %}
+                                {% if article.status == 'published' %}
+                                <form action="{{ url_for('opmed.toggle_featured', article_id=article.id) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-outline-{% if article.is_editors_pick %}warning{% else %}secondary{% endif %}" title="Toggle Editor's Pick">
+                                        <i class="fas fa-star"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% for article in articles %}
+    <div class="modal fade" id="approveModal{{ article.id }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form action="{{ url_for('opmed.approve_article', article_id=article.id) }}" method="POST">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title"><i class="fas fa-check me-2"></i>Approve Article</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Approve and publish "<strong>{{ article.title[:50] }}...</strong>"?</p>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="editors_pick" id="editorsPick{{ article.id }}">
+                            <label class="form-check-label" for="editorsPick{{ article.id }}">
+                                <i class="fas fa-star text-warning me-1"></i>Mark as Editor's Pick
+                            </label>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Editor Notes (optional)</label>
+                            <textarea name="notes" class="form-control" rows="2" placeholder="Any notes for the author..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success"><i class="fas fa-check me-2"></i>Approve & Publish</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="reviseModal{{ article.id }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form action="{{ url_for('opmed.request_revision', article_id=article.id) }}" method="POST">
+                    <div class="modal-header bg-warning">
+                        <h5 class="modal-title"><i class="fas fa-redo me-2"></i>Request Revision</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Request revisions for "<strong>{{ article.title[:50] }}...</strong>"</p>
+                        <div class="mb-3">
+                            <label class="form-label">Feedback for Author <span class="text-danger">*</span></label>
+                            <textarea name="feedback" class="form-control" rows="4" required placeholder="Explain what changes are needed..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Areas to Address</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="areas" value="structure" id="areaStructure{{ article.id }}">
+                                <label class="form-check-label" for="areaStructure{{ article.id }}">Article structure</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="areas" value="clarity" id="areaClarity{{ article.id }}">
+                                <label class="form-check-label" for="areaClarity{{ article.id }}">Clarity/readability</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="areas" value="content" id="areaContent{{ article.id }}">
+                                <label class="form-check-label" for="areaContent{{ article.id }}">Content depth</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="areas" value="grammar" id="areaGrammar{{ article.id }}">
+                                <label class="form-check-label" for="areaGrammar{{ article.id }}">Grammar/spelling</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning"><i class="fas fa-paper-plane me-2"></i>Send Feedback</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+            <h4>No articles in this view</h4>
+            <p class="text-muted">Check back later or try a different filter.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Submission Guidelines - Op-MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('opmed.index') }}">Op-MedInvest</a></li>
+                    <li class="breadcrumb-item active">Submission Guidelines</li>
+                </ol>
+            </nav>
+
+            <div class="card">
+                <div class="card-body p-4 p-lg-5">
+                    <h1 class="mb-4">Op-MedInvest Submission Guidelines</h1>
+                    
+                    <p class="lead text-muted mb-4">
+                        Op-MedInvest publishes thoughtful essays from medical professionals about personal finance, 
+                        investing, and wealth building. We're looking for authentic voices sharing real experiences 
+                        and practical insights.
+                    </p>
+
+                    <hr class="my-4">
+
+                    <h3 class="mb-3"><i class="fas fa-bullseye text-primary me-2"></i>What We're Looking For</h3>
+                    <div class="mb-4">
+                        <ul class="list-unstyled">
+                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>Personal investment journeys</strong> - Your path to financial independence</li>
+                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>Specialty-specific insights</strong> - How your field affects your finances</li>
+                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>Real estate experiences</strong> - Syndications, rentals, development deals</li>
+                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>Market analysis</strong> - Your perspective on current opportunities</li>
+                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>Retirement strategies</strong> - Planning for life after medicine</li>
+                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>Tax optimization</strong> - Strategies that worked for you</li>
+                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i><strong>Lessons learned</strong> - Both successes and failures</li>
+                        </ul>
+                    </div>
+
+                    <h3 class="mb-3"><i class="fas fa-file-alt text-primary me-2"></i>Formatting Requirements</h3>
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-light border-0 h-100">
+                                <div class="card-body">
+                                    <h5><i class="fas fa-text-width me-2"></i>Length</h5>
+                                    <p class="mb-0">800 - 2,000 words (approximately 4-10 minute read)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mt-3 mt-md-0">
+                            <div class="card bg-light border-0 h-100">
+                                <div class="card-body">
+                                    <h5><i class="fas fa-heading me-2"></i>Structure</h5>
+                                    <p class="mb-0">Clear headline, introduction, organized sections, actionable takeaways</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 class="mb-3"><i class="fas fa-pen-fancy text-primary me-2"></i>Writing Tips</h3>
+                    <div class="mb-4">
+                        <ul>
+                            <li>Write in first person - share your genuine experience</li>
+                            <li>Be specific with numbers when possible (returns, amounts, timelines)</li>
+                            <li>Include both the positives and challenges you faced</li>
+                            <li>End with actionable takeaways for readers</li>
+                            <li>Avoid promotional content or specific investment recommendations</li>
+                        </ul>
+                    </div>
+
+                    <h3 class="mb-3"><i class="fas fa-gavel text-primary me-2"></i>Editorial Process</h3>
+                    <div class="mb-4">
+                        <div class="d-flex mb-3">
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width:40px;height:40px;min-width:40px;">1</div>
+                            <div>
+                                <h5 class="mb-1">Submit Your Draft</h5>
+                                <p class="text-muted mb-0">Submit your article through the platform</p>
+                            </div>
+                        </div>
+                        <div class="d-flex mb-3">
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width:40px;height:40px;min-width:40px;">2</div>
+                            <div>
+                                <h5 class="mb-1">Editorial Review</h5>
+                                <p class="text-muted mb-0">Our editors review for quality, clarity, and fit (3-5 business days)</p>
+                            </div>
+                        </div>
+                        <div class="d-flex mb-3">
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width:40px;height:40px;min-width:40px;">3</div>
+                            <div>
+                                <h5 class="mb-1">Feedback & Revisions</h5>
+                                <p class="text-muted mb-0">You may receive suggestions for improvements</p>
+                            </div>
+                        </div>
+                        <div class="d-flex">
+                            <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center me-3" style="width:40px;height:40px;min-width:40px;">4</div>
+                            <div>
+                                <h5 class="mb-1">Publication</h5>
+                                <p class="text-muted mb-0">Approved articles are published to our community</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 class="mb-3"><i class="fas fa-ban text-danger me-2"></i>What We Don't Accept</h3>
+                    <div class="mb-4">
+                        <ul class="list-unstyled">
+                            <li class="mb-2"><i class="fas fa-times text-danger me-2"></i>Promotional content or advertisements</li>
+                            <li class="mb-2"><i class="fas fa-times text-danger me-2"></i>Specific stock picks or investment recommendations</li>
+                            <li class="mb-2"><i class="fas fa-times text-danger me-2"></i>Previously published content</li>
+                            <li class="mb-2"><i class="fas fa-times text-danger me-2"></i>AI-generated content without substantial editing</li>
+                            <li class="mb-2"><i class="fas fa-times text-danger me-2"></i>Content violating patient privacy</li>
+                        </ul>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Disclaimer:</strong> All published articles include a standard disclaimer noting that content 
+                        represents the author's personal views and should not be considered financial advice.
+                    </div>
+
+                    <div class="text-center mt-5">
+                        <a href="{{ url_for('opmed.submit') }}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-pen me-2"></i>Start Your Submission
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

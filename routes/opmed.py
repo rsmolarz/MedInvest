@@ -13,7 +13,7 @@ from flask_login import login_required, current_user
 from datetime import datetime
 from werkzeug.utils import secure_filename
 from app import db
-from models import OpMedArticle, OpMedArticleLike, OpMedComment, User
+from models import OpMedArticle, OpMedArticleLike, OpMedComment, OpMedEditorialFeedback, OpMedSubscriber, User
 
 GHOST_WEBHOOK_SECRET = os.environ.get('GHOST_WEBHOOK_SECRET')
 GHOST_CONTENT_API_KEY = os.environ.get('GHOST_CONTENT_API_KEY')
@@ -474,3 +474,246 @@ def import_from_ghost():
     existing_count = OpMedArticle.query.filter(OpMedArticle.ghost_id.isnot(None)).count()
     
     return render_template('opmed/import_ghost.html', existing_count=existing_count)
+
+
+@opmed_bp.route('/guidelines')
+def guidelines():
+    """Submission guidelines page"""
+    return render_template('opmed/guidelines.html')
+
+
+@opmed_bp.route('/author-dashboard')
+@login_required
+def author_dashboard():
+    """Author's personal dashboard with their submissions"""
+    filter_status = request.args.get('filter', 'all')
+    
+    query = OpMedArticle.query.filter_by(author_id=current_user.id)
+    
+    if filter_status != 'all':
+        query = query.filter_by(status=filter_status)
+    
+    articles = query.order_by(OpMedArticle.updated_at.desc()).all()
+    
+    all_articles = OpMedArticle.query.filter_by(author_id=current_user.id).all()
+    stats = {
+        'total': len(all_articles),
+        'drafts': len([a for a in all_articles if a.status == 'draft']),
+        'submitted': len([a for a in all_articles if a.status == 'submitted']),
+        'under_review': len([a for a in all_articles if a.status == 'under_review']),
+        'revision_requested': len([a for a in all_articles if a.status == 'revision_requested']),
+        'published': len([a for a in all_articles if a.status == 'published']),
+        'pending': len([a for a in all_articles if a.status in ['submitted', 'under_review']]),
+        'total_views': sum(a.view_count or 0 for a in all_articles if a.status == 'published')
+    }
+    
+    return render_template('opmed/author_dashboard.html', 
+                         articles=articles, 
+                         stats=stats, 
+                         filter=filter_status,
+                         OpMedEditorialFeedback=OpMedEditorialFeedback)
+
+
+@opmed_bp.route('/editorial-dashboard')
+@login_required
+def editorial_dashboard():
+    """Editorial dashboard for reviewing submissions"""
+    if not current_user.is_admin:
+        flash('Editor access required', 'error')
+        return redirect(url_for('opmed.index'))
+    
+    filter_status = request.args.get('filter', 'submitted')
+    
+    query = OpMedArticle.query
+    
+    if filter_status == 'submitted':
+        query = query.filter_by(status='submitted')
+    elif filter_status == 'under_review':
+        query = query.filter_by(status='under_review')
+    elif filter_status == 'revision_requested':
+        query = query.filter_by(status='revision_requested')
+    elif filter_status == 'published':
+        query = query.filter_by(status='published')
+    elif filter_status == 'featured':
+        query = query.filter(OpMedArticle.is_editors_pick == True)
+    
+    articles = query.order_by(OpMedArticle.submitted_at.desc().nullsfirst(), OpMedArticle.created_at.desc()).all()
+    
+    from datetime import timedelta
+    month_ago = datetime.utcnow() - timedelta(days=30)
+    
+    stats = {
+        'submitted': OpMedArticle.query.filter_by(status='submitted').count(),
+        'under_review': OpMedArticle.query.filter_by(status='under_review').count(),
+        'published_this_month': OpMedArticle.query.filter(
+            OpMedArticle.status == 'published',
+            OpMedArticle.published_at >= month_ago
+        ).count(),
+        'total_published': OpMedArticle.query.filter_by(status='published').count()
+    }
+    
+    return render_template('opmed/editorial_dashboard.html',
+                         articles=articles,
+                         stats=stats,
+                         filter=filter_status)
+
+
+@opmed_bp.route('/review/<int:article_id>')
+@login_required
+def review_article(article_id):
+    """View article for editorial review"""
+    if not current_user.is_admin:
+        flash('Editor access required', 'error')
+        return redirect(url_for('opmed.index'))
+    
+    article = OpMedArticle.query.get_or_404(article_id)
+    
+    if article.status == 'submitted':
+        article.status = 'under_review'
+        article.reviewed_by_id = current_user.id
+        db.session.commit()
+    
+    return render_template('opmed/review_article.html', article=article)
+
+
+@opmed_bp.route('/approve/<int:article_id>', methods=['POST'])
+@login_required
+def approve_article(article_id):
+    """Approve and publish an article"""
+    if not current_user.is_admin:
+        flash('Editor access required', 'error')
+        return redirect(url_for('opmed.index'))
+    
+    article = OpMedArticle.query.get_or_404(article_id)
+    
+    article.status = 'published'
+    article.published_at = datetime.utcnow()
+    article.reviewed_by_id = current_user.id
+    article.reviewed_at = datetime.utcnow()
+    
+    if request.form.get('editors_pick'):
+        article.is_editors_pick = True
+    
+    notes = request.form.get('notes')
+    if notes:
+        feedback = OpMedEditorialFeedback(
+            article_id=article.id,
+            editor_id=current_user.id,
+            feedback_type='general',
+            feedback=notes,
+            decision='approve'
+        )
+        db.session.add(feedback)
+    
+    article.calculate_reading_time()
+    
+    db.session.commit()
+    flash(f'Article "{article.title[:30]}..." has been published!', 'success')
+    return redirect(url_for('opmed.editorial_dashboard'))
+
+
+@opmed_bp.route('/request-revision/<int:article_id>', methods=['POST'])
+@login_required
+def request_revision(article_id):
+    """Request revisions from author"""
+    if not current_user.is_admin:
+        flash('Editor access required', 'error')
+        return redirect(url_for('opmed.index'))
+    
+    article = OpMedArticle.query.get_or_404(article_id)
+    
+    feedback_text = request.form.get('feedback')
+    if not feedback_text:
+        flash('Please provide feedback for the author', 'error')
+        return redirect(url_for('opmed.editorial_dashboard'))
+    
+    areas = request.form.getlist('areas')
+    
+    article.status = 'revision_requested'
+    article.revision_count = (article.revision_count or 0) + 1
+    article.reviewed_by_id = current_user.id
+    article.reviewed_at = datetime.utcnow()
+    
+    feedback = OpMedEditorialFeedback(
+        article_id=article.id,
+        editor_id=current_user.id,
+        feedback_type='revision_request',
+        feedback=feedback_text,
+        is_revision_required=True,
+        revision_areas=','.join(areas) if areas else None,
+        decision='revise'
+    )
+    db.session.add(feedback)
+    db.session.commit()
+    
+    flash(f'Revision requested for "{article.title[:30]}..."', 'success')
+    return redirect(url_for('opmed.editorial_dashboard'))
+
+
+@opmed_bp.route('/toggle-featured/<int:article_id>', methods=['POST'])
+@login_required
+def toggle_featured(article_id):
+    """Toggle Editor's Pick status"""
+    if not current_user.is_admin:
+        flash('Editor access required', 'error')
+        return redirect(url_for('opmed.index'))
+    
+    article = OpMedArticle.query.get_or_404(article_id)
+    article.is_editors_pick = not article.is_editors_pick
+    db.session.commit()
+    
+    status = "marked as Editor's Pick" if article.is_editors_pick else "removed from Editor's Picks"
+    flash(f'Article {status}', 'success')
+    return redirect(url_for('opmed.editorial_dashboard', filter='published'))
+
+
+@opmed_bp.route('/edit/<int:article_id>', methods=['GET', 'POST'])
+@login_required
+def edit_article(article_id):
+    """Edit an article (for drafts and revision requests)"""
+    article = OpMedArticle.query.get_or_404(article_id)
+    
+    if article.author_id != current_user.id and not current_user.is_admin:
+        flash('You can only edit your own articles', 'error')
+        return redirect(url_for('opmed.author_dashboard'))
+    
+    if article.status not in ['draft', 'revision_requested']:
+        flash('This article cannot be edited', 'error')
+        return redirect(url_for('opmed.author_dashboard'))
+    
+    if request.method == 'POST':
+        article.title = request.form.get('title', article.title)
+        article.excerpt = request.form.get('excerpt', article.excerpt)
+        article.content = request.form.get('content', article.content)
+        article.category = request.form.get('category', article.category)
+        article.specialty_tag = current_user.specialty
+        article.updated_at = datetime.utcnow()
+        
+        if 'cover_image' in request.files:
+            file = request.files['cover_image']
+            if file and file.filename and allowed_image_file(file.filename):
+                filename = secure_filename(file.filename)
+                unique_filename = f"{secrets.token_hex(8)}_{filename}"
+                upload_dir = os.path.join('media', 'uploads', 'opmed')
+                os.makedirs(upload_dir, exist_ok=True)
+                file.save(os.path.join(upload_dir, unique_filename))
+                article.cover_image_url = f'/{upload_dir}/{unique_filename}'
+        
+        action = request.form.get('action', 'save')
+        if action == 'submit':
+            article.status = 'submitted'
+            article.submitted_at = datetime.utcnow()
+            article.calculate_reading_time()
+            flash('Article submitted for review!', 'success')
+        else:
+            flash('Article saved as draft', 'success')
+        
+        db.session.commit()
+        return redirect(url_for('opmed.author_dashboard'))
+    
+    feedback = article.editorial_feedback.order_by(OpMedEditorialFeedback.created_at.desc()).all()
+    
+    return render_template('opmed/edit_article.html', 
+                         article=article, 
+                         categories=CATEGORIES,
+                         feedback=feedback)

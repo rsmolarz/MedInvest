@@ -1971,22 +1971,45 @@ class OpMedArticle(db.Model):
     category = db.Column(db.String(50), default='general')  # general, market_insights, retirement, real_estate, tax_strategy, from_editors
     specialty_tag = db.Column(db.String(100))  # Author's specialty
     
-    # Status
-    status = db.Column(db.String(20), default='draft')  # draft, pending_review, published, rejected
+    # Status - editorial workflow
+    status = db.Column(db.String(20), default='draft')  # draft, submitted, under_review, revision_requested, approved, published, rejected
     is_featured = db.Column(db.Boolean, default=False)
     is_editors_pick = db.Column(db.Boolean, default=False)
+    
+    # Editorial workflow
+    submitted_at = db.Column(db.DateTime)  # When author submitted for review
+    reviewed_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), index=True)  # Editor who reviewed
+    reviewed_at = db.Column(db.DateTime)
+    editor_notes = db.Column(db.Text)  # Internal notes for editors
+    revision_count = db.Column(db.Integer, default=0)  # Number of revisions
+    word_count = db.Column(db.Integer, default=0)
+    reading_time_minutes = db.Column(db.Integer, default=0)
+    
+    # SEO
+    meta_description = db.Column(db.String(300))
+    meta_keywords = db.Column(db.String(200))
     
     # Engagement
     view_count = db.Column(db.Integer, default=0)
     like_count = db.Column(db.Integer, default=0)
     comment_count = db.Column(db.Integer, default=0)
+    share_count = db.Column(db.Integer, default=0)
     
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     published_at = db.Column(db.DateTime)
     
-    author = db.relationship('User', backref=db.backref('opmed_articles', lazy='dynamic'))
+    author = db.relationship('User', foreign_keys=[author_id], backref=db.backref('opmed_articles', lazy='dynamic'))
+    reviewer = db.relationship('User', foreign_keys=[reviewed_by_id], backref=db.backref('opmed_reviewed', lazy='dynamic'))
+    
+    def calculate_reading_time(self):
+        """Calculate estimated reading time based on word count"""
+        if self.content:
+            import re
+            words = len(re.findall(r'\w+', self.content))
+            self.word_count = words
+            self.reading_time_minutes = max(1, words // 200)  # Avg 200 words per minute
     
     def generate_slug(self):
         """Generate URL-friendly slug from title"""
@@ -2016,6 +2039,50 @@ class OpMedArticleLike(db.Model):
     __table_args__ = (
         db.UniqueConstraint('article_id', 'user_id'),
     )
+
+
+class OpMedEditorialFeedback(db.Model):
+    """Editor feedback on Op-MedInvest article submissions"""
+    __tablename__ = 'opmed_editorial_feedback'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    article_id = db.Column(db.Integer, db.ForeignKey('opmed_articles.id'), nullable=False, index=True)
+    editor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    
+    feedback_type = db.Column(db.String(30), default='general')  # general, structure, content, grammar, revision_request
+    feedback = db.Column(db.Text, nullable=False)
+    
+    # For revision requests
+    is_revision_required = db.Column(db.Boolean, default=False)
+    revision_areas = db.Column(db.Text)  # JSON list of areas needing revision
+    
+    # Status tracking
+    decision = db.Column(db.String(20))  # approve, revise, reject
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    article = db.relationship('OpMedArticle', backref=db.backref('editorial_feedback', lazy='dynamic'))
+    editor = db.relationship('User', backref=db.backref('opmed_feedback_given', lazy='dynamic'))
+
+
+class OpMedSubscriber(db.Model):
+    """Email subscribers for Op-MedInvest newsletter"""
+    __tablename__ = 'opmed_subscribers'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), index=True)  # Optional link to user account
+    
+    is_active = db.Column(db.Boolean, default=True)
+    subscribed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    unsubscribed_at = db.Column(db.DateTime)
+    
+    # Preferences
+    weekly_digest = db.Column(db.Boolean, default=True)
+    new_articles = db.Column(db.Boolean, default=True)
+    editors_picks_only = db.Column(db.Boolean, default=False)
+    
+    user = db.relationship('User', backref=db.backref('opmed_subscription', uselist=False))
 
 
 class OpMedComment(db.Model):
