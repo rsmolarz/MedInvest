@@ -15,6 +15,7 @@ from app import db
 from models import User, Referral
 from mailer import send_email
 from routes.notifications import notify_invite_accepted
+from gohighlevel import add_contact_to_ghl
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -517,6 +518,9 @@ def register():
                 # Notify the inviter that someone accepted their invite
                 notify_invite_accepted(referred_by.id, user)
                 db.session.commit()
+            
+            # Add new user to GoHighLevel CRM (runs in background)
+            add_contact_to_ghl(user)
             
             login_user(user)
             flash('Welcome to MedInvest! Your account has been created.', 'success')
