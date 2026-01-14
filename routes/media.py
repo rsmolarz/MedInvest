@@ -4,9 +4,10 @@ Media Routes - Handle image and video uploads
 import os
 import uuid
 from datetime import datetime
-from flask import Blueprint, request, jsonify, current_app, send_from_directory
+from flask import Blueprint, request, jsonify, current_app, send_from_directory, Response, make_response
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
+from object_storage_utils import upload_file, download_file, OBJECT_STORAGE_AVAILABLE
 
 media_bp = Blueprint('media', __name__, url_prefix='/media')
 
@@ -50,7 +51,24 @@ def ensure_upload_dirs():
 
 @media_bp.route('/uploads/<path:filename>')
 def serve_upload(filename):
-    """Serve uploaded files"""
+    """Serve uploaded files from Object Storage or local filesystem"""
+    object_path = f"uploads/{filename}"
+    
+    if OBJECT_STORAGE_AVAILABLE:
+        file_data = download_file(object_path)
+        if file_data:
+            ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+            content_types = {
+                'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
+                'png': 'image/png', 'gif': 'image/gif', 'webp': 'image/webp',
+                'mp4': 'video/mp4', 'mov': 'video/quicktime', 'webm': 'video/webm'
+            }
+            content_type = content_types.get(ext, 'application/octet-stream')
+            response = make_response(file_data)
+            response.headers['Content-Type'] = content_type
+            response.headers['Cache-Control'] = 'public, max-age=31536000'
+            return response
+    
     upload_path = os.path.join(current_app.root_path, UPLOAD_FOLDER)
     return send_from_directory(upload_path, filename)
 
@@ -86,13 +104,19 @@ def upload_media():
     if file_size > max_size:
         return jsonify({'error': f'File too large. Max size: {max_size // (1024*1024)}MB'}), 400
     
-    base_path = ensure_upload_dirs()
     unique_filename = generate_unique_filename(file.filename)
-    file_path = os.path.join(base_path, subdir, unique_filename)
-    
-    file.save(file_path)
-    
     url_path = f"/media/uploads/{subdir}/{unique_filename}"
+    object_path = f"uploads/{subdir}/{unique_filename}"
+    
+    file_bytes = file.read()
+    file.seek(0)
+    
+    if OBJECT_STORAGE_AVAILABLE:
+        upload_file(file_bytes, object_path)
+    
+    base_path = ensure_upload_dirs()
+    file_path = os.path.join(base_path, subdir, unique_filename)
+    file.save(file_path)
     
     return jsonify({
         'success': True,
@@ -136,14 +160,20 @@ def upload_multiple():
         
         unique_filename = generate_unique_filename(file.filename)
         file_path = os.path.join(base_path, subdir, unique_filename)
+        url_path = f"/media/uploads/{subdir}/{unique_filename}"
+        object_path = f"uploads/{subdir}/{unique_filename}"
         
         file.seek(0, 2)
         file_size = file.tell()
         file.seek(0)
         
-        file.save(file_path)
+        file_bytes = file.read()
+        file.seek(0)
         
-        url_path = f"/media/uploads/{subdir}/{unique_filename}"
+        if OBJECT_STORAGE_AVAILABLE:
+            upload_file(file_bytes, object_path)
+        
+        file.save(file_path)
         
         uploaded_files.append({
             'file_path': url_path,

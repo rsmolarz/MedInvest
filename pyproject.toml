@@ -24,4 +24,5 @@ dependencies = [
     "requests>=2.32.4",
     "google-genai>=1.57.0",
     "pywebpush>=2.2.0",
+    "replit-object-storage>=1.0.2",
 ]

@@ -41,7 +41,28 @@ def terms():
 
 @main_bp.route('/media/uploads/<path:filename>')
 def serve_media(filename):
-    """Serve uploaded media files (images, videos)"""
+    """Serve uploaded media files (images, videos) from Object Storage or local filesystem"""
+    from object_storage_utils import download_file, OBJECT_STORAGE_AVAILABLE
+    from flask import make_response
+    
+    object_path = f"uploads/{filename}"
+    
+    if OBJECT_STORAGE_AVAILABLE:
+        file_data = download_file(object_path)
+        if file_data:
+            ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+            content_types = {
+                'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
+                'png': 'image/png', 'gif': 'image/gif', 'webp': 'image/webp',
+                'mp4': 'video/mp4', 'mov': 'video/quicktime', 'webm': 'video/webm',
+                'pdf': 'application/pdf'
+            }
+            content_type = content_types.get(ext, 'application/octet-stream')
+            response = make_response(file_data)
+            response.headers['Content-Type'] = content_type
+            response.headers['Cache-Control'] = 'public, max-age=31536000'
+            return response
+    
     media_dir = os.path.join(os.getcwd(), 'media', 'uploads')
     return send_from_directory(media_dir, filename)
 
