@@ -4,10 +4,22 @@ AMA Routes - Expert Ask Me Anything sessions
 from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime
+from functools import wraps
 from app import db
 from models import ExpertAMA, AMAQuestion, AMARegistration, AMAStatus
 
 ama_bp = Blueprint('ama', __name__, url_prefix='/ama')
+
+
+def admin_required(f):
+    """Decorator to require admin access"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            from flask import abort
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 @ama_bp.route('/')
@@ -174,3 +186,119 @@ def live_ama(ama_id):
                                 .order_by(AMAQuestion.upvotes.desc()).all()
     
     return render_template('ama/live.html', ama=ama, questions=questions)
+
+
+@ama_bp.route('/create', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def create_ama():
+    """Create a new Expert AMA session"""
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        expert_name = request.form.get('expert_name', '').strip()
+        expert_title = request.form.get('expert_title', '').strip()
+        expert_bio = request.form.get('expert_bio', '').strip()
+        description = request.form.get('description', '').strip()
+        scheduled_str = request.form.get('scheduled_for', '')
+        duration = request.form.get('duration_minutes', '60')
+        is_premium = request.form.get('is_premium_only') == 'on'
+        expert_image_url = request.form.get('expert_image_url', '').strip()
+        
+        if not title:
+            flash('AMA title is required', 'error')
+            return redirect(url_for('ama.list_amas'))
+        
+        if not expert_name:
+            flash('Expert name is required', 'error')
+            return redirect(url_for('ama.list_amas'))
+        
+        if not scheduled_str:
+            flash('Scheduled date/time is required', 'error')
+            return redirect(url_for('ama.list_amas'))
+        
+        try:
+            scheduled_for = datetime.fromisoformat(scheduled_str)
+        except ValueError:
+            flash('Invalid date/time format', 'error')
+            return redirect(url_for('ama.list_amas'))
+        
+        ama = ExpertAMA(
+            title=title,
+            expert_name=expert_name,
+            expert_title=expert_title,
+            expert_bio=expert_bio,
+            description=description,
+            scheduled_for=scheduled_for,
+            duration_minutes=int(duration),
+            is_premium_only=is_premium,
+            expert_image_url=expert_image_url if expert_image_url else None,
+            status=AMAStatus.SCHEDULED
+        )
+        
+        db.session.add(ama)
+        db.session.commit()
+        
+        flash(f'AMA "{title}" scheduled successfully!', 'success')
+        return redirect(url_for('ama.view_ama', ama_id=ama.id))
+    
+    # For GET requests, redirect to list (modal-based creation)
+    return redirect(url_for('ama.list_amas'))
+
+
+@ama_bp.route('/<int:ama_id>/edit', methods=['POST'])
+@login_required
+@admin_required
+def edit_ama(ama_id):
+    """Edit an existing AMA"""
+    ama = ExpertAMA.query.get_or_404(ama_id)
+    
+    ama.title = request.form.get('title', ama.title)
+    ama.expert_name = request.form.get('expert_name', ama.expert_name)
+    ama.expert_title = request.form.get('expert_title', ama.expert_title)
+    ama.expert_bio = request.form.get('expert_bio', ama.expert_bio)
+    ama.description = request.form.get('description', ama.description)
+    
+    scheduled_str = request.form.get('scheduled_for')
+    if scheduled_str:
+        try:
+            ama.scheduled_for = datetime.fromisoformat(scheduled_str)
+        except ValueError:
+            pass
+    
+    duration = request.form.get('duration_minutes')
+    if duration:
+        ama.duration_minutes = int(duration)
+    
+    ama.is_premium_only = request.form.get('is_premium_only') == 'on'
+    
+    expert_image_url = request.form.get('expert_image_url', '').strip()
+    if expert_image_url:
+        ama.expert_image_url = expert_image_url
+    
+    db.session.commit()
+    flash('AMA updated successfully!', 'success')
+    return redirect(url_for('ama.view_ama', ama_id=ama_id))
+
+
+@ama_bp.route('/<int:ama_id>/status', methods=['POST'])
+@login_required
+@admin_required
+def update_status(ama_id):
+    """Update AMA status (start live, end)"""
+    ama = ExpertAMA.query.get_or_404(ama_id)
+    new_status = request.form.get('status')
+    
+    # Validate against allowed status values
+    allowed_statuses = [s.value for s in AMAStatus]
+    if new_status not in allowed_statuses:
+        flash('Invalid status value', 'error')
+        return redirect(url_for('ama.view_ama', ama_id=ama_id))
+    
+    try:
+        ama.status = AMAStatus(new_status)
+        db.session.commit()
+        flash(f'AMA status updated to {new_status}', 'success')
+    except ValueError:
+        flash('Invalid status', 'error')
+    
+    return redirect(url_for('ama.view_ama', ama_id=ama_id))
