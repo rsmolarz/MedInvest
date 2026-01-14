@@ -51,13 +51,22 @@ with app.app_context():
     logging.info("Database tables created")
     
     # Apply necessary schema migrations for existing databases
+    from sqlalchemy import text
+    
+    # Migration 1: Fix medical_license constraint
     try:
-        from sqlalchemy import text
-        # Fix medical_license constraint - should allow NULL for new registrations
         db.session.execute(text("ALTER TABLE users ALTER COLUMN medical_license DROP NOT NULL"))
         db.session.commit()
         logging.info("Applied schema migration: medical_license now nullable")
     except Exception as e:
         db.session.rollback()
-        # Ignore if already nullable or table doesn't exist yet
+        logging.debug(f"Schema migration skipped (likely already applied): {e}")
+    
+    # Migration 2: Add is_anonymous column to comments table
+    try:
+        db.session.execute(text("ALTER TABLE comments ADD COLUMN is_anonymous BOOLEAN DEFAULT FALSE"))
+        db.session.commit()
+        logging.info("Applied schema migration: comments.is_anonymous added")
+    except Exception as e:
+        db.session.rollback()
         logging.debug(f"Schema migration skipped (likely already applied): {e}")
