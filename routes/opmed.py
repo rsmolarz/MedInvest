@@ -14,6 +14,7 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 from app import db
 from models import OpMedArticle, OpMedArticleLike, OpMedComment, OpMedEditorialFeedback, OpMedSubscriber, User
+from facebook_page import share_article, is_facebook_configured
 
 GHOST_WEBHOOK_SECRET = os.environ.get('GHOST_WEBHOOK_SECRET')
 GHOST_CONTENT_API_KEY = os.environ.get('GHOST_CONTENT_API_KEY')
@@ -469,6 +470,10 @@ def ghost_webhook():
         db.session.add(article)
         db.session.commit()
         
+        # Share to Facebook Page if configured
+        if is_facebook_configured():
+            share_article(article)
+        
         logging.info(f"Imported Ghost post to Op-MedInvest: {title}")
         return jsonify({'status': 'created', 'article_id': article.id}), 201
         
@@ -534,7 +539,7 @@ def import_ghost_post(post_data, admin_user):
     )
     
     db.session.add(article)
-    return {'status': 'imported', 'title': title}
+    return {'status': 'imported', 'title': title, 'article': article}
 
 
 @opmed_bp.route('/admin/import-ghost', methods=['GET', 'POST'])

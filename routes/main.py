@@ -15,6 +15,7 @@ from utils.content import (
 from utils.algorithm import generate_feed, get_user_interests, get_people_you_may_know
 from utils.news import get_personalized_news
 from routes.notifications import create_notification, notify_mention
+from facebook_page import share_platform_post, is_facebook_configured
 
 main_bp = Blueprint('main', __name__)
 
@@ -237,6 +238,11 @@ def create_post():
     current_user.add_points(5 if post_type == 'text' else 10)  # More points for media posts
     db.session.commit()
     
+    # Share to Facebook Page if configured (non-anonymous posts only)
+    if not is_anonymous and is_facebook_configured():
+        author_name = f"{current_user.first_name} {current_user.last_name}".strip() or "A physician"
+        share_platform_post(post, author_name=author_name)
+    
     flash('Post created!', 'success')
     return redirect(request.referrer or url_for('main.feed'))
 
@@ -331,6 +337,11 @@ def create_post_ajax():
     
     current_user.add_points(5 if post_type == 'text' else 10)
     db.session.commit()
+    
+    # Share to Facebook Page if configured (non-anonymous posts only)
+    if not is_anonymous and is_facebook_configured():
+        author_name = f"{current_user.first_name} {current_user.last_name}".strip() or "A physician"
+        share_platform_post(post, author_name=author_name)
     
     return jsonify({
         'success': True,
