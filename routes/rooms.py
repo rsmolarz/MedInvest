@@ -1,12 +1,46 @@
 """
 Rooms Routes - Investment discussion rooms
 """
+import re
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 from app import db
-from models import Room, Post, PostVote, Comment
+from models import Room, Post, PostVote, Comment, RoomMembership
 
 rooms_bp = Blueprint('rooms', __name__, url_prefix='/rooms')
+
+ROOM_CATEGORIES = [
+    ('specialty', 'By Specialty'),
+    ('career_stage', 'By Career Stage'),
+    ('topic', 'Investment Topic'),
+    ('other', 'Other')
+]
+
+ROOM_ICONS = [
+    ('comments', 'Comments'),
+    ('chart-line', 'Chart'),
+    ('building', 'Building'),
+    ('home', 'Real Estate'),
+    ('briefcase', 'Briefcase'),
+    ('coins', 'Coins'),
+    ('piggy-bank', 'Savings'),
+    ('landmark', 'Bank'),
+    ('graduation-cap', 'Education'),
+    ('stethoscope', 'Medical'),
+    ('user-md', 'Doctor'),
+    ('heartbeat', 'Cardiology'),
+    ('brain', 'Neurology'),
+    ('bone', 'Orthopedics'),
+    ('eye', 'Ophthalmology'),
+    ('baby', 'Pediatrics'),
+]
+
+
+def generate_slug(name):
+    """Generate a URL-friendly slug from room name"""
+    slug = re.sub(r'[^\w\s-]', '', name.lower())
+    slug = re.sub(r'[\s_-]+', '-', slug)
+    return slug.strip('-')
 
 
 @rooms_bp.route('/')
@@ -23,7 +57,74 @@ def list_rooms():
             categories[cat] = []
         categories[cat].append(room)
     
-    return render_template('rooms/list.html', categories=categories, rooms=rooms)
+    return render_template('rooms/list.html', 
+                         categories=categories, 
+                         rooms=rooms,
+                         room_categories=ROOM_CATEGORIES,
+                         room_icons=ROOM_ICONS)
+
+
+@rooms_bp.route('/create', methods=['GET', 'POST'])
+@login_required
+def create_room():
+    """Create a new investment room"""
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        description = request.form.get('description', '').strip()
+        category = request.form.get('category', 'other')
+        icon = request.form.get('icon', 'comments')
+        
+        if not name:
+            flash('Room name is required', 'error')
+            return redirect(url_for('rooms.list_rooms'))
+        
+        if len(name) < 3:
+            flash('Room name must be at least 3 characters', 'error')
+            return redirect(url_for('rooms.list_rooms'))
+        
+        if len(name) > 50:
+            flash('Room name must be less than 50 characters', 'error')
+            return redirect(url_for('rooms.list_rooms'))
+        
+        # Generate slug
+        slug = generate_slug(name)
+        
+        # Check if room with same name or slug exists
+        existing = Room.query.filter(
+            (Room.name.ilike(name)) | (Room.slug == slug)
+        ).first()
+        
+        if existing:
+            flash('A room with this name already exists', 'error')
+            return redirect(url_for('rooms.list_rooms'))
+        
+        # Create room
+        room = Room(
+            name=name,
+            slug=slug,
+            description=description,
+            category=category,
+            icon=icon,
+            member_count=1
+        )
+        db.session.add(room)
+        db.session.flush()
+        
+        # Add creator as room admin
+        membership = RoomMembership(
+            user_id=current_user.id,
+            room_id=room.id,
+            role='admin'
+        )
+        db.session.add(membership)
+        current_user.add_points(20)
+        db.session.commit()
+        
+        flash(f'Room "{name}" created successfully!', 'success')
+        return redirect(url_for('rooms.view_room', slug=slug))
+    
+    # Redirect GET requests to the rooms list (modal-based creation)
+    return redirect(url_for('rooms.list_rooms'))
 
 
 @rooms_bp.route('/<slug>')
