@@ -2033,3 +2033,25 @@ class OpMedComment(db.Model):
     
     article = db.relationship('OpMedArticle', backref=db.backref('comments', lazy='dynamic'))
     author = db.relationship('User', backref=db.backref('opmed_comments', lazy='dynamic'))
+
+
+class PushSubscription(db.Model):
+    """Web push notification subscriptions"""
+    __tablename__ = 'push_subscriptions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    
+    endpoint = db.Column(db.Text, nullable=False)
+    p256dh_key = db.Column(db.String(500), nullable=False)
+    auth_key = db.Column(db.String(500), nullable=False)
+    
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_used = db.Column(db.DateTime)
+    
+    user = db.relationship('User', backref=db.backref('push_subscriptions', lazy='dynamic'))
+    
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'endpoint', name='unique_user_endpoint'),
+    )

@@ -6,6 +6,7 @@ from flask import Blueprint, render_template, jsonify, request
 from flask_login import login_required, current_user
 from app import db
 from models import Notification, NotificationType, User
+from push_service import send_push_to_user
 
 notifications_bp = Blueprint('notifications', __name__, url_prefix='/notifications')
 
@@ -158,7 +159,7 @@ def get_time_ago(dt):
 
 def create_notification(user_id, notification_type, title, message, 
                        actor_id=None, post_id=None, comment_id=None, 
-                       url=None):
+                       url=None, send_push=True):
     """Create a notification for a user"""
     # Don't notify yourself
     if actor_id and actor_id == user_id:
@@ -179,6 +180,12 @@ def create_notification(user_id, notification_type, title, message,
         url=url
     )
     db.session.add(notification)
+    
+    # Send push notification in background
+    if send_push:
+        full_url = url or '/notifications'
+        send_push_to_user(user_id, title, message, full_url)
+    
     return notification
 
 

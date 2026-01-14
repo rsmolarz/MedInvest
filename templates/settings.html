@@ -96,6 +96,16 @@
 
                         <button type="submit" class="btn btn-primary mt-3">Save Preferences</button>
                     </form>
+                    
+                    <div class="settings-item mt-4">
+                        <h6><i class="fas fa-bell me-2"></i>Push Notifications</h6>
+                        <p>Receive instant notifications on your device even when you're not on MedInvest.</p>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="push-notification-toggle">
+                            <label class="form-check-label" for="push-notification-toggle">Enable push notifications</label>
+                        </div>
+                        <small class="text-muted d-block mt-2">You'll be asked to allow notifications in your browser.</small>
+                    </div>
 
                     {% elif tab == 'privacy' %}
                     <h4><i class="fas fa-lock me-2"></i>Privacy Settings</h4>

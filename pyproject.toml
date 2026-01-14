@@ -23,4 +23,5 @@ dependencies = [
     "alembic>=1.18.0",
     "requests>=2.32.4",
     "google-genai>=1.57.0",
+    "pywebpush>=2.2.0",
 ]
