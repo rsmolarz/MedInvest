@@ -9,6 +9,7 @@ import logging
 import hmac
 import hashlib
 from flask import Blueprint, render_template, redirect, url_for, request, flash, abort, jsonify
+from facebook_page import share_article, is_facebook_configured
 from flask_login import login_required, current_user
 from datetime import datetime
 from werkzeug.utils import secure_filename
@@ -740,7 +741,17 @@ def approve_article(article_id):
     article.calculate_reading_time()
     
     db.session.commit()
-    flash(f'Article "{article.title[:30]}..." has been published!', 'success')
+    
+    # Auto-post to Facebook
+    if is_facebook_configured():
+        fb_result = share_article(article)
+        if fb_result.get('success'):
+            flash(f'Article "{article.title[:30]}..." published and shared to Facebook!', 'success')
+        else:
+            flash(f'Article "{article.title[:30]}..." published! (Facebook post failed)', 'warning')
+    else:
+        flash(f'Article "{article.title[:30]}..." has been published!', 'success')
+    
     return redirect(url_for('opmed.editorial_dashboard'))
 
 
@@ -849,3 +860,30 @@ def edit_article(article_id):
                          article=article, 
                          categories=CATEGORIES,
                          feedback=feedback)
+
+
+@opmed_bp.route('/share-facebook/<int:article_id>', methods=['POST'])
+@login_required
+def share_article_facebook(article_id):
+    """Manually share an article to Facebook (admin only)"""
+    if not current_user.is_admin:
+        flash('Admin access required', 'error')
+        return redirect(url_for('opmed.index'))
+    
+    article = OpMedArticle.query.get_or_404(article_id)
+    
+    if article.status != 'published':
+        flash('Only published articles can be shared', 'error')
+        return redirect(url_for('opmed.editorial_dashboard'))
+    
+    if not is_facebook_configured():
+        flash('Facebook integration not configured', 'error')
+        return redirect(url_for('opmed.editorial_dashboard'))
+    
+    fb_result = share_article(article)
+    if fb_result.get('success'):
+        flash('Article shared to Facebook successfully!', 'success')
+    else:
+        flash(f'Facebook post failed: {fb_result.get("error", "unknown")}', 'error')
+    
+    return redirect(url_for('opmed.editorial_dashboard'))

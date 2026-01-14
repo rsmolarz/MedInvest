@@ -7,6 +7,7 @@ from datetime import datetime
 from functools import wraps
 from app import db
 from models import ExpertAMA, AMAQuestion, AMARegistration, AMAStatus
+from facebook_page import share_ama, is_facebook_configured
 
 ama_bp = Blueprint('ama', __name__, url_prefix='/ama')
 
@@ -238,7 +239,16 @@ def create_ama():
         db.session.add(ama)
         db.session.commit()
         
-        flash(f'AMA "{title}" scheduled successfully!', 'success')
+        # Auto-post to Facebook
+        if is_facebook_configured():
+            fb_result = share_ama(ama)
+            if fb_result.get('success'):
+                flash(f'AMA "{title}" scheduled and shared to Facebook!', 'success')
+            else:
+                flash(f'AMA "{title}" scheduled! (Facebook post failed: {fb_result.get("error", "unknown")})', 'warning')
+        else:
+            flash(f'AMA "{title}" scheduled successfully!', 'success')
+        
         return redirect(url_for('ama.view_ama', ama_id=ama.id))
     
     # For GET requests, redirect to list (modal-based creation)
@@ -300,5 +310,25 @@ def update_status(ama_id):
         flash(f'AMA status updated to {new_status}', 'success')
     except ValueError:
         flash('Invalid status', 'error')
+    
+    return redirect(url_for('ama.view_ama', ama_id=ama_id))
+
+
+@ama_bp.route('/<int:ama_id>/share-facebook', methods=['POST'])
+@login_required
+@admin_required
+def share_to_facebook(ama_id):
+    """Manually share an AMA to Facebook (admin only)"""
+    ama = ExpertAMA.query.get_or_404(ama_id)
+    
+    if not is_facebook_configured():
+        flash('Facebook integration not configured', 'error')
+        return redirect(url_for('ama.view_ama', ama_id=ama_id))
+    
+    fb_result = share_ama(ama)
+    if fb_result.get('success'):
+        flash('AMA shared to Facebook successfully!', 'success')
+    else:
+        flash(f'Facebook post failed: {fb_result.get("error", "unknown")}', 'error')
     
     return redirect(url_for('ama.view_ama', ama_id=ama_id))

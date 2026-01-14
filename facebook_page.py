@@ -216,3 +216,37 @@ def share_event(event):
     message += "\n\n#MedInvestEvents #PhysicianEducation"
     
     return post_to_facebook(message, link=event_link)
+
+
+def share_ama(ama):
+    """
+    Share an Expert AMA session to Facebook Page
+    
+    Args:
+        ama: ExpertAMA model object
+    """
+    if not is_facebook_configured():
+        return {'success': False, 'error': 'Facebook not configured'}
+    
+    message = f"🎙️ Expert AMA: {ama.title}"
+    
+    message += f"\n\n👤 With: {ama.expert_name}"
+    if ama.expert_title:
+        message += f" - {ama.expert_title}"
+    
+    if ama.scheduled_for:
+        message += f"\n\n📅 {ama.scheduled_for.strftime('%B %d, %Y at %I:%M %p')}"
+    
+    if ama.description:
+        desc = ama.description[:200] + '...' if len(ama.description) > 200 else ama.description
+        message += f"\n\n{desc}"
+    
+    ama_link = f"{PLATFORM_URL}/ama/{ama.id}"
+    
+    message += f"\n\n🎯 Register & submit questions: {ama_link}"
+    message += "\n\n#ExpertAMA #PhysicianFinance #AskTheExpert"
+    
+    if ama.expert_image_url:
+        return post_with_photo(message, ama.expert_image_url, link=ama_link)
+    else:
+        return post_to_facebook(message, link=ama_link)

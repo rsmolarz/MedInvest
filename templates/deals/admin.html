@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}Manage Deals - Admin - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2"><i class="fas fa-briefcase me-2 text-primary"></i>Manage Investment Deals</h1>
+        <a href="{{ url_for('deals.list_deals') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Deals
+        </a>
+    </div>
+    
+    <!-- Pending Deals -->
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Pending Review ({{ pending|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% if pending %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Target</th>
+                            <th>Sponsor</th>
+                            <th>Submitted</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for deal in pending %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('deals.view_deal', deal_id=deal.id) }}">
+                                    {{ deal.title }}
+                                </a>
+                            </td>
+                            <td>{{ deal.deal_type|replace('_', ' ')|title if deal.deal_type else '-' }}</td>
+                            <td>${{ '{:,.0f}'.format(deal.target_raise) if deal.target_raise else '-' }}</td>
+                            <td>{{ deal.sponsor_name or '-' }}</td>
+                            <td>{{ deal.created_at.strftime('%b %d, %Y') if deal.created_at else '-' }}</td>
+                            <td>
+                                <form action="{{ url_for('deals.approve_deal', deal_id=deal.id) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-success">
+                                        <i class="fas fa-check me-1"></i>Approve
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">No deals pending review</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Active Deals -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Active Deals ({{ active|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% if active %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Target</th>
+                            <th>Interest</th>
+                            <th>Views</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for deal in active %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('deals.view_deal', deal_id=deal.id) }}">
+                                    {{ deal.title }}
+                                    {% if deal.is_featured %}<span class="badge bg-warning ms-1">Featured</span>{% endif %}
+                                </a>
+                            </td>
+                            <td>{{ deal.deal_type|replace('_', ' ')|title if deal.deal_type else '-' }}</td>
+                            <td>${{ '{:,.0f}'.format(deal.target_raise) if deal.target_raise else '-' }}</td>
+                            <td>{{ deal.interest_count or 0 }}</td>
+                            <td>{{ deal.view_count or 0 }}</td>
+                            <td>
+                                <form action="{{ url_for('deals.share_to_facebook', deal_id=deal.id) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-primary">
+                                        <i class="fab fa-facebook me-1"></i>Share
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">No active deals</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Closed Deals -->
+    <div class="card">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="fas fa-archive me-2"></i>Closed Deals ({{ closed|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% if closed %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Target</th>
+                            <th>Final Interest</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for deal in closed %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('deals.view_deal', deal_id=deal.id) }}">
+                                    {{ deal.title }}
+                                </a>
+                            </td>
+                            <td>{{ deal.deal_type|replace('_', ' ')|title if deal.deal_type else '-' }}</td>
+                            <td>${{ '{:,.0f}'.format(deal.target_raise) if deal.target_raise else '-' }}</td>
+                            <td>{{ deal.interest_count or 0 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">No closed deals</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
