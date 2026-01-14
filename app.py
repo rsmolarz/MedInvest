@@ -49,3 +49,15 @@ with app.app_context():
     import models  # noqa: F401
     db.create_all()
     logging.info("Database tables created")
+    
+    # Apply necessary schema migrations for existing databases
+    try:
+        from sqlalchemy import text
+        # Fix medical_license constraint - should allow NULL for new registrations
+        db.session.execute(text("ALTER TABLE users ALTER COLUMN medical_license DROP NOT NULL"))
+        db.session.commit()
+        logging.info("Applied schema migration: medical_license now nullable")
+    except Exception as e:
+        db.session.rollback()
+        # Ignore if already nullable or table doesn't exist yet
+        logging.debug(f"Schema migration skipped (likely already applied): {e}")
