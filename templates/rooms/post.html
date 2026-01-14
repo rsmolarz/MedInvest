@@ -1,56 +1,163 @@
 {% extends "base.html" %}
 {% block title %}Post - MedInvest{% endblock %}
 
+{% block extra_css %}
+<style>
+    .reply-form { display: none; margin-top: 10px; }
+    .reply-form.show { display: block; }
+    .nested-replies { margin-left: 40px; border-left: 2px solid #e9ecef; padding-left: 15px; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-4">
     <div class="row justify-content-center">
         <div class="col-lg-8">
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.feed') }}">Feed</a></li>
+                    <li class="breadcrumb-item active">Post</li>
+                </ol>
+            </nav>
+            
             <div class="card mb-4">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between mb-3">
-                        <strong>{{ post.display_author }}</strong>
-                        <small class="text-muted">{{ post.created_at.strftime('%B %d, %Y') }}</small>
+                    <div class="d-flex align-items-center mb-3">
+                        {% if not post.is_anonymous and post.author.profile_image_url %}
+                        <img src="{{ post.author.profile_image_url }}" class="rounded-circle me-3" style="width:50px;height:50px;object-fit:cover;">
+                        {% else %}
+                        <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        {% endif %}
+                        <div class="flex-grow-1">
+                            <strong>{{ post.display_author }}</strong>
+                            <br><small class="text-muted">{{ post.created_at.strftime('%B %d, %Y at %I:%M %p') }}</small>
+                        </div>
                     </div>
                     {% if post.title %}<h4>{{ post.title }}</h4>{% endif %}
-                    <p class="lead">{{ post.content }}</p>
-                    <div class="d-flex gap-3">
-                        <span><i class="fas fa-arrow-up text-success"></i> {{ post.upvotes }}</span>
-                        <span><i class="fas fa-eye text-muted"></i> {{ post.view_count }}</span>
+                    <p class="lead mb-3">{{ post.content }}</p>
+                    
+                    {% if post.has_media %}
+                    <div class="mb-3">
+                        {% for media in post.all_media %}
+                        {% if media.media_type == 'video' %}
+                        <video controls class="img-fluid rounded mb-2" style="max-height:400px;">
+                            <source src="{{ media.file_path }}" type="video/mp4">
+                        </video>
+                        {% else %}
+                        <img src="{{ media.file_path }}" class="img-fluid rounded mb-2" style="max-height:400px;">
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex gap-3 text-muted">
+                        <span><i class="fas fa-thumbs-up text-primary"></i> {{ post.upvotes }}</span>
+                        <span><i class="fas fa-comment"></i> {{ post.comment_count }}</span>
+                        <span><i class="fas fa-eye"></i> {{ post.view_count }}</span>
                     </div>
                 </div>
             </div>
             
             <div class="card mb-4">
-                <div class="card-header"><h6 class="mb-0">Add Comment</h6></div>
+                <div class="card-header"><h6 class="mb-0"><i class="fas fa-comment me-2"></i>Add Comment</h6></div>
                 <div class="card-body">
                     <form action="{{ url_for('rooms.add_comment', post_id=post.id) }}" method="POST">
                         <textarea name="content" class="form-control mb-3" rows="2" placeholder="Write a comment..." required></textarea>
-                        <div class="d-flex justify-content-between">
+                        <div class="d-flex justify-content-between align-items-center">
                             <div class="form-check">
                                 <input type="checkbox" name="is_anonymous" class="form-check-input" id="anon">
-                                <label class="form-check-label" for="anon">Anonymous</label>
+                                <label class="form-check-label" for="anon"><i class="fas fa-user-secret me-1"></i>Anonymous</label>
                             </div>
-                            <button type="submit" class="btn btn-primary btn-sm">Comment</button>
+                            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-paper-plane me-1"></i>Comment</button>
                         </div>
                     </form>
                 </div>
             </div>
             
-            <h5>Comments ({{ comments|length }})</h5>
+            <h5 class="mb-3"><i class="fas fa-comments me-2"></i>Comments ({{ comments|length }})</h5>
+            
             {% for comment in comments %}
-            <div class="card mb-2">
+            <div class="card mb-3" id="comment-{{ comment.id }}">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between mb-2">
-                        <strong>{% if comment.is_anonymous %}Anonymous{% else %}{{ comment.author.full_name }}{% endif %}</strong>
-                        <small class="text-muted">{{ comment.created_at.strftime('%b %d') }}</small>
+                    <div class="d-flex align-items-start">
+                        {% if not comment.is_anonymous and comment.author.profile_image_url %}
+                        <img src="{{ comment.author.profile_image_url }}" class="rounded-circle me-3" style="width:40px;height:40px;object-fit:cover;">
+                        {% else %}
+                        <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-3" style="width:40px;height:40px;font-size:14px;">
+                            {% if comment.is_anonymous %}<i class="fas fa-user-secret"></i>{% else %}{{ comment.author.first_name[0] }}{{ comment.author.last_name[0] }}{% endif %}
+                        </div>
+                        {% endif %}
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <strong>{% if comment.is_anonymous %}Anonymous Physician{% else %}{{ comment.author.full_name }}{% endif %}</strong>
+                                <small class="text-muted">{{ comment.created_at.strftime('%b %d, %Y') }}</small>
+                            </div>
+                            <p class="mb-2">{{ comment.content }}</p>
+                            <button class="btn btn-link btn-sm p-0 text-muted" onclick="toggleReplyForm({{ comment.id }})">
+                                <i class="fas fa-reply me-1"></i>Reply
+                            </button>
+                            
+                            <!-- Reply Form -->
+                            <div class="reply-form" id="reply-form-{{ comment.id }}">
+                                <form action="{{ url_for('rooms.add_comment', post_id=post.id) }}" method="POST" class="mt-2">
+                                    <input type="hidden" name="parent_id" value="{{ comment.id }}">
+                                    <div class="input-group">
+                                        <input type="text" name="content" class="form-control form-control-sm" placeholder="Write a reply..." required>
+                                        <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-paper-plane"></i></button>
+                                    </div>
+                                </form>
+                            </div>
+                            
+                            <!-- Nested Replies -->
+                            {% if comment.replies %}
+                            <div class="nested-replies mt-3">
+                                {% for reply in comment.replies %}
+                                <div class="d-flex align-items-start mb-3">
+                                    {% if not reply.is_anonymous and reply.author.profile_image_url %}
+                                    <img src="{{ reply.author.profile_image_url }}" class="rounded-circle me-2" style="width:32px;height:32px;object-fit:cover;">
+                                    {% else %}
+                                    <div class="rounded-circle bg-light text-muted d-flex align-items-center justify-content-center me-2" style="width:32px;height:32px;font-size:12px;">
+                                        {% if reply.is_anonymous %}<i class="fas fa-user-secret"></i>{% else %}{{ reply.author.first_name[0] }}{{ reply.author.last_name[0] }}{% endif %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <strong class="small">{% if reply.is_anonymous %}Anonymous{% else %}{{ reply.author.full_name }}{% endif %}</strong>
+                                            <small class="text-muted">{{ reply.created_at.strftime('%b %d') }}</small>
+                                        </div>
+                                        <p class="mb-0 small">{{ reply.content }}</p>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
                     </div>
-                    <p class="mb-0">{{ comment.content }}</p>
                 </div>
             </div>
             {% else %}
-            <p class="text-muted">No comments yet</p>
+            <div class="card">
+                <div class="card-body text-center py-4">
+                    <i class="fas fa-comments fa-2x text-muted mb-2"></i>
+                    <p class="text-muted mb-0">No comments yet. Be the first to comment!</p>
+                </div>
+            </div>
             {% endfor %}
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleReplyForm(commentId) {
+    const form = document.getElementById('reply-form-' + commentId);
+    form.classList.toggle('show');
+    if (form.classList.contains('show')) {
+        form.querySelector('input[name="content"]').focus();
+    }
+}
+</script>
 {% endblock %}
