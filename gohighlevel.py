@@ -17,12 +17,16 @@ def add_contact_to_ghl(user):
     Add a new user to GoHighLevel CRM as a contact.
     Runs in background thread to not block registration.
     """
+    logging.info(f"GoHighLevel sync triggered for user: {user.email}")
+    
     if not GHL_API_TOKEN or not GHL_LOCATION_ID:
-        logging.debug("GoHighLevel not configured - skipping CRM sync")
+        logging.warning("GoHighLevel not configured - GHL_API_TOKEN or GHL_LOCATION_ID missing")
         return
     
     def _sync():
         try:
+            logging.info(f"Sending contact to GoHighLevel: {user.email}")
+            
             headers = {
                 'Authorization': f'Bearer {GHL_API_TOKEN}',
                 'Content-Type': 'application/json',
@@ -43,6 +47,8 @@ def add_contact_to_ghl(user):
                     {'key': 'specialty', 'value': user.specialty}
                 ]
             
+            logging.info(f"GoHighLevel payload: {payload}")
+            
             response = requests.post(
                 GHL_API_URL,
                 headers=headers,
@@ -51,9 +57,9 @@ def add_contact_to_ghl(user):
             )
             
             if response.status_code in (200, 201):
-                logging.info(f"Added user {user.email} to GoHighLevel CRM")
+                logging.info(f"SUCCESS: Added user {user.email} to GoHighLevel CRM")
             else:
-                logging.warning(f"GoHighLevel API error: {response.status_code} - {response.text}")
+                logging.error(f"GoHighLevel API error: {response.status_code} - {response.text}")
                 
         except Exception as e:
             logging.error(f"Failed to add contact to GoHighLevel: {str(e)}")
