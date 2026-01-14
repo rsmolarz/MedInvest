@@ -1,8 +1,9 @@
 """
 Main Routes - Home, Feed, Profile, Dashboard
 """
+import os
 import json
-from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify
+from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, send_from_directory
 from flask_login import login_required, current_user
 from app import db
 from models import Post, Room, PostVote, Bookmark, PostMedia, User, Hashtag, NotificationType, PostScore, UserFeedPreference, InvestmentSkill, SkillEndorsement, Recommendation
@@ -36,6 +37,13 @@ def privacy():
 def terms():
     """Terms of service page"""
     return render_template('terms.html')
+
+
+@main_bp.route('/media/uploads/<path:filename>')
+def serve_media(filename):
+    """Serve uploaded media files (images, videos)"""
+    media_dir = os.path.join(os.getcwd(), 'media', 'uploads')
+    return send_from_directory(media_dir, filename)
 
 
 @main_bp.route('/feed')
