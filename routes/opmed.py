@@ -130,6 +130,9 @@ def submit():
         sanitized_content = sanitize_html(content)
         sanitized_excerpt = html.escape(excerpt[:500]) if excerpt else html.escape(content[:300]) + '...'
         
+        action = request.form.get('action', 'submit')
+        status = 'draft' if action == 'draft' else 'submitted'
+        
         article = OpMedArticle(
             author_id=current_user.id,
             title=html.escape(title),
@@ -137,8 +140,13 @@ def submit():
             content=sanitized_content,
             category=category,
             specialty_tag=current_user.specialty,
-            status='pending_review'
+            status=status
         )
+        
+        if status == 'submitted':
+            article.submitted_at = datetime.utcnow()
+            article.calculate_reading_time()
+        
         article.slug = article.generate_slug()
         
         if 'cover_image' in request.files:
@@ -157,8 +165,11 @@ def submit():
         db.session.add(article)
         db.session.commit()
         
-        flash('Your article has been submitted for review. We will notify you once it is published!', 'success')
-        return redirect(url_for('opmed.my_articles'))
+        if status == 'draft':
+            flash('Article saved as draft. You can continue editing from your Author Dashboard.', 'success')
+        else:
+            flash('Your article has been submitted for review. We will notify you once it is published!', 'success')
+        return redirect(url_for('opmed.author_dashboard'))
     
     return render_template('opmed/submit.html', categories=CATEGORIES)
 

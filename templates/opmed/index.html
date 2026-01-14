@@ -11,6 +11,25 @@
         <p class="lead text-muted">Voices from the Medical Investing Community</p>
     </div>
     
+    <div class="d-flex justify-content-center gap-3 mb-4">
+        {% if current_user.is_authenticated %}
+        <a href="{{ url_for('opmed.author_dashboard') }}" class="btn btn-outline-primary">
+            <i class="fas fa-pen-nib me-2"></i>Author Dashboard
+        </a>
+        {% endif %}
+        <a href="{{ url_for('opmed.guidelines') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-book me-2"></i>Submission Guidelines
+        </a>
+        <a href="{{ url_for('opmed.submit') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Write for Us
+        </a>
+        {% if current_user.is_authenticated and current_user.is_admin %}
+        <a href="{{ url_for('opmed.editorial_dashboard') }}" class="btn btn-outline-warning">
+            <i class="fas fa-edit me-2"></i>Editorial
+        </a>
+        {% endif %}
+    </div>
+    
     <nav class="mb-4">
         <ul class="nav nav-pills justify-content-center">
             {% for key, name in categories.items() %}

@@ -2,6 +2,24 @@
 
 {% block title %}{{ article.title }} - Op-MedInvest{% endblock %}
 
+{% block extra_css %}
+<meta property="og:title" content="{{ article.title }}">
+<meta property="og:description" content="{{ article.excerpt or article.meta_description or (article.content|striptags|truncate(160)) }}">
+<meta property="og:type" content="article">
+<meta property="og:url" content="{{ request.url }}">
+{% if article.cover_image_url %}
+<meta property="og:image" content="{{ article.cover_image_url }}">
+{% endif %}
+<meta property="article:author" content="{{ article.author.first_name }} {{ article.author.last_name }}">
+<meta property="article:published_time" content="{{ article.published_at.isoformat() if article.published_at else '' }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ article.title }}">
+<meta name="twitter:description" content="{{ article.excerpt or article.meta_description or (article.content|striptags|truncate(160)) }}">
+{% if article.meta_keywords %}
+<meta name="keywords" content="{{ article.meta_keywords }}">
+{% endif %}
+{% endblock %}
+
 {% block content %}
 <div class="container py-4" style="max-width:800px;">
     <nav aria-label="breadcrumb" class="mb-4">
