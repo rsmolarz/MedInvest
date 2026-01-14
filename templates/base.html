@@ -167,6 +167,7 @@
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item" href="{{ url_for('main.dashboard') }}"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('main.profile') }}"><i class="fas fa-user me-2"></i>Profile</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('connections.index') }}"><i class="fas fa-user-friends me-2"></i>Connections</a></li>
                             {% if not current_user.is_verified %}
                             <li><a class="dropdown-item text-primary" href="{{ url_for('auth.verify_physician') }}"><i class="fas fa-check-circle me-2"></i>Get Verified</a></li>
                             {% else %}
