@@ -20,6 +20,122 @@ GHOST_CONTENT_API_KEY = os.environ.get('GHOST_CONTENT_API_KEY')
 GHOST_API_URL = os.environ.get('GHOST_API_URL', 'https://the-medicine-and-money-show.ghost.io')
 
 
+def auto_sync_ghost_articles():
+    """Automatically sync articles from Ghost CMS on startup if database is empty"""
+    if not GHOST_CONTENT_API_KEY:
+        logging.debug("Ghost Content API key not configured, skipping auto-sync")
+        return
+    
+    try:
+        article_count = OpMedArticle.query.count()
+        if article_count > 0:
+            logging.debug(f"Op-MedInvest already has {article_count} articles, skipping auto-sync")
+            return
+        
+        import requests
+        
+        logging.info("No articles found, auto-syncing from Ghost CMS...")
+        
+        api_url = f"{GHOST_API_URL}/ghost/api/content/posts/"
+        params = {
+            'key': GHOST_CONTENT_API_KEY,
+            'limit': 'all',
+            'include': 'tags',
+            'formats': 'html'
+        }
+        
+        response = requests.get(api_url, params=params, timeout=30)
+        
+        if response.status_code != 200:
+            logging.error(f"Ghost API error during auto-sync: {response.status_code}")
+            return
+        
+        data = response.json()
+        posts = data.get('posts', [])
+        
+        if not posts:
+            logging.info("No posts found in Ghost CMS")
+            return
+        
+        system_user = User.query.filter_by(role='admin').first()
+        if not system_user:
+            system_user = User.query.first()
+        
+        if not system_user:
+            logging.warning("No users in database, cannot import Ghost articles")
+            return
+        
+        imported_count = 0
+        for post in posts:
+            try:
+                ghost_id = post.get('id')
+                title = post.get('title', 'Untitled')
+                ghost_slug = post.get('slug', '')
+                content_html = post.get('html', '')
+                excerpt = post.get('excerpt') or post.get('custom_excerpt', '')
+                feature_image = post.get('feature_image')
+                published_at_str = post.get('published_at')
+                
+                existing = OpMedArticle.query.filter_by(ghost_id=ghost_id).first()
+                if existing:
+                    continue
+                
+                slug = ghost_slug or title.lower()
+                slug = re.sub(r'[^\w\s-]', '', slug)
+                slug = re.sub(r'[\s_-]+', '-', slug).strip('-')
+                slug = f"{slug}-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"[:350]
+                
+                published_at = datetime.utcnow()
+                if published_at_str:
+                    try:
+                        published_at = datetime.fromisoformat(published_at_str.replace('Z', '+00:00'))
+                    except:
+                        pass
+                
+                tags = post.get('tags', [])
+                category = 'general'
+                category_map = {
+                    'market': 'market_insights',
+                    'retirement': 'retirement',
+                    'real-estate': 'real_estate',
+                    'tax': 'tax_strategy',
+                    'editor': 'from_editors'
+                }
+                for tag in tags:
+                    tag_slug = tag.get('slug', '').lower()
+                    for key, cat in category_map.items():
+                        if key in tag_slug:
+                            category = cat
+                            break
+                
+                article = OpMedArticle(
+                    author_id=system_user.id,
+                    title=title,
+                    slug=slug,
+                    excerpt=excerpt[:500] if excerpt else None,
+                    content=content_html,
+                    cover_image_url=feature_image,
+                    ghost_id=ghost_id,
+                    category=category,
+                    status='published',
+                    published_at=published_at
+                )
+                
+                db.session.add(article)
+                imported_count += 1
+            except Exception as e:
+                logging.error(f"Error importing Ghost post: {e}")
+                continue
+        
+        if imported_count > 0:
+            db.session.commit()
+            logging.info(f"Auto-synced {imported_count} articles from Ghost CMS")
+        
+    except Exception as e:
+        logging.error(f"Ghost auto-sync error: {e}")
+        db.session.rollback()
+
+
 def sanitize_html(content):
     """Sanitize HTML content to prevent XSS attacks"""
     if not content:

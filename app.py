@@ -101,3 +101,10 @@ with app.app_context():
         except Exception as e:
             db.session.rollback()
             logging.debug(f"Schema migration skipped (likely already applied): {e}")
+    
+    # Auto-sync Ghost CMS articles on startup if database is empty
+    try:
+        from routes.opmed import auto_sync_ghost_articles
+        auto_sync_ghost_articles()
+    except Exception as e:
+        logging.debug(f"Ghost auto-sync skipped: {e}")
