@@ -16,6 +16,8 @@ from app import db
 from models import OpMedArticle, OpMedArticleLike, OpMedComment, User
 
 GHOST_WEBHOOK_SECRET = os.environ.get('GHOST_WEBHOOK_SECRET')
+GHOST_CONTENT_API_KEY = os.environ.get('GHOST_CONTENT_API_KEY')
+GHOST_API_URL = os.environ.get('GHOST_API_URL', 'https://the-medicine-and-money-show.ghost.io')
 
 
 def sanitize_html(content):
@@ -347,3 +349,128 @@ def ghost_webhook():
         logging.error(f"Ghost webhook error: {str(e)}")
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+
+def import_ghost_post(post_data, admin_user):
+    """Helper function to import a single Ghost post"""
+    ghost_id = post_data.get('id')
+    title = post_data.get('title', 'Untitled')
+    ghost_slug = post_data.get('slug', '')
+    content_html = post_data.get('html', '')
+    excerpt = post_data.get('excerpt') or post_data.get('custom_excerpt', '')
+    feature_image = post_data.get('feature_image')
+    published_at_str = post_data.get('published_at')
+    
+    existing = OpMedArticle.query.filter_by(ghost_id=ghost_id).first()
+    if existing:
+        return {'status': 'skipped', 'title': title, 'reason': 'already exists'}
+    
+    slug = ghost_slug or title.lower()
+    slug = re.sub(r'[^\w\s-]', '', slug)
+    slug = re.sub(r'[\s_-]+', '-', slug).strip('-')
+    slug = f"{slug}-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"[:350]
+    
+    published_at = datetime.utcnow()
+    if published_at_str:
+        try:
+            published_at = datetime.fromisoformat(published_at_str.replace('Z', '+00:00'))
+        except:
+            pass
+    
+    tags = post_data.get('tags', [])
+    category = 'general'
+    category_map = {
+        'market': 'market_insights',
+        'retirement': 'retirement',
+        'real-estate': 'real_estate',
+        'tax': 'tax_strategy',
+        'editor': 'from_editors'
+    }
+    for tag in tags:
+        tag_slug = tag.get('slug', '').lower()
+        for key, cat in category_map.items():
+            if key in tag_slug:
+                category = cat
+                break
+    
+    article = OpMedArticle(
+        author_id=admin_user.id,
+        title=title,
+        slug=slug,
+        excerpt=excerpt[:500] if excerpt else None,
+        content=content_html,
+        cover_image_url=feature_image,
+        ghost_id=ghost_id,
+        category=category,
+        status='published',
+        published_at=published_at
+    )
+    
+    db.session.add(article)
+    return {'status': 'imported', 'title': title}
+
+
+@opmed_bp.route('/admin/import-ghost', methods=['GET', 'POST'])
+@login_required
+def import_from_ghost():
+    """Admin endpoint to import all existing Ghost posts"""
+    if not current_user.is_admin:
+        flash('Admin access required', 'error')
+        return redirect(url_for('opmed.index'))
+    
+    if request.method == 'POST':
+        if not GHOST_CONTENT_API_KEY:
+            flash('Ghost Content API key not configured', 'error')
+            return redirect(url_for('opmed.import_from_ghost'))
+        
+        try:
+            import requests
+            
+            api_url = f"{GHOST_API_URL}/ghost/api/content/posts/"
+            params = {
+                'key': GHOST_CONTENT_API_KEY,
+                'limit': 'all',
+                'include': 'tags',
+                'formats': 'html'
+            }
+            
+            response = requests.get(api_url, params=params, timeout=30)
+            
+            if response.status_code != 200:
+                flash(f'Ghost API error: {response.status_code}', 'error')
+                return redirect(url_for('opmed.import_from_ghost'))
+            
+            data = response.json()
+            posts = data.get('posts', [])
+            
+            admin_user = User.query.filter_by(is_admin=True).first()
+            if not admin_user:
+                admin_user = User.query.first()
+            
+            results = {'imported': 0, 'skipped': 0, 'errors': 0}
+            
+            for post in posts:
+                try:
+                    result = import_ghost_post(post, admin_user)
+                    if result['status'] == 'imported':
+                        results['imported'] += 1
+                    else:
+                        results['skipped'] += 1
+                except Exception as e:
+                    logging.error(f"Error importing post: {str(e)}")
+                    results['errors'] += 1
+            
+            db.session.commit()
+            
+            flash(f"Import complete: {results['imported']} imported, {results['skipped']} skipped, {results['errors']} errors", 'success')
+            return redirect(url_for('opmed.index'))
+            
+        except Exception as e:
+            logging.error(f"Ghost import error: {str(e)}")
+            db.session.rollback()
+            flash(f'Import failed: {str(e)}', 'error')
+            return redirect(url_for('opmed.import_from_ghost'))
+    
+    existing_count = OpMedArticle.query.filter(OpMedArticle.ghost_id.isnot(None)).count()
+    
+    return render_template('opmed/import_ghost.html', existing_count=existing_count)

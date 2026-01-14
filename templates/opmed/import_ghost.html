@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Import from Ghost - Op-MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-ghost me-2"></i>Import from Ghost</h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">
+                        Import all published posts from your Ghost blog into Op-MedInvest. 
+                        Posts that have already been imported will be skipped.
+                    </p>
+                    
+                    {% if existing_count > 0 %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        {{ existing_count }} article(s) have already been imported from Ghost.
+                    </div>
+                    {% endif %}
+                    
+                    <form method="POST" onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').innerHTML='<span class=\'spinner-border spinner-border-sm me-2\'></span>Importing...';">
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-download me-2"></i>Import All Ghost Posts
+                            </button>
+                            <a href="{{ url_for('opmed.index') }}" class="btn btn-outline-secondary">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
