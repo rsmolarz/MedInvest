@@ -52,6 +52,8 @@ class NotificationType(Enum):
     INVITE_ACCEPTED = 'invite_accepted'
     LEVEL_UP = 'level_up'
     SYSTEM = 'system'
+    CONNECTION_REQUEST = 'connection_request'
+    CONNECTION_ACCEPTED = 'connection_accepted'
 
 
 # =============================================================================

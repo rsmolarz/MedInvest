@@ -44,6 +44,7 @@ from routes.notifications import notifications_bp
 from routes.dm import dm_bp
 from routes.news import news_bp
 from routes.opmed import opmed_bp
+from routes.connections import connections_bp
 
 app.register_blueprint(main_bp)
 app.register_blueprint(auth_bp)
@@ -66,7 +67,14 @@ app.register_blueprint(notifications_bp)
 app.register_blueprint(dm_bp)
 app.register_blueprint(news_bp)
 app.register_blueprint(opmed_bp)
+app.register_blueprint(connections_bp)
 app.register_blueprint(errors_bp)
+
+# Template filter for getting user by ID
+from models import User
+@app.template_filter('get_user')
+def get_user_filter(user_id):
+    return User.query.get(user_id)
 
 # Import legacy routes for backwards compatibility
 import routes  # noqa: F401

@@ -56,16 +56,32 @@ def recent():
         user_id=current_user.id
     ).order_by(Notification.created_at.desc()).limit(10).all()
     
+    def get_actor_initial(actor):
+        """Safely get actor's first initial"""
+        if not actor:
+            return '?'
+        if actor.first_name:
+            return actor.first_name[0].upper()
+        if actor.email:
+            return actor.email[0].upper()
+        return '?'
+    
+    def get_notification_type(n):
+        """Get notification type as string"""
+        if hasattr(n.notification_type, 'value'):
+            return n.notification_type.value
+        return str(n.notification_type) if n.notification_type else 'system'
+    
     return jsonify({
         'notifications': [{
             'id': n.id,
-            'type': n.notification_type.value,
+            'type': get_notification_type(n),
             'title': n.title,
             'message': n.message,
             'url': n.url,
             'is_read': n.is_read,
             'actor_name': n.actor.full_name if n.actor else None,
-            'actor_initial': n.actor.first_name[0] if n.actor else '?',
+            'actor_initial': get_actor_initial(n.actor),
             'created_at': n.created_at.strftime('%b %d at %I:%M %p'),
             'time_ago': get_time_ago(n.created_at)
         } for n in notifications]
