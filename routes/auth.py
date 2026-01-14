@@ -14,6 +14,7 @@ import secrets
 from app import db
 from models import User, Referral
 from mailer import send_email
+from routes.notifications import notify_invite_accepted
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -512,6 +513,9 @@ def register():
                 )
                 referred_by.add_points(100)  # Reward for referring
                 db.session.add(referral)
+                
+                # Notify the inviter that someone accepted their invite
+                notify_invite_accepted(referred_by.id, user)
                 db.session.commit()
             
             login_user(user)

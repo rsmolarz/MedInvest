@@ -238,3 +238,15 @@ def notify_reply(parent_comment_author_id, replier, post, comment):
         comment_id=comment.id,
         url=f'/rooms/post/{post.id}'
     )
+
+
+def notify_invite_accepted(inviter_id, new_user):
+    """Notify user when someone accepts their invite/referral"""
+    create_notification(
+        user_id=inviter_id,
+        notification_type=NotificationType.INVITE_ACCEPTED,
+        title='Invite Accepted!',
+        message=f'{new_user.full_name} joined using your invite code! You earned 100 points.',
+        actor_id=new_user.id,
+        url=f'/profile/{new_user.id}'
+    )

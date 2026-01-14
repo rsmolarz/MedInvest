@@ -49,6 +49,7 @@ class NotificationType(Enum):
     MENTORSHIP_REQUEST = 'mentorship_request'
     MENTORSHIP_ACCEPTED = 'mentorship_accepted'
     REFERRAL_SIGNUP = 'referral_signup'
+    INVITE_ACCEPTED = 'invite_accepted'
     LEVEL_UP = 'level_up'
     SYSTEM = 'system'
 
