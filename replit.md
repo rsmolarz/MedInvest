@@ -73,6 +73,18 @@ Preferred communication style: Simple, everyday language.
 - **passlib**: Advanced password hashing (bcrypt).
 - **pyotp**: TOTP for 2FA.
 - **qrcode**: QR code generation for 2FA.
+- **Social Login (OAuth 2.0)**: Google, Apple, Facebook, GitHub with dynamic redirect URI detection.
+
+## Social Login Configuration
+OAuth providers use dynamic redirect URI detection, automatically adapting to the current domain (development or production). Required environment variables:
+- **Google**: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+- **Apple**: APPLE_CLIENT_ID (Service ID), APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY (ES256 .p8 key)
+- **Facebook**: FACEBOOK_APP_ID, FACEBOOK_APP_SECRET
+- **GitHub**: GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
+
+After publishing, add the redirect URIs to each provider's developer console:
+- Format: `https://your-domain/auth/{provider}/callback`
+- Providers: google, apple, facebook, github
 
 ## Database Support
 - **SQLite**: Default development database.

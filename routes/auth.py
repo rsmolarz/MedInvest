@@ -4,6 +4,8 @@ Authentication Routes - Login, Register, Logout, Verification
 import os
 import logging
 import random
+import time
+import jwt
 from flask import Blueprint, render_template, redirect, url_for, request, flash, session
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_dance.contrib.google import make_google_blueprint, google
@@ -22,17 +24,90 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 # Google OAuth Configuration
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
-GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_OAUTH_REDIRECT_URI', 'https://medmoneyincubator.com/auth/google/callback')
 
 # Facebook OAuth Configuration
 FACEBOOK_APP_ID = os.environ.get('FACEBOOK_APP_ID')
 FACEBOOK_APP_SECRET = os.environ.get('FACEBOOK_APP_SECRET')
-FACEBOOK_REDIRECT_URI = os.environ.get('FACEBOOK_OAUTH_REDIRECT_URI', 'https://medmoneyincubator.com/auth/facebook/callback')
 
 # GitHub OAuth Configuration
 GITHUB_CLIENT_ID = os.environ.get('GITHUB_CLIENT_ID')
 GITHUB_CLIENT_SECRET = os.environ.get('GITHUB_CLIENT_SECRET')
-GITHUB_REDIRECT_URI = os.environ.get('GITHUB_OAUTH_REDIRECT_URI', 'https://medmoneyincubator.com/auth/github/callback')
+
+# Apple OAuth Configuration
+APPLE_CLIENT_ID = os.environ.get('APPLE_CLIENT_ID')  # Service ID (e.g., com.yourcompany.yourapp)
+APPLE_TEAM_ID = os.environ.get('APPLE_TEAM_ID')
+APPLE_KEY_ID = os.environ.get('APPLE_KEY_ID')
+APPLE_PRIVATE_KEY = os.environ.get('APPLE_PRIVATE_KEY', '').replace('\\n', '\n')
+
+
+def get_oauth_redirect_uri(provider):
+    """Get the OAuth redirect URI based on the current request URL"""
+    if request.host.endswith('.replit.app') or request.host.endswith('.replit.dev'):
+        base_url = f"https://{request.host}"
+    elif request.headers.get('X-Forwarded-Proto') == 'https':
+        base_url = f"https://{request.host}"
+    else:
+        base_url = request.host_url.rstrip('/')
+    
+    return f"{base_url}/auth/{provider}/callback"
+
+
+def generate_apple_client_secret():
+    """Generate Apple client secret dynamically using JWT"""
+    if not all([APPLE_TEAM_ID, APPLE_CLIENT_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY]):
+        return None
+    
+    headers = {
+        'kid': APPLE_KEY_ID,
+        'alg': 'ES256'
+    }
+    
+    payload = {
+        'iss': APPLE_TEAM_ID,
+        'iat': int(time.time()),
+        'exp': int(time.time()) + 600,  # 10 minutes
+        'aud': 'https://appleid.apple.com',
+        'sub': APPLE_CLIENT_ID
+    }
+    
+    try:
+        client_secret = jwt.encode(payload, APPLE_PRIVATE_KEY, algorithm='ES256', headers=headers)
+        return client_secret
+    except Exception as e:
+        logging.error(f"Failed to generate Apple client secret: {e}")
+        return None
+
+
+def verify_apple_id_token(id_token):
+    """Verify Apple ID token using Apple's JWKS"""
+    import requests
+    from jwt import PyJWKClient
+    
+    try:
+        jwks_url = 'https://appleid.apple.com/auth/keys'
+        jwk_client = PyJWKClient(jwks_url)
+        signing_key = jwk_client.get_signing_key_from_jwt(id_token)
+        
+        decoded = jwt.decode(
+            id_token,
+            signing_key.key,
+            algorithms=['RS256'],
+            audience=APPLE_CLIENT_ID,
+            issuer='https://appleid.apple.com'
+        )
+        return decoded
+    except jwt.ExpiredSignatureError:
+        logging.error("Apple ID token has expired")
+        return None
+    except jwt.InvalidAudienceError:
+        logging.error("Apple ID token has invalid audience")
+        return None
+    except jwt.InvalidIssuerError:
+        logging.error("Apple ID token has invalid issuer")
+        return None
+    except Exception as e:
+        logging.error(f"Apple ID token verification failed: {e}")
+        return None
 
 # Google OAuth Blueprint (for compatibility, but we'll use custom routes)
 google_bp = make_google_blueprint(
@@ -45,14 +120,17 @@ google_bp = make_google_blueprint(
 
 @auth_bp.route('/google-login')
 def google_login_custom():
-    """Custom Google OAuth login that uses explicit redirect_uri"""
+    """Custom Google OAuth login with dynamic redirect_uri"""
     state = secrets.token_urlsafe(32)
     session['oauth_state'] = state
     session['oauth_provider'] = 'google'
     
+    redirect_uri = get_oauth_redirect_uri('google')
+    session['oauth_redirect_uri'] = redirect_uri
+    
     params = {
         'client_id': GOOGLE_CLIENT_ID,
-        'redirect_uri': GOOGLE_REDIRECT_URI,
+        'redirect_uri': redirect_uri,
         'response_type': 'code',
         'scope': 'openid email profile',
         'state': state,
@@ -61,47 +139,192 @@ def google_login_custom():
     }
     
     auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
-    logging.info(f"Redirecting to Google OAuth with redirect_uri: {GOOGLE_REDIRECT_URI}")
+    logging.info(f"Redirecting to Google OAuth with redirect_uri: {redirect_uri}")
     return redirect(auth_url)
 
 
 @auth_bp.route('/facebook-login')
 def facebook_login():
-    """Facebook OAuth login with explicit redirect_uri"""
+    """Facebook OAuth login with dynamic redirect_uri"""
     state = secrets.token_urlsafe(32)
     session['oauth_state'] = state
     session['oauth_provider'] = 'facebook'
     
+    redirect_uri = get_oauth_redirect_uri('facebook')
+    session['oauth_redirect_uri'] = redirect_uri
+    
     params = {
         'client_id': FACEBOOK_APP_ID,
-        'redirect_uri': FACEBOOK_REDIRECT_URI,
+        'redirect_uri': redirect_uri,
         'response_type': 'code',
         'scope': 'email,public_profile',
         'state': state
     }
     
     auth_url = f"https://www.facebook.com/v18.0/dialog/oauth?{urlencode(params)}"
-    logging.info(f"Redirecting to Facebook OAuth with redirect_uri: {FACEBOOK_REDIRECT_URI}")
+    logging.info(f"Redirecting to Facebook OAuth with redirect_uri: {redirect_uri}")
     return redirect(auth_url)
 
 
 @auth_bp.route('/github-login')
 def github_login():
-    """GitHub OAuth login with explicit redirect_uri"""
+    """GitHub OAuth login with dynamic redirect_uri"""
     state = secrets.token_urlsafe(32)
     session['oauth_state'] = state
     session['oauth_provider'] = 'github'
     
+    redirect_uri = get_oauth_redirect_uri('github')
+    session['oauth_redirect_uri'] = redirect_uri
+    
     params = {
         'client_id': GITHUB_CLIENT_ID,
-        'redirect_uri': GITHUB_REDIRECT_URI,
+        'redirect_uri': redirect_uri,
         'scope': 'user:email read:user',
         'state': state
     }
     
     auth_url = f"https://github.com/login/oauth/authorize?{urlencode(params)}"
-    logging.info(f"Redirecting to GitHub OAuth with redirect_uri: {GITHUB_REDIRECT_URI}")
+    logging.info(f"Redirecting to GitHub OAuth with redirect_uri: {redirect_uri}")
     return redirect(auth_url)
+
+
+@auth_bp.route('/apple-login')
+def apple_login():
+    """Apple Sign In with dynamic redirect_uri"""
+    if not APPLE_CLIENT_ID:
+        flash('Apple Sign In is not configured.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    state = secrets.token_urlsafe(32)
+    session['oauth_state'] = state
+    session['oauth_provider'] = 'apple'
+    
+    redirect_uri = get_oauth_redirect_uri('apple')
+    session['oauth_redirect_uri'] = redirect_uri
+    
+    params = {
+        'client_id': APPLE_CLIENT_ID,
+        'redirect_uri': redirect_uri,
+        'response_type': 'code',
+        'scope': 'email name',
+        'state': state,
+        'response_mode': 'form_post'
+    }
+    
+    auth_url = f"https://appleid.apple.com/auth/authorize?{urlencode(params)}"
+    logging.info(f"Redirecting to Apple OAuth with redirect_uri: {redirect_uri}")
+    return redirect(auth_url)
+
+
+@auth_bp.route('/apple/callback', methods=['GET', 'POST'])
+def apple_callback():
+    """Handle Apple Sign In callback (uses POST with form_post)"""
+    import requests
+    
+    state = request.form.get('state') or request.args.get('state')
+    stored_state = session.pop('oauth_state', None)
+    redirect_uri = session.pop('oauth_redirect_uri', get_oauth_redirect_uri('apple'))
+    
+    if not state or state != stored_state:
+        flash('Invalid OAuth state. Please try again.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    error = request.form.get('error') or request.args.get('error')
+    if error:
+        logging.error(f"Apple OAuth error: {error}")
+        flash('Apple login was cancelled or failed.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    code = request.form.get('code') or request.args.get('code')
+    if not code:
+        flash('No authorization code received from Apple.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    user_data = request.form.get('user')
+    apple_user_info = {}
+    if user_data:
+        import json
+        try:
+            apple_user_info = json.loads(user_data)
+        except:
+            pass
+    
+    try:
+        client_secret = generate_apple_client_secret()
+        if not client_secret:
+            flash('Apple Sign In is not properly configured.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        token_url = 'https://appleid.apple.com/auth/token'
+        token_data = {
+            'client_id': APPLE_CLIENT_ID,
+            'client_secret': client_secret,
+            'code': code,
+            'grant_type': 'authorization_code',
+            'redirect_uri': redirect_uri
+        }
+        
+        token_response = requests.post(token_url, data=token_data)
+        
+        if not token_response.ok:
+            logging.error(f"Apple token exchange failed: {token_response.text}")
+            flash('Failed to authenticate with Apple.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        tokens = token_response.json()
+        id_token = tokens.get('id_token')
+        
+        if not id_token:
+            flash('No ID token received from Apple.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        decoded = verify_apple_id_token(id_token)
+        if not decoded:
+            flash('Apple token verification failed. Please try again.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        apple_id = decoded.get('sub')
+        email = decoded.get('email')
+        
+        if not email:
+            flash('Apple account email not available.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        user = User.query.filter_by(email=email).first()
+        
+        first_name = apple_user_info.get('name', {}).get('firstName', 'Apple')
+        last_name = apple_user_info.get('name', {}).get('lastName', 'User')
+        
+        if user:
+            user.replit_id = f'apple_{apple_id}'
+        else:
+            user = User(
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                replit_id=f'apple_{apple_id}',
+                specialty='',
+                medical_license=f'APPLE-{apple_id[:8]}',
+            )
+            user.generate_referral_code()
+            db.session.add(user)
+            
+            try:
+                add_contact_to_ghl(first_name, last_name, email, user.specialty)
+            except Exception as e:
+                logging.error(f"Failed to add user to GHL: {e}")
+        
+        db.session.commit()
+        login_user(user)
+        
+        flash(f'Welcome, {user.first_name}!', 'success')
+        next_url = session.pop('next_url', None)
+        return redirect(next_url or url_for('main.feed'))
+        
+    except Exception as e:
+        logging.error(f"Apple OAuth error: {str(e)}")
+        flash('An error occurred during Apple login.', 'error')
+        return redirect(url_for('auth.login'))
 
 
 @auth_bp.route('/github/callback')
@@ -111,6 +334,7 @@ def github_callback():
     
     state = request.args.get('state')
     stored_state = session.pop('oauth_state', None)
+    redirect_uri = session.pop('oauth_redirect_uri', get_oauth_redirect_uri('github'))
     
     if not state or state != stored_state:
         flash('Invalid OAuth state. Please try again.', 'error')
@@ -132,7 +356,7 @@ def github_callback():
         token_data = {
             'client_id': GITHUB_CLIENT_ID,
             'client_secret': GITHUB_CLIENT_SECRET,
-            'redirect_uri': GITHUB_REDIRECT_URI,
+            'redirect_uri': redirect_uri,
             'code': code
         }
         headers = {'Accept': 'application/json'}
@@ -228,6 +452,7 @@ def facebook_callback():
     
     state = request.args.get('state')
     stored_state = session.pop('oauth_state', None)
+    redirect_uri = session.pop('oauth_redirect_uri', get_oauth_redirect_uri('facebook'))
     
     if not state or state != stored_state:
         flash('Invalid OAuth state. Please try again.', 'error')
@@ -249,7 +474,7 @@ def facebook_callback():
         token_params = {
             'client_id': FACEBOOK_APP_ID,
             'client_secret': FACEBOOK_APP_SECRET,
-            'redirect_uri': FACEBOOK_REDIRECT_URI,
+            'redirect_uri': redirect_uri,
             'code': code
         }
         
@@ -772,42 +997,39 @@ def reset_password(token):
 
 @auth_bp.route('/google/callback')
 def google_callback():
-    """Handle Google OAuth callback - custom implementation with explicit redirect_uri"""
+    """Handle Google OAuth callback - custom implementation with dynamic redirect_uri"""
     import requests
     
-    # Verify state to prevent CSRF
     state = request.args.get('state')
     stored_state = session.pop('oauth_state', None)
+    redirect_uri = session.pop('oauth_redirect_uri', get_oauth_redirect_uri('google'))
     
     if not state or state != stored_state:
         flash('Invalid OAuth state. Please try again.', 'error')
         return redirect(url_for('auth.login'))
     
-    # Check for errors from Google
     error = request.args.get('error')
     if error:
         logging.error(f"Google OAuth error: {error}")
         flash('Google login was cancelled or failed.', 'error')
         return redirect(url_for('auth.login'))
     
-    # Get the authorization code
     code = request.args.get('code')
     if not code:
         flash('No authorization code received from Google.', 'error')
         return redirect(url_for('auth.login'))
     
     try:
-        # Exchange code for tokens using explicit redirect_uri
         token_url = 'https://oauth2.googleapis.com/token'
         token_data = {
             'code': code,
             'client_id': GOOGLE_CLIENT_ID,
             'client_secret': GOOGLE_CLIENT_SECRET,
-            'redirect_uri': GOOGLE_REDIRECT_URI,  # Must match exactly what was sent in auth request
+            'redirect_uri': redirect_uri,
             'grant_type': 'authorization_code'
         }
         
-        logging.info(f"Exchanging code for tokens with redirect_uri: {GOOGLE_REDIRECT_URI}")
+        logging.info(f"Exchanging code for tokens with redirect_uri: {redirect_uri}")
         token_response = requests.post(token_url, data=token_data)
         
         if not token_response.ok:
