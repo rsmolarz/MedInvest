@@ -137,8 +137,14 @@
                     <ul class="nav network-tabs">
                         <li class="nav-item">
                             <a class="nav-link {% if tab == 'pending' %}active{% endif %}" href="{{ url_for('main.network', tab='pending') }}">
-                                {{ pending_count }} Pending Requests
+                                Pending Requests
                                 {% if pending_count > 0 %}<span class="badge bg-danger ms-1">{{ pending_count }}</span>{% endif %}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if tab == 'outgoing' %}active{% endif %}" href="{{ url_for('main.network', tab='outgoing') }}">
+                                Sent Requests
+                                {% if outgoing_count > 0 %}<span class="badge bg-warning ms-1">{{ outgoing_count }}</span>{% endif %}
                             </a>
                         </li>
                         <li class="nav-item">
@@ -191,6 +197,36 @@
                         <div class="text-center text-muted py-5 col-12">
                             <i class="fas fa-user-clock fa-3x mb-3"></i>
                             <p>No pending connection requests</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    {% elif tab == 'outgoing' %}
+                    <div class="colleague-grid">
+                        {% for user in outgoing_users %}
+                        <div class="colleague-card">
+                            <form action="{{ url_for('connections.cancel_request', connection_id=outgoing_connection_ids[user.id]) }}" method="POST" style="display:inline;">
+                                <button type="submit" class="dismiss-btn" title="Cancel Request"><i class="fas fa-times"></i></button>
+                            </form>
+                            <div class="colleague-avatar {% if not user.profile_image_url %}initials{% endif %}">
+                                {% if user.profile_image_url %}
+                                <img src="{{ user.profile_image_url }}" alt="{{ user.full_name }}">
+                                {% else %}
+                                {{ user.first_name[0] }}{{ user.last_name[0] }}
+                                {% endif %}
+                            </div>
+                            <div class="colleague-name">{{ user.full_name }}</div>
+                            <div class="colleague-specialty">{{ (user.specialty or 'Physician')|replace('_', ' ')|title }}</div>
+                            <div class="colleague-location">{{ user.license_state or '' }}</div>
+                            <div class="colleague-reason text-warning"><i class="fas fa-clock me-1"></i>Awaiting response</div>
+                            <span class="btn-colleague disabled" style="opacity: 0.6;">
+                                <i class="fas fa-hourglass-half"></i> Pending
+                            </span>
+                        </div>
+                        {% else %}
+                        <div class="text-center text-muted py-5 col-12">
+                            <i class="fas fa-paper-plane fa-3x mb-3"></i>
+                            <p>No outgoing connection requests</p>
                         </div>
                         {% endfor %}
                     </div>

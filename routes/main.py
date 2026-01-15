@@ -834,6 +834,15 @@ def network():
     # Store connection IDs for accept/decline actions
     pending_connection_ids = {c.requester_id: c.id for c in pending_connections}
     
+    # Outgoing connection requests (requests current user sent that are pending)
+    outgoing_connections = Connection.query.filter_by(
+        requester_id=current_user.id,
+        status='pending'
+    ).order_by(Connection.created_at.desc()).limit(50).all()
+    outgoing_users = [User.query.get(c.addressee_id) for c in outgoing_connections]
+    outgoing_users = [u for u in outgoing_users if u]
+    outgoing_connection_ids = {c.addressee_id: c.id for c in outgoing_connections}
+    
     suggestions = get_people_you_may_know(current_user, limit=20)
     
     if current_user.license_state:
@@ -864,11 +873,14 @@ def network():
                           tab=tab,
                           pending_users=pending_users,
                           pending_connection_ids=pending_connection_ids,
+                          outgoing_users=outgoing_users,
+                          outgoing_connection_ids=outgoing_connection_ids,
                           suggestions=suggestions,
                           near_me=near_me,
                           same_specialty=same_specialty,
                           colleagues=colleagues,
                           pending_count=len(pending_users),
+                          outgoing_count=len(outgoing_users),
                           colleague_count=len(colleagues))
 
 
