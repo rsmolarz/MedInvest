@@ -82,14 +82,14 @@
                 <a class="nav-link px-2" href="{{ url_for('notifications.index') }}" title="Notifications">
                     <i class="fas fa-bell text-muted"></i>
                 </a>
-                <button class="navbar-toggler ms-2 border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                    <span class="navbar-toggler-icon"></span>
+                <button class="navbar-toggler ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Toggle navigation">
+                    <i class="fas fa-bars" style="color: var(--text-color); font-size: 1.25rem;"></i>
                 </button>
             </div>
             {% endif %}
             {% if not current_user.is_authenticated %}
-            <button class="navbar-toggler ms-auto d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
+            <button class="navbar-toggler ms-auto d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Toggle navigation">
+                <i class="fas fa-bars" style="color: var(--text-color); font-size: 1.25rem;"></i>
             </button>
             {% endif %}
             <div class="collapse navbar-collapse" id="navbarNav">
