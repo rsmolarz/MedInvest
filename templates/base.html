@@ -87,6 +87,8 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">More</a>
                         <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('main.network') }}"><i class="fas fa-user-friends me-2"></i>Network & Connections</a></li>
+                            <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('opmed.index') }}"><i class="fas fa-pen-nib me-2"></i>Op-Med</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('courses.list_courses') }}"><i class="fas fa-graduation-cap me-2"></i>Courses</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('events.list_events') }}"><i class="fas fa-calendar me-2"></i>Events</a></li>
