@@ -74,6 +74,38 @@
                 </div>
             </div>
             
+            {% if likers %}
+            <div class="card mb-4">
+                <div class="card-header"><h6 class="mb-0"><i class="fas fa-heart text-danger me-2"></i>People Who Liked This ({{ likers|length }})</h6></div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-3">
+                        {% for liker in likers %}
+                        <div class="d-flex align-items-center gap-2 p-2 border rounded" style="min-width:200px;">
+                            {% if liker.profile_image_url %}
+                            <img src="{{ liker.profile_image_url }}" class="rounded-circle" style="width:35px;height:35px;object-fit:cover;">
+                            {% else %}
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width:35px;height:35px;font-size:12px;">
+                                {{ liker.first_name[0] }}{{ liker.last_name[0] }}
+                            </div>
+                            {% endif %}
+                            <div class="flex-grow-1">
+                                <a href="{{ url_for('main.profile', user_id=liker.id) }}" class="text-decoration-none">
+                                    <strong style="font-size:14px;">{{ liker.full_name }}</strong>
+                                </a>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-success liker-connect-btn" 
+                                    data-user-id="{{ liker.id }}"
+                                    onclick="sendLikerConnectRequest({{ liker.id }}, this);"
+                                    title="Connect with {{ liker.full_name }}">
+                                <i class="fas fa-user-plus"></i>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
             <div class="card mb-4">
                 <div class="card-header"><h6 class="mb-0"><i class="fas fa-comment me-2"></i>Add Comment</h6></div>
                 <div class="card-body">
@@ -203,5 +235,57 @@ function toggleReplyForm(commentId) {
         form.querySelector('input[name="content"]').focus();
     }
 }
+
+function sendLikerConnectRequest(userId, btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    fetch(`/connections/send/${userId}`, { method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'} })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success || data.status === 'pending') {
+                btn.className = 'btn btn-sm btn-outline-warning';
+                btn.innerHTML = '<i class="fas fa-clock"></i>';
+                btn.title = 'Request Pending';
+            } else if (data.status === 'accepted') {
+                btn.className = 'btn btn-sm btn-success';
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+                btn.title = 'Connected';
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-user-plus"></i>';
+            }
+        })
+        .catch(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-user-plus"></i>';
+        });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.liker-connect-btn').forEach(function(btn) {
+        const userId = btn.dataset.userId;
+        if (!userId) return;
+        
+        fetch(`/connections/status/${userId}`)
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(data => {
+                if (data.status === 'accepted') {
+                    btn.className = 'btn btn-sm btn-success';
+                    btn.innerHTML = '<i class="fas fa-check"></i>';
+                    btn.title = 'Connected';
+                    btn.onclick = null;
+                    btn.disabled = true;
+                } else if (data.status === 'pending') {
+                    btn.className = 'btn btn-sm btn-outline-warning';
+                    btn.innerHTML = '<i class="fas fa-clock"></i>';
+                    btn.title = 'Request Pending';
+                    btn.onclick = null;
+                    btn.disabled = true;
+                }
+            })
+            .catch(() => {});
+    });
+});
 </script>
 {% endblock %}
