@@ -81,6 +81,9 @@
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('ama.list_amas') }}"><i class="fas fa-video me-1"></i>AMAs</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('deals.list_deals') }}"><i class="fas fa-handshake me-1"></i>Deals</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('news.news_feed') }}"><i class="fas fa-newspaper me-1"></i>News</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.network') }}"><i class="fas fa-user-friends me-1"></i>Network</a>
+                    </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">More</a>
                         <ul class="dropdown-menu">
@@ -100,13 +103,6 @@
                                 <button class="btn btn-outline-secondary" type="submit"><i class="fas fa-search"></i></button>
                             </div>
                         </form>
-                    </li>
-                    
-                    <!-- Network -->
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.network') }}" title="My Network">
-                            <i class="fas fa-user-friends"></i>
-                        </a>
                     </li>
                     
                     <!-- Messages -->
