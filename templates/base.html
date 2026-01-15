@@ -70,20 +70,25 @@
             <a class="navbar-brand text-primary" href="{{ url_for('main.index') }}">
                 <i class="fas fa-chart-line me-2"></i>MedInvest
             </a>
-            <!-- Mobile-only icons (always visible) -->
+            <!-- Mobile-only icons and hamburger (always visible, pushed to right) -->
             {% if current_user.is_authenticated %}
-            <div class="d-flex d-lg-none align-items-center me-2">
+            <div class="d-flex d-lg-none align-items-center ms-auto">
                 <a class="nav-link px-2" href="{{ url_for('main.settings', tab='communication') }}" title="Settings">
                     <i class="fas fa-cog text-muted"></i>
                 </a>
                 <a class="nav-link px-2" href="{{ url_for('notifications.index') }}" title="Notifications">
                     <i class="fas fa-bell text-muted"></i>
                 </a>
+                <button class="navbar-toggler ms-2 border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
             </div>
             {% endif %}
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            {% if not current_user.is_authenticated %}
+            <button class="navbar-toggler ms-auto d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
+            {% endif %}
             <div class="collapse navbar-collapse" id="navbarNav">
                 {% if current_user.is_authenticated %}
                 <ul class="navbar-nav me-auto">
