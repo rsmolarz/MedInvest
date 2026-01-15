@@ -70,9 +70,19 @@
                                         {% endif %}
                                         <span>{{ notification.message }}</span>
                                     </div>
-                                    {% if not notification.is_read %}
-                                    <span class="badge bg-primary rounded-pill">New</span>
-                                    {% endif %}
+                                    <div class="d-flex align-items-center gap-2">
+                                        {% if not notification.is_read %}
+                                        <span class="badge bg-primary rounded-pill">New</span>
+                                        {% endif %}
+                                        {% if notification.actor and notification.actor.id != current_user.id %}
+                                        <button type="button" class="btn btn-sm btn-outline-success connect-btn" 
+                                                data-user-id="{{ notification.actor.id }}"
+                                                onclick="event.stopPropagation(); sendConnectRequest({{ notification.actor.id }}, this);"
+                                                title="Connect with {{ notification.actor.full_name }}">
+                                            <i class="fas fa-user-plus"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
                                 </div>
                                 <small class="text-muted">{{ notification.created_at.strftime('%b %d at %I:%M %p') }}</small>
                             </div>
@@ -130,5 +140,59 @@ function markAllRead() {
     fetch('/notifications/mark-all-read', { method: 'POST' })
         .then(() => location.reload());
 }
+
+function sendConnectRequest(userId, btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    fetch(`/connections/send/${userId}`, { method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'} })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success || data.status === 'pending') {
+                btn.className = 'btn btn-sm btn-outline-warning';
+                btn.innerHTML = '<i class="fas fa-clock"></i>';
+                btn.title = 'Request Pending';
+                btn.onclick = null;
+            } else if (data.status === 'accepted') {
+                btn.className = 'btn btn-sm btn-outline-success';
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+                btn.title = 'Connected';
+                btn.onclick = null;
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-user-plus"></i>';
+            }
+        })
+        .catch(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-user-plus"></i>';
+        });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.connect-btn').forEach(function(btn) {
+        const userId = btn.dataset.userId;
+        if (!userId) return;
+        
+        fetch(`/connections/status/${userId}`)
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(data => {
+                if (data.status === 'accepted') {
+                    btn.className = 'btn btn-sm btn-outline-success';
+                    btn.innerHTML = '<i class="fas fa-check"></i>';
+                    btn.title = 'Connected';
+                    btn.onclick = null;
+                    btn.disabled = true;
+                } else if (data.status === 'pending') {
+                    btn.className = 'btn btn-sm btn-outline-warning';
+                    btn.innerHTML = '<i class="fas fa-clock"></i>';
+                    btn.title = 'Request Pending';
+                    btn.onclick = null;
+                    btn.disabled = true;
+                }
+            })
+            .catch(() => {});
+    });
+});
 </script>
 {% endblock %}
