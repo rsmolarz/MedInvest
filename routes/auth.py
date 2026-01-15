@@ -173,6 +173,13 @@ def facebook_login():
 @auth_bp.route('/github-login')
 def github_login():
     """GitHub OAuth login with dynamic redirect_uri"""
+    # Read credentials at request time to ensure latest values
+    github_client_id = os.environ.get('GITHUB_CLIENT_ID')
+    
+    if not github_client_id:
+        flash('GitHub login is not configured.', 'error')
+        return redirect(url_for('auth.login'))
+    
     state = secrets.token_urlsafe(32)
     session['oauth_state'] = state
     session['oauth_provider'] = 'github'
@@ -181,11 +188,11 @@ def github_login():
     session['oauth_redirect_uri'] = redirect_uri
     
     # Debug: log exactly what we're sending
-    logging.info(f"GitHub OAuth - Client ID: {GITHUB_CLIENT_ID}")
+    logging.info(f"GitHub OAuth - Client ID: {github_client_id}")
     logging.info(f"GitHub OAuth - Redirect URI: {redirect_uri}")
     
     params = {
-        'client_id': GITHUB_CLIENT_ID,
+        'client_id': github_client_id,
         'redirect_uri': redirect_uri,
         'scope': 'user:email read:user',
         'state': state
@@ -340,6 +347,10 @@ def github_callback():
     """Handle GitHub OAuth callback"""
     import requests
     
+    # Read credentials at request time
+    github_client_id = os.environ.get('GITHUB_CLIENT_ID')
+    github_client_secret = os.environ.get('GITHUB_CLIENT_SECRET')
+    
     state = request.args.get('state')
     stored_state = session.pop('oauth_state', None)
     redirect_uri = session.pop('oauth_redirect_uri', get_oauth_redirect_uri('github'))
@@ -362,8 +373,8 @@ def github_callback():
     try:
         token_url = 'https://github.com/login/oauth/access_token'
         token_data = {
-            'client_id': GITHUB_CLIENT_ID,
-            'client_secret': GITHUB_CLIENT_SECRET,
+            'client_id': github_client_id,
+            'client_secret': github_client_secret,
             'redirect_uri': redirect_uri,
             'code': code
         }
