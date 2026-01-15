@@ -100,12 +100,63 @@
                     <div class="settings-item mt-4">
                         <h6><i class="fas fa-bell me-2"></i>Push Notifications</h6>
                         <p>Receive instant notifications on your device even when you're not on MedInvest.</p>
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="push-notification-toggle">
-                            <label class="form-check-label" for="push-notification-toggle">Enable push notifications</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="push-notification-toggle">
+                                <label class="form-check-label" for="push-notification-toggle">Enable push notifications</label>
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="test-push-btn" style="display:none;">
+                                <i class="fas fa-paper-plane me-1"></i>Test
+                            </button>
                         </div>
                         <small class="text-muted d-block mt-2">You'll be asked to allow notifications in your browser.</small>
+                        <div id="push-status" class="mt-2"></div>
                     </div>
+                    
+                    <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const testBtn = document.getElementById('test-push-btn');
+                        const pushToggle = document.getElementById('push-notification-toggle');
+                        const statusDiv = document.getElementById('push-status');
+                        
+                        function updateTestButton() {
+                            if (pushToggle && pushToggle.checked) {
+                                testBtn.style.display = 'inline-block';
+                            } else {
+                                testBtn.style.display = 'none';
+                            }
+                        }
+                        
+                        if (pushToggle) {
+                            pushToggle.addEventListener('change', updateTestButton);
+                            setTimeout(updateTestButton, 500);
+                        }
+                        
+                        if (testBtn) {
+                            testBtn.addEventListener('click', async function() {
+                                testBtn.disabled = true;
+                                testBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Sending...';
+                                statusDiv.innerHTML = '';
+                                
+                                try {
+                                    const response = await fetch('/push/test', {method: 'POST'});
+                                    const result = await response.json();
+                                    
+                                    if (result.success) {
+                                        statusDiv.innerHTML = '<span class="text-success"><i class="fas fa-check me-1"></i>' + result.message + '</span>';
+                                    } else {
+                                        statusDiv.innerHTML = '<span class="text-danger"><i class="fas fa-times me-1"></i>' + result.error + '</span>';
+                                    }
+                                } catch (e) {
+                                    statusDiv.innerHTML = '<span class="text-danger"><i class="fas fa-times me-1"></i>Error sending test notification</span>';
+                                }
+                                
+                                testBtn.disabled = false;
+                                testBtn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Test';
+                            });
+                        }
+                    });
+                    </script>
 
                     {% elif tab == 'privacy' %}
                     <h4><i class="fas fa-lock me-2"></i>Privacy Settings</h4>

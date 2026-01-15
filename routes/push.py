@@ -106,3 +106,39 @@ def subscription_status():
         'subscribed': count > 0,
         'subscription_count': count
     })
+
+
+@push_bp.route('/test', methods=['POST'])
+@login_required
+def test_push():
+    """Send a test push notification to verify setup"""
+    from push_service import send_push_notification
+    
+    subscriptions = PushSubscription.query.filter_by(
+        user_id=current_user.id,
+        is_active=True
+    ).all()
+    
+    if not subscriptions:
+        return jsonify({'success': False, 'error': 'No active subscriptions found. Please enable push notifications first.'}), 400
+    
+    success_count = 0
+    for sub in subscriptions:
+        try:
+            result = send_push_notification(
+                sub,
+                title='MedInvest Test',
+                body='Push notifications are working! You will now receive alerts for new messages, comments, and more.',
+                url='/settings?tab=communication'
+            )
+            if result:
+                success_count += 1
+        except Exception as e:
+            logging.error(f"Test push failed: {str(e)}")
+    
+    db.session.commit()
+    
+    if success_count > 0:
+        return jsonify({'success': True, 'message': f'Test notification sent to {success_count} device(s)'})
+    else:
+        return jsonify({'success': False, 'error': 'Failed to send test notification. Please try re-enabling push notifications.'}), 500
