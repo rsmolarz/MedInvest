@@ -163,6 +163,12 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link {% if tab == 'new_members' %}active{% endif %}" href="{{ url_for('main.network', tab='new_members') }}">
+                                <i class="fas fa-user-plus me-1"></i>New Members
+                                {% if new_member_count > 0 %}<span class="badge bg-success ms-1">{{ new_member_count }}</span>{% endif %}
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link {% if tab == 'colleagues' %}active{% endif %}" href="{{ url_for('main.network', tab='colleagues') }}">
                                 Your {{ colleague_count }} Colleagues
                             </a>
@@ -325,6 +331,41 @@
                         <div class="text-center text-muted py-5 col-12">
                             <i class="fas fa-stethoscope fa-3x mb-3"></i>
                             <p>{% if not current_user.specialty %}Add your specialty in your profile to see colleagues in your field{% else %}No other {{ (current_user.specialty or '')|replace('_', ' ')|title }} physicians found{% endif %}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    {% elif tab == 'new_members' %}
+                    <div class="colleague-grid">
+                        {% for user in new_members %}
+                        <div class="colleague-card">
+                            <span class="badge bg-success position-absolute" style="top:10px;right:10px;font-size:10px;">
+                                <i class="fas fa-star me-1"></i>New
+                            </span>
+                            <div class="colleague-avatar {% if not user.profile_image_url %}initials{% endif %}">
+                                {% if user.profile_image_url %}
+                                <img src="{{ user.profile_image_url }}" alt="{{ user.full_name }}">
+                                {% else %}
+                                {{ user.first_name[0] }}{{ user.last_name[0] }}
+                                {% endif %}
+                            </div>
+                            <div class="colleague-name">{{ user.full_name }}</div>
+                            <div class="colleague-specialty">{{ (user.specialty or 'Physician')|replace('_', ' ')|title }}</div>
+                            <div class="colleague-location">{{ user.license_state or '' }}</div>
+                            <div class="colleague-reason text-success">
+                                <i class="fas fa-calendar-alt me-1"></i>Joined {{ user.created_at.strftime('%b %d') if user.created_at else 'recently' }}
+                            </div>
+                            <form action="{{ url_for('connections.send_request', user_id=user.id) }}" method="POST" style="display:inline;">
+                                <button type="submit" class="btn-colleague">
+                                    <i class="fas fa-user-plus"></i> Connect
+                                </button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <div class="text-center text-muted py-5 col-12">
+                            <i class="fas fa-user-plus fa-3x mb-3"></i>
+                            <p>No new members in the last 7 days</p>
+                            <small>Check back soon to welcome new colleagues!</small>
                         </div>
                         {% endfor %}
                     </div>

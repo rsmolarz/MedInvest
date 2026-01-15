@@ -869,6 +869,15 @@ def network():
         User.id.in_(list(all_connected_ids))
     ).order_by(User.last_name).all() if all_connected_ids else []
     
+    # New members (joined in last 7 days)
+    from datetime import timedelta
+    week_ago = datetime.utcnow() - timedelta(days=7)
+    new_members = User.query.filter(
+        User.created_at >= week_ago,
+        User.id != current_user.id,
+        User.id.notin_(list(all_connected_ids)) if all_connected_ids else True
+    ).order_by(User.created_at.desc()).limit(10).all()
+    
     return render_template('network.html',
                           tab=tab,
                           pending_users=pending_users,
@@ -879,8 +888,10 @@ def network():
                           near_me=near_me,
                           same_specialty=same_specialty,
                           colleagues=colleagues,
+                          new_members=new_members,
                           pending_count=len(pending_users),
                           outgoing_count=len(outgoing_users),
+                          new_member_count=len(new_members),
                           colleague_count=len(colleagues))
 
 

@@ -164,9 +164,18 @@
 {% block extra_js %}
 <script>
 function followUser(userId, btn) {
-    fetch(`/user/${userId}/follow`, { method: 'POST' })
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    fetch(`/user/${userId}/follow`, { 
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
         .then(r => r.json())
         .then(data => {
+            btn.disabled = false;
             if (data.success) {
                 if (data.following) {
                     btn.classList.remove('btn-outline-primary');
@@ -177,7 +186,15 @@ function followUser(userId, btn) {
                     btn.classList.add('btn-outline-primary');
                     btn.textContent = 'Follow';
                 }
+            } else {
+                btn.textContent = 'Follow';
+                alert(data.error || 'Failed to follow');
             }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.textContent = 'Follow';
+            console.error('Follow error:', err);
         });
 }
 </script>
