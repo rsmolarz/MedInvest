@@ -3,6 +3,7 @@ Main Routes - Home, Feed, Profile, Dashboard
 """
 import os
 import json
+from datetime import datetime, timedelta
 from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, send_from_directory
 from flask_login import login_required, current_user
 from app import db
@@ -805,7 +806,6 @@ def network():
     try:
         from models import User, Follow, Connection
         from utils.algorithm import get_people_you_may_know
-        from datetime import timedelta
         
         tab = request.args.get('tab', 'suggestions')
         
