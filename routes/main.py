@@ -846,21 +846,25 @@ def network():
     suggestions = get_people_you_may_know(current_user, limit=20)
     
     if current_user.license_state:
-        near_me = User.query.filter(
+        near_me_query = User.query.filter(
             User.license_state == current_user.license_state,
-            User.id != current_user.id,
-            User.id.notin_(list(all_connected_ids)) if all_connected_ids else True
-        ).order_by(User.points.desc()).limit(20).all()
+            User.id != current_user.id
+        )
+        if all_connected_ids:
+            near_me_query = near_me_query.filter(User.id.notin_(list(all_connected_ids)))
+        near_me = near_me_query.order_by(User.points.desc()).limit(20).all()
     else:
         near_me = []
     
     # People in the same specialty
     if current_user.specialty:
-        same_specialty = User.query.filter(
+        same_specialty_query = User.query.filter(
             User.specialty == current_user.specialty,
-            User.id != current_user.id,
-            User.id.notin_(list(all_connected_ids)) if all_connected_ids else True
-        ).order_by(User.points.desc()).limit(20).all()
+            User.id != current_user.id
+        )
+        if all_connected_ids:
+            same_specialty_query = same_specialty_query.filter(User.id.notin_(list(all_connected_ids)))
+        same_specialty = same_specialty_query.order_by(User.points.desc()).limit(20).all()
     else:
         same_specialty = []
     
@@ -872,11 +876,13 @@ def network():
     # New members (joined in last 7 days)
     from datetime import timedelta
     week_ago = datetime.utcnow() - timedelta(days=7)
-    new_members = User.query.filter(
+    new_members_query = User.query.filter(
         User.created_at >= week_ago,
-        User.id != current_user.id,
-        User.id.notin_(list(all_connected_ids)) if all_connected_ids else True
-    ).order_by(User.created_at.desc()).limit(10).all()
+        User.id != current_user.id
+    )
+    if all_connected_ids:
+        new_members_query = new_members_query.filter(User.id.notin_(list(all_connected_ids)))
+    new_members = new_members_query.order_by(User.created_at.desc()).limit(10).all()
     
     return render_template('network.html',
                           tab=tab,
