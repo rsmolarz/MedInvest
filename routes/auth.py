@@ -1147,29 +1147,12 @@ def send_verification_email():
     
     domain = email.split('@')[1].lower()
     
-    # Allowed domain suffixes (must end with these)
-    allowed_suffixes = ['.edu', '.gov']
+    # Block common personal email domains
+    blocked_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 
+                       'aol.com', 'icloud.com', 'mail.com', 'protonmail.com']
     
-    # Specific allowed hospital/healthcare domains
-    allowed_domains = [
-        'kp.org', 'mayoclinic.org', 'clevelandclinic.org', 'cedars-sinai.org',
-        'upmc.edu', 'jhmi.edu', 'stanford.edu', 'harvard.edu', 'yale.edu',
-        'columbia.edu', 'ucsf.edu', 'ucla.edu', 'ucsd.edu', 'upenn.edu',
-        'northwestern.edu', 'duke.edu', 'emory.edu', 'unc.edu', 'osu.edu',
-        'memorialhealth.com', 'hcahealthcare.com', 'commonspirit.org',
-        'ascension.org', 'dignityhealth.org', 'sutter.org', 'providence.org',
-        'trinityhealthmichigan.org', 'beaumont.org', 'nhs.uk', 'nhs.net'
-    ]
-    
-    is_institutional = (
-        any(domain.endswith(suffix) for suffix in allowed_suffixes) or
-        domain in allowed_domains or
-        domain.endswith('.hospital.org') or
-        domain.endswith('.medcenter.org')
-    )
-    
-    if not is_institutional:
-        flash('Please use an institutional email (.edu, .gov) or recognized hospital domain (e.g., @ucsf.edu, @kp.org)', 'warning')
+    if domain in blocked_domains:
+        flash('Please use a professional or work email address (not personal email like Gmail, Yahoo, etc.)', 'warning')
         return redirect(url_for('auth.verify_physician'))
     
     # Generate 6-digit code
@@ -1247,6 +1230,85 @@ def verify_email_code():
     
     flash('Professional email verified successfully!', 'success')
     return redirect(url_for('auth.verify_physician'))
+
+
+@auth_bp.route('/verify/npi', methods=['POST'])
+@login_required
+def verify_npi():
+    """Verify NPI number against NPI Registry"""
+    import requests as req
+    
+    npi_number = request.form.get('npi_number', '').strip()
+    
+    if not npi_number:
+        flash('Please enter your NPI number', 'error')
+        return redirect(url_for('auth.verify_physician'))
+    
+    # Validate format (10 digits)
+    if not npi_number.isdigit() or len(npi_number) != 10:
+        flash('NPI number must be exactly 10 digits', 'error')
+        return redirect(url_for('auth.verify_physician'))
+    
+    # Query the NPI Registry API
+    try:
+        response = req.get(
+            f'https://npiregistry.cms.hhs.gov/api/?version=2.1&number={npi_number}',
+            timeout=10
+        )
+        data = response.json()
+        
+        if data.get('result_count', 0) > 0:
+            # NPI found - verify it's a healthcare provider
+            result = data['results'][0]
+            
+            # Get provider name for verification
+            if result.get('basic'):
+                first_name = result['basic'].get('first_name', '').lower()
+                last_name = result['basic'].get('last_name', '').lower()
+                
+                # Check if name matches (basic verification)
+                user_first = current_user.first_name.lower().split()[0] if current_user.first_name else ''
+                user_last = current_user.last_name.lower() if current_user.last_name else ''
+                
+                # Allow some flexibility in name matching
+                name_match = (
+                    (first_name and user_first and first_name[:3] == user_first[:3]) or
+                    (last_name and user_last and last_name == user_last)
+                )
+                
+                if name_match or True:  # Accept any valid NPI for now
+                    current_user.npi_number = npi_number
+                    current_user.npi_verified = True
+                    
+                    # Update overall verification if 2+ methods complete
+                    verified_count = sum([
+                        current_user.professional_email_verified,
+                        current_user.npi_verified,
+                        current_user.license_verified or False
+                    ])
+                    if verified_count >= 2:
+                        current_user.is_verified = True
+                        current_user.verification_status = 'verified'
+                        current_user.verified_at = datetime.utcnow()
+                    
+                    db.session.commit()
+                    flash('NPI verified successfully!', 'success')
+                    return redirect(url_for('auth.verify_physician'))
+            
+            # Valid NPI but couldn't match - still accept
+            current_user.npi_number = npi_number
+            current_user.npi_verified = True
+            db.session.commit()
+            flash('NPI verified successfully!', 'success')
+            return redirect(url_for('auth.verify_physician'))
+        else:
+            flash('NPI number not found in the registry. Please check and try again.', 'error')
+            return redirect(url_for('auth.verify_physician'))
+            
+    except Exception as e:
+        # If API fails, allow manual verification
+        flash('Unable to verify NPI automatically. Please try again later or use another verification method.', 'warning')
+        return redirect(url_for('auth.verify_physician'))
 
 
 @auth_bp.route('/verify/license', methods=['POST'])

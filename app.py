@@ -71,6 +71,15 @@ with app.app_context():
         db.session.rollback()
         logging.debug(f"Schema migration skipped (likely already applied): {e}")
     
+    # Migration 2b: Add npi_verified column to users table
+    try:
+        db.session.execute(text("ALTER TABLE users ADD COLUMN npi_verified BOOLEAN DEFAULT FALSE"))
+        db.session.commit()
+        logging.info("Applied schema migration: users.npi_verified added")
+    except Exception as e:
+        db.session.rollback()
+        logging.debug(f"Schema migration skipped (likely already applied): {e}")
+    
     # Migration 3: Add ghost_id column to opmed_articles table for Ghost CMS sync
     try:
         db.session.execute(text("ALTER TABLE opmed_articles ADD COLUMN ghost_id VARCHAR(100) UNIQUE"))

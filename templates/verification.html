@@ -9,7 +9,7 @@
             <div class="card shadow">
                 <div class="card-body p-4">
                     <h2 class="text-center mb-2 fw-bold">Get Verified to use MedInvest</h2>
-                    <p class="text-center text-muted mb-4">Complete both of the following methods to get verified.</p>
+                    <p class="text-center text-muted mb-4">Complete at least 2 of the following methods to get verified.</p>
                     
                     <ul class="nav nav-tabs nav-justified mb-4" id="verificationTabs" role="tablist">
                         <li class="nav-item" role="presentation">
@@ -22,7 +22,20 @@
                                     </span>
                                     {% endif %}
                                 </div>
-                                <span class="{% if current_user.professional_email_verified %}text-success{% endif %}">Professional Email</span>
+                                <span class="{% if current_user.professional_email_verified %}text-success{% endif %}">Work Email</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link d-flex flex-column align-items-center py-3" id="npi-tab" data-bs-toggle="tab" data-bs-target="#npi-pane" type="button" role="tab">
+                                <div class="mb-2 position-relative">
+                                    <i class="fas fa-hashtag fa-2x text-secondary"></i>
+                                    {% if current_user.npi_verified %}
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">
+                                        <i class="fas fa-check"></i>
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <span class="{% if current_user.npi_verified %}text-success{% endif %}">NPI Number</span>
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
@@ -35,7 +48,7 @@
                                     </span>
                                     {% endif %}
                                 </div>
-                                <span class="{% if current_user.license_verified %}text-success{% endif %}">Upload License/ID</span>
+                                <span class="{% if current_user.license_verified %}text-success{% endif %}">License/ID</span>
                             </button>
                         </li>
                     </ul>
@@ -79,6 +92,27 @@
                             {% endif %}
                         </div>
                         
+                        <div class="tab-pane fade" id="npi-pane" role="tabpanel">
+                            {% if current_user.npi_verified %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-check-circle text-success fa-4x mb-3"></i>
+                                <h5 class="text-success">NPI Verified</h5>
+                                <p class="text-muted">Your NPI number <strong>{{ current_user.npi_number }}</strong> has been verified.</p>
+                            </div>
+                            {% else %}
+                            <p class="mb-3">Enter your 10-digit National Provider Identifier (NPI) number. We'll verify it against the NPI Registry.</p>
+                            <form action="{{ url_for('auth.verify_npi') }}" method="POST">
+                                <div class="mb-3">
+                                    <input type="text" name="npi_number" class="form-control form-control-lg text-center" placeholder="Enter 10-digit NPI number" maxlength="10" pattern="[0-9]{10}" required>
+                                    <small class="text-muted d-block mt-2">
+                                        <em>Don't know your NPI? <a href="https://npiregistry.cms.hhs.gov/search" target="_blank">Look it up here</a></em>
+                                    </small>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100 py-2">Verify NPI</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        
                         <div class="tab-pane fade" id="license-pane" role="tabpanel">
                             {% if current_user.license_verified %}
                             <div class="text-center py-4">
@@ -98,8 +132,8 @@
                             <form action="{{ url_for('auth.upload_license') }}" method="POST" enctype="multipart/form-data">
                                 <div class="mb-4">
                                     <label class="form-label">License/ID Document</label>
-                                    <div class="border rounded p-4 text-center bg-light" id="dropZone">
-                                        <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-2"></i>
+                                    <div class="border rounded p-4 text-center" id="dropZone" style="background: var(--bs-tertiary-bg, #f8f9fa); cursor: pointer;">
+                                        <i class="fas fa-cloud-upload-alt fa-3x mb-2" style="color: var(--bs-secondary-color, #6c757d);"></i>
                                         <p class="mb-2">Drag and drop your file here or</p>
                                         <label for="licenseFile" class="btn btn-outline-primary">
                                             <i class="fas fa-file-upload me-1"></i>Browse Files
@@ -118,15 +152,16 @@
                         </div>
                     </div>
                     
-                    {% if current_user.professional_email_verified and current_user.license_verified %}
+                    {% set verified_count = (1 if current_user.professional_email_verified else 0) + (1 if current_user.npi_verified else 0) + (1 if current_user.license_verified else 0) %}
+                    {% if verified_count >= 2 %}
                     <div class="alert alert-success text-center mt-4 mb-0">
                         <i class="fas fa-shield-check me-2"></i>
                         <strong>Congratulations!</strong> You are now a verified physician on MedInvest.
                     </div>
-                    {% elif current_user.professional_email_verified or current_user.license_document_url %}
+                    {% elif verified_count == 1 or current_user.license_document_url %}
                     <div class="alert alert-info text-center mt-4 mb-0">
                         <i class="fas fa-info-circle me-2"></i>
-                        Complete both steps to become fully verified.
+                        Complete at least 2 verification methods to become fully verified.
                     </div>
                     {% endif %}
                 </div>

@@ -73,6 +73,7 @@ class User(UserMixin, db.Model):
     specialty = db.Column(db.String(100), nullable=True)
     # Trust & verification
     npi_number = db.Column(db.String(20), unique=True)
+    npi_verified = db.Column(db.Boolean, default=False)
     license_state = db.Column(db.String(2))
     role = db.Column(db.String(30), default='physician')  # physician, resident, fellow, attending, sponsor, admin
     verification_status = db.Column(db.String(30), default='unverified')  # unverified, pending, verified, rejected
