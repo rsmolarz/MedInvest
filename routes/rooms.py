@@ -231,13 +231,12 @@ def view_post(post_id):
         vote = PostVote.query.filter_by(post_id=post_id, user_id=current_user.id).first()
         user_vote = vote.vote_type if vote else None
     
-    # Get users who liked/upvoted the post
+    # Get users who upvoted the post (using PostVote, not Like)
     likers = []
-    from models import Like
-    likes = Like.query.filter_by(post_id=post_id).all()
-    for like in likes:
-        if like.user and like.user.id != current_user.id:
-            likers.append(like.user)
+    upvotes = PostVote.query.filter_by(post_id=post_id, vote_type='up').all()
+    for vote in upvotes:
+        if vote.user and vote.user.id != current_user.id:
+            likers.append(vote.user)
     
     return render_template('rooms/post.html', 
                          post=post, 
