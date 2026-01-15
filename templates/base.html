@@ -61,6 +61,9 @@
         [data-theme="dark"] .modal-content { background-color: var(--card-bg); color: var(--text-color); }
         [data-theme="dark"] .modal-header, [data-theme="dark"] .modal-footer { border-color: var(--border-color); }
         [data-theme="dark"] .close, [data-theme="dark"] .btn-close { filter: invert(1); }
+        [data-theme="dark"] .navbar-toggler-icon { filter: invert(1); }
+        .navbar-toggler { padding: 0.25rem 0.5rem; }
+        .navbar-toggler:focus { box-shadow: none; }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
