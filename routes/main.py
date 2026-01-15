@@ -802,103 +802,113 @@ def search():
 @login_required
 def network():
     """Networking page - connect with colleagues"""
-    from models import User, Follow, Connection
-    from utils.algorithm import get_people_you_may_know
-    
-    tab = request.args.get('tab', 'suggestions')
-    
-    # Get connected user IDs from Connection table (accepted connections)
-    connected_ids = set()
-    accepted_connections = Connection.query.filter(
-        db.or_(Connection.requester_id == current_user.id, Connection.addressee_id == current_user.id),
-        Connection.status == 'accepted'
-    ).all()
-    for conn in accepted_connections:
-        if conn.requester_id == current_user.id:
-            connected_ids.add(conn.addressee_id)
-        else:
-            connected_ids.add(conn.requester_id)
-    
-    # Also include Follow-based connections for backwards compatibility
-    following_ids = [f.following_id for f in 
-                     Follow.query.filter_by(follower_id=current_user.id).all()]
-    all_connected_ids = connected_ids.union(set(following_ids))
-    
-    # Pending connection requests (people who want to connect with current user)
-    pending_connections = Connection.query.filter_by(
-        addressee_id=current_user.id,
-        status='pending'
-    ).order_by(Connection.created_at.desc()).limit(50).all()
-    pending_users = [User.query.get(c.requester_id) for c in pending_connections]
-    pending_users = [u for u in pending_users if u]
-    # Store connection IDs for accept/decline actions
-    pending_connection_ids = {c.requester_id: c.id for c in pending_connections}
-    
-    # Outgoing connection requests (requests current user sent that are pending)
-    outgoing_connections = Connection.query.filter_by(
-        requester_id=current_user.id,
-        status='pending'
-    ).order_by(Connection.created_at.desc()).limit(50).all()
-    outgoing_users = [User.query.get(c.addressee_id) for c in outgoing_connections]
-    outgoing_users = [u for u in outgoing_users if u]
-    outgoing_connection_ids = {c.addressee_id: c.id for c in outgoing_connections}
-    
-    suggestions = get_people_you_may_know(current_user, limit=20)
-    
-    if current_user.license_state:
-        near_me_query = User.query.filter(
-            User.license_state == current_user.license_state,
-            User.id != current_user.id
-        )
-        if all_connected_ids:
-            near_me_query = near_me_query.filter(User.id.notin_(list(all_connected_ids)))
-        near_me = near_me_query.order_by(User.points.desc()).limit(20).all()
-    else:
+    try:
+        from models import User, Follow, Connection
+        from utils.algorithm import get_people_you_may_know
+        from datetime import timedelta
+        
+        tab = request.args.get('tab', 'suggestions')
+        
+        # Get connected user IDs from Connection table (accepted connections)
+        connected_ids = set()
+        accepted_connections = Connection.query.filter(
+            db.or_(Connection.requester_id == current_user.id, Connection.addressee_id == current_user.id),
+            Connection.status == 'accepted'
+        ).all()
+        for conn in accepted_connections:
+            if conn.requester_id == current_user.id:
+                connected_ids.add(conn.addressee_id)
+            else:
+                connected_ids.add(conn.requester_id)
+        
+        # Also include Follow-based connections for backwards compatibility
+        following_ids = [f.following_id for f in 
+                         Follow.query.filter_by(follower_id=current_user.id).all()]
+        all_connected_ids = connected_ids.union(set(following_ids))
+        
+        # Pending connection requests (people who want to connect with current user)
+        pending_connections = Connection.query.filter_by(
+            addressee_id=current_user.id,
+            status='pending'
+        ).order_by(Connection.created_at.desc()).limit(50).all()
+        pending_users = [User.query.get(c.requester_id) for c in pending_connections]
+        pending_users = [u for u in pending_users if u]
+        pending_connection_ids = {c.requester_id: c.id for c in pending_connections}
+        
+        # Outgoing connection requests (requests current user sent that are pending)
+        outgoing_connections = Connection.query.filter_by(
+            requester_id=current_user.id,
+            status='pending'
+        ).order_by(Connection.created_at.desc()).limit(50).all()
+        outgoing_users = [User.query.get(c.addressee_id) for c in outgoing_connections]
+        outgoing_users = [u for u in outgoing_users if u]
+        outgoing_connection_ids = {c.addressee_id: c.id for c in outgoing_connections}
+        
+        suggestions = get_people_you_may_know(current_user, limit=20)
+        
+        # People near me
         near_me = []
-    
-    # People in the same specialty
-    if current_user.specialty:
-        same_specialty_query = User.query.filter(
-            User.specialty == current_user.specialty,
-            User.id != current_user.id
-        )
-        if all_connected_ids:
-            same_specialty_query = same_specialty_query.filter(User.id.notin_(list(all_connected_ids)))
-        same_specialty = same_specialty_query.order_by(User.points.desc()).limit(20).all()
-    else:
+        if current_user.license_state:
+            near_me_query = User.query.filter(
+                User.license_state == current_user.license_state,
+                User.id != current_user.id
+            )
+            if all_connected_ids:
+                near_me_query = near_me_query.filter(User.id.notin_(list(all_connected_ids)))
+            near_me = near_me_query.order_by(User.points.desc()).limit(20).all()
+        
+        # People in the same specialty
         same_specialty = []
-    
-    # Colleagues = all accepted connections
-    colleagues = User.query.filter(
-        User.id.in_(list(all_connected_ids))
-    ).order_by(User.last_name).all() if all_connected_ids else []
-    
-    # New members (joined in last 7 days)
-    from datetime import timedelta
-    week_ago = datetime.utcnow() - timedelta(days=7)
-    new_members_query = User.query.filter(
-        User.created_at >= week_ago,
-        User.id != current_user.id
-    )
-    if all_connected_ids:
-        new_members_query = new_members_query.filter(User.id.notin_(list(all_connected_ids)))
-    new_members = new_members_query.order_by(User.created_at.desc()).limit(10).all()
-    
-    return render_template('network.html',
-                          tab=tab,
-                          pending_users=pending_users,
-                          pending_connection_ids=pending_connection_ids,
-                          outgoing_users=outgoing_users,
-                          outgoing_connection_ids=outgoing_connection_ids,
-                          suggestions=suggestions,
-                          near_me=near_me,
-                          same_specialty=same_specialty,
-                          colleagues=colleagues,
-                          new_members=new_members,
-                          pending_count=len(pending_users),
-                          outgoing_count=len(outgoing_users),
-                          new_member_count=len(new_members),
-                          colleague_count=len(colleagues))
+        if current_user.specialty:
+            same_specialty_query = User.query.filter(
+                User.specialty == current_user.specialty,
+                User.id != current_user.id
+            )
+            if all_connected_ids:
+                same_specialty_query = same_specialty_query.filter(User.id.notin_(list(all_connected_ids)))
+            same_specialty = same_specialty_query.order_by(User.points.desc()).limit(20).all()
+        
+        # Colleagues = all accepted connections
+        colleagues = []
+        if all_connected_ids:
+            colleagues = User.query.filter(
+                User.id.in_(list(all_connected_ids))
+            ).order_by(User.last_name).all()
+        
+        # New members (joined in last 7 days)
+        new_members = []
+        try:
+            week_ago = datetime.utcnow() - timedelta(days=7)
+            new_members_query = User.query.filter(
+                User.created_at >= week_ago,
+                User.id != current_user.id
+            )
+            if all_connected_ids:
+                new_members_query = new_members_query.filter(User.id.notin_(list(all_connected_ids)))
+            new_members = new_members_query.order_by(User.created_at.desc()).limit(10).all()
+        except Exception:
+            new_members = []
+        
+        return render_template('network.html',
+                              tab=tab,
+                              pending_users=pending_users,
+                              pending_connection_ids=pending_connection_ids,
+                              outgoing_users=outgoing_users,
+                              outgoing_connection_ids=outgoing_connection_ids,
+                              suggestions=suggestions,
+                              near_me=near_me,
+                              same_specialty=same_specialty,
+                              colleagues=colleagues,
+                              new_members=new_members,
+                              pending_count=len(pending_users),
+                              outgoing_count=len(outgoing_users),
+                              new_member_count=len(new_members),
+                              colleague_count=len(colleagues))
+    except Exception as e:
+        import logging
+        logging.error(f"Network page error: {str(e)}")
+        flash('Unable to load network page. Please try again.', 'error')
+        return redirect(url_for('main.feed'))
 
 
 @main_bp.route('/settings')
