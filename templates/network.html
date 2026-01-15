@@ -166,8 +166,10 @@
                     {% if tab == 'pending' %}
                     <div class="colleague-grid">
                         {% for user in pending_users %}
-                        <div class="colleague-card">
-                            <button class="dismiss-btn" title="Dismiss"><i class="fas fa-times"></i></button>
+                        <div class="colleague-card" id="pending-card-{{ user.id }}">
+                            <form action="{{ url_for('connections.decline_request', connection_id=pending_connection_ids[user.id]) }}" method="POST" style="display:inline;">
+                                <button type="submit" class="dismiss-btn" title="Decline"><i class="fas fa-times"></i></button>
+                            </form>
                             <div class="colleague-avatar {% if not user.profile_image_url %}initials{% endif %}">
                                 {% if user.profile_image_url %}
                                 <img src="{{ user.profile_image_url }}" alt="{{ user.full_name }}">
@@ -179,7 +181,7 @@
                             <div class="colleague-specialty">{{ (user.specialty or 'Physician')|replace('_', ' ')|title }}</div>
                             <div class="colleague-location">{{ user.license_state or '' }}</div>
                             <div class="colleague-reason">Wants to connect with you</div>
-                            <form action="{{ url_for('main.follow_user', user_id=user.id) }}" method="POST" style="display:inline;">
+                            <form action="{{ url_for('connections.accept_request', connection_id=pending_connection_ids[user.id]) }}" method="POST" style="display:inline;">
                                 <button type="submit" class="btn-colleague">
                                     <i class="fas fa-user-plus"></i> Accept
                                 </button>
