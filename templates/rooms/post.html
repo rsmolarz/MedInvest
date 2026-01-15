@@ -154,11 +154,11 @@
                                 </button>
                                 {% if not comment.is_anonymous and comment.author.id != current_user.id %}
                                 <span class="text-muted">|</span>
-                                <form action="{{ url_for('connections.send_request', user_id=comment.author.id) }}" method="POST" class="d-inline connect-form-{{ comment.author.id }}">
-                                    <button type="submit" class="btn btn-link btn-sm p-0 text-success connect-btn-{{ comment.author.id }}">
-                                        <i class="fas fa-user-plus me-1"></i>Connect
-                                    </button>
-                                </form>
+                                <button type="button" class="btn btn-link btn-sm p-0 text-success commenter-connect-btn" 
+                                        data-user-id="{{ comment.author.id }}"
+                                        onclick="sendCommenterConnectRequest({{ comment.author.id }}, this);">
+                                    <i class="fas fa-user-plus me-1"></i><span class="connect-text">Connect</span>
+                                </button>
                                 {% endif %}
                             </div>
                             
@@ -198,11 +198,12 @@
                                         </div>
                                         <p class="mb-0 small">{{ reply.content }}</p>
                                         {% if not reply.is_anonymous and reply.author.id != current_user.id %}
-                                        <form action="{{ url_for('connections.send_request', user_id=reply.author.id) }}" method="POST" class="d-inline">
-                                            <button type="submit" class="btn btn-link btn-sm p-0 text-success" style="font-size:0.75rem;">
-                                                <i class="fas fa-user-plus me-1"></i>Connect
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn-link btn-sm p-0 text-success commenter-connect-btn" 
+                                                data-user-id="{{ reply.author.id }}"
+                                                onclick="sendCommenterConnectRequest({{ reply.author.id }}, this);"
+                                                style="font-size:0.75rem;">
+                                            <i class="fas fa-user-plus me-1"></i><span class="connect-text">Connect</span>
+                                        </button>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -262,7 +263,36 @@ function sendLikerConnectRequest(userId, btn) {
         });
 }
 
+function sendCommenterConnectRequest(userId, btn) {
+    btn.disabled = true;
+    const textSpan = btn.querySelector('.connect-text');
+    const origText = textSpan ? textSpan.textContent : 'Connect';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>...';
+    
+    fetch(`/connections/send/${userId}`, { method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'} })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success || data.status === 'pending') {
+                btn.className = btn.className.replace('text-success', 'text-warning');
+                btn.innerHTML = '<i class="fas fa-clock me-1"></i><span class="connect-text">Pending</span>';
+                btn.onclick = null;
+            } else if (data.status === 'accepted') {
+                btn.className = btn.className.replace('text-success', 'text-primary');
+                btn.innerHTML = '<i class="fas fa-check me-1"></i><span class="connect-text">Connected</span>';
+                btn.onclick = null;
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-user-plus me-1"></i><span class="connect-text">' + origText + '</span>';
+            }
+        })
+        .catch(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-user-plus me-1"></i><span class="connect-text">' + origText + '</span>';
+        });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Check status for liker connect buttons
     document.querySelectorAll('.liker-connect-btn').forEach(function(btn) {
         const userId = btn.dataset.userId;
         if (!userId) return;
@@ -280,6 +310,29 @@ document.addEventListener('DOMContentLoaded', function() {
                     btn.className = 'btn btn-sm btn-outline-warning';
                     btn.innerHTML = '<i class="fas fa-clock"></i>';
                     btn.title = 'Request Pending';
+                    btn.onclick = null;
+                    btn.disabled = true;
+                }
+            })
+            .catch(() => {});
+    });
+    
+    // Check status for commenter connect buttons
+    document.querySelectorAll('.commenter-connect-btn').forEach(function(btn) {
+        const userId = btn.dataset.userId;
+        if (!userId) return;
+        
+        fetch(`/connections/status/${userId}`)
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(data => {
+                if (data.status === 'accepted') {
+                    btn.className = btn.className.replace('text-success', 'text-primary');
+                    btn.innerHTML = '<i class="fas fa-check me-1"></i><span class="connect-text">Connected</span>';
+                    btn.onclick = null;
+                    btn.disabled = true;
+                } else if (data.status === 'pending') {
+                    btn.className = btn.className.replace('text-success', 'text-warning');
+                    btn.innerHTML = '<i class="fas fa-clock me-1"></i><span class="connect-text">Pending</span>';
                     btn.onclick = null;
                     btn.disabled = true;
                 }
