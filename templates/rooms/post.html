@@ -6,6 +6,9 @@
     .reply-form { display: none; margin-top: 10px; }
     .reply-form.show { display: block; }
     .nested-replies { margin-left: 40px; border-left: 2px solid #e9ecef; padding-left: 15px; }
+    .edit-form { display: none; margin-top: 10px; }
+    .edit-form.show { display: block; }
+    .comment-content.editing { display: none; }
 </style>
 {% endblock %}
 
@@ -147,11 +150,31 @@
                                 {% endif %}
                                 <small class="text-muted">{{ comment.created_at.strftime('%b %d, %Y') }}</small>
                             </div>
-                            <p class="mb-2">{{ comment.content }}</p>
+                            <p class="mb-2 comment-content" id="comment-content-{{ comment.id }}">{{ comment.content }}</p>
+                            
+                            <!-- Edit Form (hidden by default) -->
+                            <div class="edit-form" id="edit-form-{{ comment.id }}">
+                                <form action="{{ url_for('rooms.edit_comment', comment_id=comment.id) }}" method="POST">
+                                    <div class="mb-2">
+                                        <textarea name="content" class="form-control form-control-sm" rows="2" required>{{ comment.content }}</textarea>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save me-1"></i>Save</button>
+                                        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleEditForm({{ comment.id }})">Cancel</button>
+                                    </div>
+                                </form>
+                            </div>
+                            
                             <div class="d-flex gap-2 align-items-center">
                                 <button class="btn btn-link btn-sm p-0 text-muted" onclick="toggleReplyForm({{ comment.id }})">
                                     <i class="fas fa-reply me-1"></i>Reply
                                 </button>
+                                {% if comment.author_id == current_user.id %}
+                                <span class="text-muted">|</span>
+                                <button class="btn btn-link btn-sm p-0 text-muted" onclick="toggleEditForm({{ comment.id }})">
+                                    <i class="fas fa-edit me-1"></i>Edit
+                                </button>
+                                {% endif %}
                                 {% if not comment.is_anonymous and comment.author.id != current_user.id %}
                                 <span class="text-muted">|</span>
                                 <button type="button" class="btn btn-link btn-sm p-0 text-success commenter-connect-btn" 
@@ -234,6 +257,18 @@ function toggleReplyForm(commentId) {
     form.classList.toggle('show');
     if (form.classList.contains('show')) {
         form.querySelector('input[name="content"]').focus();
+    }
+}
+
+function toggleEditForm(commentId) {
+    const form = document.getElementById('edit-form-' + commentId);
+    const content = document.getElementById('comment-content-' + commentId);
+    form.classList.toggle('show');
+    if (form.classList.contains('show')) {
+        content.classList.add('editing');
+        form.querySelector('textarea[name="content"]').focus();
+    } else {
+        content.classList.remove('editing');
     }
 }
 

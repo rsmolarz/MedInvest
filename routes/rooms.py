@@ -274,3 +274,27 @@ def add_comment(post_id):
     
     flash('Comment added!', 'success')
     return redirect(url_for('rooms.view_post', post_id=post_id))
+
+
+@rooms_bp.route('/comment/<int:comment_id>/edit', methods=['POST'])
+@login_required
+def edit_comment(comment_id):
+    """Edit a comment"""
+    comment = Comment.query.get_or_404(comment_id)
+    
+    # Only the author can edit their comment
+    if comment.author_id != current_user.id:
+        flash('You can only edit your own comments', 'error')
+        return redirect(url_for('rooms.view_post', post_id=comment.post_id))
+    
+    content = request.form.get('content', '').strip()
+    
+    if not content:
+        flash('Comment cannot be empty', 'error')
+        return redirect(url_for('rooms.view_post', post_id=comment.post_id))
+    
+    comment.content = content
+    db.session.commit()
+    
+    flash('Comment updated!', 'success')
+    return redirect(url_for('rooms.view_post', post_id=comment.post_id))
