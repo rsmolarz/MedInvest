@@ -180,6 +180,10 @@ def github_login():
     redirect_uri = get_oauth_redirect_uri('github')
     session['oauth_redirect_uri'] = redirect_uri
     
+    # Debug: log exactly what we're sending
+    logging.info(f"GitHub OAuth - Client ID: {GITHUB_CLIENT_ID}")
+    logging.info(f"GitHub OAuth - Redirect URI: {redirect_uri}")
+    
     params = {
         'client_id': GITHUB_CLIENT_ID,
         'redirect_uri': redirect_uri,
@@ -188,7 +192,7 @@ def github_login():
     }
     
     auth_url = f"https://github.com/login/oauth/authorize?{urlencode(params)}"
-    logging.info(f"Redirecting to GitHub OAuth with redirect_uri: {redirect_uri}")
+    logging.info(f"Redirecting to GitHub OAuth with full URL: {auth_url}")
     return redirect(auth_url)
 
 
