@@ -31,7 +31,21 @@
                         </div>
                         {% endif %}
                         <div class="flex-grow-1">
+                            {% if post.is_anonymous %}
                             <strong>{{ post.display_author }}</strong>
+                            {% else %}
+                            <a href="{{ url_for('main.profile', user_id=post.author.id) }}" class="text-decoration-none text-dark">
+                                <strong>{{ post.display_author }}</strong>
+                            </a>
+                            {% if post.author.is_verified %}<i class="fas fa-check-circle text-primary ms-1"></i>{% endif %}
+                            {% if post.author.id != current_user.id %}
+                            <form action="{{ url_for('connections.send_request', user_id=post.author.id) }}" method="POST" class="d-inline ms-2">
+                                <button type="submit" class="btn btn-success btn-sm py-0 px-2">
+                                    <i class="fas fa-user-plus me-1"></i>Connect
+                                </button>
+                            </form>
+                            {% endif %}
+                            {% endif %}
                             <br><small class="text-muted">{{ post.created_at.strftime('%B %d, %Y at %I:%M %p') }}</small>
                         </div>
                     </div>
@@ -91,13 +105,30 @@
                         {% endif %}
                         <div class="flex-grow-1">
                             <div class="d-flex justify-content-between align-items-center mb-1">
-                                <strong>{% if comment.is_anonymous %}Anonymous Physician{% else %}{{ comment.author.full_name }}{% endif %}</strong>
+                                {% if comment.is_anonymous %}
+                                <strong>Anonymous Physician</strong>
+                                {% else %}
+                                <a href="{{ url_for('main.profile', user_id=comment.author.id) }}" class="text-decoration-none text-dark">
+                                    <strong>{{ comment.author.full_name }}</strong>
+                                    {% if comment.author.is_verified %}<i class="fas fa-check-circle text-primary ms-1" title="Verified"></i>{% endif %}
+                                </a>
+                                {% endif %}
                                 <small class="text-muted">{{ comment.created_at.strftime('%b %d, %Y') }}</small>
                             </div>
                             <p class="mb-2">{{ comment.content }}</p>
-                            <button class="btn btn-link btn-sm p-0 text-muted" onclick="toggleReplyForm({{ comment.id }})">
-                                <i class="fas fa-reply me-1"></i>Reply
-                            </button>
+                            <div class="d-flex gap-2 align-items-center">
+                                <button class="btn btn-link btn-sm p-0 text-muted" onclick="toggleReplyForm({{ comment.id }})">
+                                    <i class="fas fa-reply me-1"></i>Reply
+                                </button>
+                                {% if not comment.is_anonymous and comment.author.id != current_user.id %}
+                                <span class="text-muted">|</span>
+                                <form action="{{ url_for('connections.send_request', user_id=comment.author.id) }}" method="POST" class="d-inline connect-form-{{ comment.author.id }}">
+                                    <button type="submit" class="btn btn-link btn-sm p-0 text-success connect-btn-{{ comment.author.id }}">
+                                        <i class="fas fa-user-plus me-1"></i>Connect
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
                             
                             <!-- Reply Form -->
                             <div class="reply-form" id="reply-form-{{ comment.id }}">
@@ -124,10 +155,23 @@
                                     {% endif %}
                                     <div class="flex-grow-1">
                                         <div class="d-flex justify-content-between align-items-center">
-                                            <strong class="small">{% if reply.is_anonymous %}Anonymous{% else %}{{ reply.author.full_name }}{% endif %}</strong>
+                                            {% if reply.is_anonymous %}
+                                            <strong class="small">Anonymous</strong>
+                                            {% else %}
+                                            <a href="{{ url_for('main.profile', user_id=reply.author.id) }}" class="text-decoration-none text-dark">
+                                                <strong class="small">{{ reply.author.full_name }}</strong>
+                                            </a>
+                                            {% endif %}
                                             <small class="text-muted">{{ reply.created_at.strftime('%b %d') }}</small>
                                         </div>
                                         <p class="mb-0 small">{{ reply.content }}</p>
+                                        {% if not reply.is_anonymous and reply.author.id != current_user.id %}
+                                        <form action="{{ url_for('connections.send_request', user_id=reply.author.id) }}" method="POST" class="d-inline">
+                                            <button type="submit" class="btn btn-link btn-sm p-0 text-success" style="font-size:0.75rem;">
+                                                <i class="fas fa-user-plus me-1"></i>Connect
+                                            </button>
+                                        </form>
+                                        {% endif %}
                                     </div>
                                 </div>
                                 {% endfor %}

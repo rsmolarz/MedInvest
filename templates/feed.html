@@ -221,6 +221,13 @@
                                 </a>
                                 {% if post.author.is_premium %}<i class="fas fa-crown text-warning ms-1" title="Premium Member"></i>{% endif %}
                                 {% if post.author.is_verified %}<i class="fas fa-check-circle text-primary ms-1" title="Verified"></i>{% endif %}
+                                {% if post.author.id != current_user.id %}
+                                <form action="{{ url_for('connections.send_request', user_id=post.author.id) }}" method="POST" class="d-inline ms-2">
+                                    <button type="submit" class="btn btn-outline-success btn-sm py-0 px-2" style="font-size:0.75rem;">
+                                        <i class="fas fa-user-plus me-1"></i>Connect
+                                    </button>
+                                </form>
+                                {% endif %}
                                 {% endif %}
                                 {% if post.post_type != 'text' %}
                                 <span class="badge bg-light text-dark post-type-badge">
