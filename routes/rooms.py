@@ -231,9 +231,9 @@ def view_post(post_id):
         vote = PostVote.query.filter_by(post_id=post_id, user_id=current_user.id).first()
         user_vote = vote.vote_type if vote else None
     
-    # Get users who upvoted the post (using PostVote, not Like)
+    # Get users who upvoted the post (vote_type=1 means upvote)
     likers = []
-    upvotes = PostVote.query.filter_by(post_id=post_id, vote_type='up').all()
+    upvotes = PostVote.query.filter_by(post_id=post_id, vote_type=1).all()
     for vote in upvotes:
         if vote.user and vote.user.id != current_user.id:
             likers.append(vote.user)
