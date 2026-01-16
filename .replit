@@ -45,6 +45,7 @@ defaultBucketID = "replit-objstore-b659791e-a9d2-4779-b2eb-b091ce83935d"
 OAUTHLIB_RELAX_TOKEN_SCOPE = "1"
 GOOGLE_OAUTH_REDIRECT_URL = "https://medmoneyincubator.com/login/google/authorized"
 GOOGLE_OAUTH_CALLBACK_URL = "https://medmoneyincubator.com/login/google/authorized"
+FACEBOOK_PAGE_ACCESS_TOKEN = "EAAJzdwyoPHgBQZAx0Pg0qRIZAxD1OtCvZBRMKMP97hokZCYIpp0lq71vvKHbEFQ2ut37bW9uoCZB1V0c9gVLjYFptJY5LBZBNKhax0LHSPegOzWecgnrOGn56X9baXSrHAt3F4n8cvx9z2bKZAqW1XhsiqHf2AnUZCLXSgZAMN0ILdzfQU3hXIDi810E5Cak4UG3WR786OzY6OLFqzrNxZBJnH6SZBJNFgIyn7a30IIxdLu65VizETtiV9zi9dZCJky0dperZBhObyaZBaS2WpcTwzTlPIKbdpXZCrVGgHPen8HkgME7owZD"
 
 [userenv.production]
 CUSTOM_DOMAIN = "medmoneyincubator.com"
