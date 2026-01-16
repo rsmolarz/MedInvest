@@ -161,7 +161,7 @@ def facebook_login():
         'client_id': FACEBOOK_APP_ID,
         'redirect_uri': redirect_uri,
         'response_type': 'code',
-        'scope': 'email,public_profile',
+        'scope': 'public_profile',  # Only request public_profile until email permission is approved
         'state': state
     }
     
@@ -526,11 +526,16 @@ def facebook_callback():
         email = fb_info.get('email')
         fb_id = fb_info.get('id')
         
+        # If no email permission, generate a placeholder email
+        # Users can update their email later in profile settings
         if not email:
-            flash('Facebook account email not available. Please ensure your Facebook account has a verified email.', 'error')
-            return redirect(url_for('auth.login'))
+            email = f"facebook_{fb_id}@placeholder.medinvest.com"
+            logging.info(f"No email from Facebook for user {fb_id}, using placeholder")
         
-        user = User.query.filter_by(email=email).first()
+        # First try to find user by Facebook ID, then by email
+        user = User.query.filter_by(replit_id=f'facebook_{fb_id}').first()
+        if not user:
+            user = User.query.filter_by(email=email).first()
         
         picture_url = None
         if fb_info.get('picture') and fb_info['picture'].get('data'):
