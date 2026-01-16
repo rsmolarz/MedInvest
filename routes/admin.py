@@ -53,9 +53,9 @@ def analytics():
         'new_users_month': User.query.filter(User.created_at >= month_ago).count(),
         'total_posts': Post.query.count(),
         'posts_week': Post.query.filter(Post.created_at >= week_ago).count(),
-        'active_deals': InvestmentDeal.query.filter(InvestmentDeal.status == DealStatus.ACTIVE).count(),
-        'pending_deals': InvestmentDeal.query.filter(InvestmentDeal.status == DealStatus.REVIEW).count(),
-        'upcoming_amas': ExpertAMA.query.filter(ExpertAMA.status == AMAStatus.SCHEDULED).count(),
+        'active_deals': InvestmentDeal.query.filter(InvestmentDeal.status == 'active').count(),
+        'pending_deals': InvestmentDeal.query.filter(InvestmentDeal.status == 'review').count(),
+        'upcoming_amas': ExpertAMA.query.filter(ExpertAMA.status == 'scheduled').count(),
         'total_courses': Course.query.filter_by(is_published=True).count(),
         'total_events': Event.query.filter_by(is_published=True).count(),
     }
