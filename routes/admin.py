@@ -391,3 +391,181 @@ def ads_dashboard():
                           creatives=creatives,
                           total_impressions=total_impressions,
                           total_clicks=total_clicks)
+
+
+# ============================================================================
+# COURSES MANAGEMENT
+# ============================================================================
+
+@admin_bp.route('/courses', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def manage_courses():
+    """Course management"""
+    if request.method == 'POST':
+        course = Course(
+            title=request.form.get('title'),
+            description=request.form.get('description'),
+            instructor_name=request.form.get('instructor_name'),
+            price=float(request.form.get('price', 0)),
+            original_price=float(request.form.get('original_price', 0)) if request.form.get('original_price') else None,
+            difficulty_level=request.form.get('difficulty_level'),
+            thumbnail_url=request.form.get('thumbnail_url'),
+            is_published=request.form.get('is_published') == 'on',
+            is_featured=request.form.get('is_featured') == 'on'
+        )
+        
+        db.session.add(course)
+        db.session.commit()
+        
+        flash('Course created successfully!', 'success')
+        return redirect(url_for('admin.manage_courses'))
+    
+    courses = Course.query.order_by(Course.created_at.desc()).all()
+    return render_template('admin/courses.html', courses=courses)
+
+
+@admin_bp.route('/courses/<int:course_id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_course(course_id):
+    """Edit a course"""
+    course = Course.query.get_or_404(course_id)
+    
+    if request.method == 'POST':
+        course.title = request.form.get('title')
+        course.description = request.form.get('description')
+        course.instructor_name = request.form.get('instructor_name')
+        course.price = float(request.form.get('price', 0))
+        course.original_price = float(request.form.get('original_price', 0)) if request.form.get('original_price') else None
+        course.difficulty_level = request.form.get('difficulty_level')
+        course.thumbnail_url = request.form.get('thumbnail_url')
+        course.is_published = request.form.get('is_published') == 'on'
+        course.is_featured = request.form.get('is_featured') == 'on'
+        
+        db.session.commit()
+        flash('Course updated successfully!', 'success')
+        return redirect(url_for('admin.manage_courses'))
+    
+    return render_template('admin/course_edit.html', course=course)
+
+
+@admin_bp.route('/courses/<int:course_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_course(course_id):
+    """Delete a course"""
+    course = Course.query.get_or_404(course_id)
+    db.session.delete(course)
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'Course deleted'})
+
+
+@admin_bp.route('/courses/<int:course_id>/toggle-publish', methods=['POST'])
+@login_required
+@admin_required
+def toggle_course_publish(course_id):
+    """Toggle course publish status"""
+    course = Course.query.get_or_404(course_id)
+    course.is_published = not course.is_published
+    db.session.commit()
+    
+    return jsonify({'success': True, 'is_published': course.is_published})
+
+
+# ============================================================================
+# EVENTS MANAGEMENT
+# ============================================================================
+
+@admin_bp.route('/events', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def manage_events():
+    """Event management"""
+    if request.method == 'POST':
+        event = Event(
+            title=request.form.get('title'),
+            description=request.form.get('description'),
+            event_type=request.form.get('event_type'),
+            start_date=datetime.fromisoformat(request.form.get('start_date')),
+            end_date=datetime.fromisoformat(request.form.get('end_date')),
+            timezone=request.form.get('timezone', 'America/New_York'),
+            is_virtual=request.form.get('is_virtual') == 'on',
+            venue_name=request.form.get('venue_name'),
+            venue_address=request.form.get('venue_address'),
+            meeting_url=request.form.get('meeting_url'),
+            regular_price=float(request.form.get('regular_price', 0)),
+            early_bird_price=float(request.form.get('early_bird_price', 0)) if request.form.get('early_bird_price') else None,
+            vip_price=float(request.form.get('vip_price', 0)) if request.form.get('vip_price') else None,
+            max_attendees=int(request.form.get('max_attendees')) if request.form.get('max_attendees') else None,
+            banner_url=request.form.get('banner_url'),
+            is_published=request.form.get('is_published') == 'on',
+            is_featured=request.form.get('is_featured') == 'on'
+        )
+        
+        db.session.add(event)
+        db.session.commit()
+        
+        flash('Event created successfully!', 'success')
+        return redirect(url_for('admin.manage_events'))
+    
+    events = Event.query.order_by(Event.start_date.desc()).all()
+    return render_template('admin/events.html', events=events)
+
+
+@admin_bp.route('/events/<int:event_id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_event(event_id):
+    """Edit an event"""
+    event = Event.query.get_or_404(event_id)
+    
+    if request.method == 'POST':
+        event.title = request.form.get('title')
+        event.description = request.form.get('description')
+        event.event_type = request.form.get('event_type')
+        event.start_date = datetime.fromisoformat(request.form.get('start_date'))
+        event.end_date = datetime.fromisoformat(request.form.get('end_date'))
+        event.timezone = request.form.get('timezone', 'America/New_York')
+        event.is_virtual = request.form.get('is_virtual') == 'on'
+        event.venue_name = request.form.get('venue_name')
+        event.venue_address = request.form.get('venue_address')
+        event.meeting_url = request.form.get('meeting_url')
+        event.regular_price = float(request.form.get('regular_price', 0))
+        event.early_bird_price = float(request.form.get('early_bird_price', 0)) if request.form.get('early_bird_price') else None
+        event.vip_price = float(request.form.get('vip_price', 0)) if request.form.get('vip_price') else None
+        event.max_attendees = int(request.form.get('max_attendees')) if request.form.get('max_attendees') else None
+        event.banner_url = request.form.get('banner_url')
+        event.is_published = request.form.get('is_published') == 'on'
+        event.is_featured = request.form.get('is_featured') == 'on'
+        
+        db.session.commit()
+        flash('Event updated successfully!', 'success')
+        return redirect(url_for('admin.manage_events'))
+    
+    return render_template('admin/event_edit.html', event=event)
+
+
+@admin_bp.route('/events/<int:event_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_event(event_id):
+    """Delete an event"""
+    event = Event.query.get_or_404(event_id)
+    db.session.delete(event)
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'Event deleted'})
+
+
+@admin_bp.route('/events/<int:event_id>/toggle-publish', methods=['POST'])
+@login_required
+@admin_required
+def toggle_event_publish(event_id):
+    """Toggle event publish status"""
+    event = Event.query.get_or_404(event_id)
+    event.is_published = not event.is_published
+    db.session.commit()
+    
+    return jsonify({'success': True, 'is_published': event.is_published})

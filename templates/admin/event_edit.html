@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Edit Event - Admin{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2 mb-0">Edit Event</h1>
+        <a href="{{ url_for('admin.manage_events') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Events
+        </a>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                <div class="row">
+                    <div class="col-md-8 mb-3">
+                        <label class="form-label">Title</label>
+                        <input type="text" name="title" class="form-control" value="{{ event.title }}" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Event Type</label>
+                        <select name="event_type" class="form-select">
+                            <option value="conference" {% if event.event_type == 'conference' %}selected{% endif %}>Conference</option>
+                            <option value="workshop" {% if event.event_type == 'workshop' %}selected{% endif %}>Workshop</option>
+                            <option value="webinar" {% if event.event_type == 'webinar' %}selected{% endif %}>Webinar</option>
+                            <option value="networking" {% if event.event_type == 'networking' %}selected{% endif %}>Networking</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea name="description" class="form-control" rows="4" required>{{ event.description }}</textarea>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Start Date & Time</label>
+                        <input type="datetime-local" name="start_date" class="form-control" value="{{ event.start_date.strftime('%Y-%m-%dT%H:%M') }}" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">End Date & Time</label>
+                        <input type="datetime-local" name="end_date" class="form-control" value="{{ event.end_date.strftime('%Y-%m-%dT%H:%M') }}" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Timezone</label>
+                        <select name="timezone" class="form-select">
+                            <option value="America/New_York" {% if event.timezone == 'America/New_York' %}selected{% endif %}>Eastern Time (ET)</option>
+                            <option value="America/Chicago" {% if event.timezone == 'America/Chicago' %}selected{% endif %}>Central Time (CT)</option>
+                            <option value="America/Denver" {% if event.timezone == 'America/Denver' %}selected{% endif %}>Mountain Time (MT)</option>
+                            <option value="America/Los_Angeles" {% if event.timezone == 'America/Los_Angeles' %}selected{% endif %}>Pacific Time (PT)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Regular Price ($)</label>
+                        <input type="number" name="regular_price" class="form-control" step="0.01" value="{{ event.regular_price }}" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Early Bird Price ($)</label>
+                        <input type="number" name="early_bird_price" class="form-control" step="0.01" value="{{ event.early_bird_price or '' }}" placeholder="Optional">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">VIP Price ($)</label>
+                        <input type="number" name="vip_price" class="form-control" step="0.01" value="{{ event.vip_price or '' }}" placeholder="Optional">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Max Attendees</label>
+                        <input type="number" name="max_attendees" class="form-control" value="{{ event.max_attendees or '' }}" placeholder="Unlimited">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Meeting URL (for virtual events)</label>
+                        <input type="url" name="meeting_url" class="form-control" value="{{ event.meeting_url or '' }}" placeholder="https://zoom.us/...">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Banner Image URL</label>
+                        <input type="url" name="banner_url" class="form-control" value="{{ event.banner_url or '' }}" placeholder="https://...">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Venue Name (for in-person)</label>
+                        <input type="text" name="venue_name" class="form-control" value="{{ event.venue_name or '' }}" placeholder="Optional">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Venue Address</label>
+                        <input type="text" name="venue_address" class="form-control" value="{{ event.venue_address or '' }}" placeholder="Optional">
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            <input type="checkbox" name="is_virtual" class="form-check-input" id="virtual" {% if event.is_virtual %}checked{% endif %}>
+                            <label class="form-check-label" for="virtual">Virtual Event</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            <input type="checkbox" name="is_published" class="form-check-input" id="published" {% if event.is_published %}checked{% endif %}>
+                            <label class="form-check-label" for="published">Published</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            <input type="checkbox" name="is_featured" class="form-check-input" id="featured" {% if event.is_featured %}checked{% endif %}>
+                            <label class="form-check-label" for="featured">Featured</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <a href="{{ url_for('admin.manage_events') }}" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
