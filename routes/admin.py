@@ -48,7 +48,7 @@ def analytics():
     
     stats = {
         'total_users': User.query.count(),
-        'premium_users': User.query.filter(User.subscription_tier == SubscriptionTier.PREMIUM).count(),
+        'premium_users': User.query.filter(User.subscription_tier == 'premium').count(),
         'new_users_week': User.query.filter(User.created_at >= week_ago).count(),
         'new_users_month': User.query.filter(User.created_at >= month_ago).count(),
         'total_posts': Post.query.count(),
@@ -569,3 +569,81 @@ def toggle_event_publish(event_id):
     db.session.commit()
     
     return jsonify({'success': True, 'is_published': event.is_published})
+
+
+# =============================================================================
+# VERIFICATION MANAGEMENT
+# =============================================================================
+
+@admin_bp.route('/verifications')
+@login_required
+@admin_required
+def verification_list():
+    """List pending verifications"""
+    pending_users = User.query.filter(
+        User.verification_status == 'pending'
+    ).order_by(User.verification_submitted_at.asc()).all()
+    
+    return render_template('admin/verification_list.html', pending_users=pending_users)
+
+
+@admin_bp.route('/verification/<int:user_id>')
+@login_required
+@admin_required
+def verification_review(user_id):
+    """Review a user's verification"""
+    user = User.query.get_or_404(user_id)
+    return render_template('admin/verification_review.html', user=user)
+
+
+@admin_bp.route('/verification/<int:user_id>/approve', methods=['POST'])
+@login_required
+@admin_required
+def approve_verification(user_id):
+    """Approve a user's verification"""
+    user = User.query.get_or_404(user_id)
+    
+    user.verification_status = 'verified'
+    user.is_verified = True
+    user.verified_at = datetime.utcnow()
+    user.license_verified = True
+    db.session.commit()
+    
+    next_pending = User.query.filter(
+        User.verification_status == 'pending',
+        User.id != user_id
+    ).order_by(User.verification_submitted_at.asc()).first()
+    
+    return jsonify({
+        'success': True,
+        'message': f'{user.full_name} has been verified',
+        'next_user_id': next_pending.id if next_pending else None
+    })
+
+
+@admin_bp.route('/verification/<int:user_id>/reject', methods=['POST'])
+@login_required
+@admin_required
+def reject_verification(user_id):
+    """Reject a user's verification"""
+    user = User.query.get_or_404(user_id)
+    data = request.get_json() or {}
+    notes = data.get('notes', '')
+    
+    if not notes:
+        return jsonify({'error': 'Notes are required for rejection'}), 400
+    
+    user.verification_status = 'rejected'
+    user.verification_notes = notes
+    db.session.commit()
+    
+    next_pending = User.query.filter(
+        User.verification_status == 'pending',
+        User.id != user_id
+    ).order_by(User.verification_submitted_at.asc()).first()
+    
+    return jsonify({
+        'success': True,
+        'message': f'{user.full_name} verification has been rejected',
+        'next_user_id': next_pending.id if next_pending else None
+    })

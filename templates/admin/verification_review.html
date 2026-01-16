@@ -6,7 +6,7 @@
 <div class="container mt-4">
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('admin_verification_list') }}">Pending Verifications</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.verification_list') }}">Pending Verifications</a></li>
             <li class="breadcrumb-item active">{{ user.full_name }}</li>
         </ol>
     </nav>
@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btnApprove.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Approving...';
         
         try {
-            const response = await fetch(`/api/admin/verification/${userId}/approve`, {
+            const response = await fetch(`/admin/verification/${userId}/approve`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'}
             });
@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.next_user_id) {
                     window.location.href = `/admin/verification/${data.next_user_id}`;
                 } else {
-                    window.location.href = '/admin/verification';
+                    window.location.href = '/admin/verifications';
                 }
             } else {
                 alert('Error: ' + (data.error || 'Unknown error'));
@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btnReject.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Rejecting...';
         
         try {
-            const response = await fetch(`/api/admin/verification/${userId}/reject`, {
+            const response = await fetch(`/admin/verification/${userId}/reject`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({notes: notes})
@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.next_user_id) {
                     window.location.href = `/admin/verification/${data.next_user_id}`;
                 } else {
-                    window.location.href = '/admin/verification';
+                    window.location.href = '/admin/verifications';
                 }
             } else {
                 alert('Error: ' + (data.error || 'Unknown error'));
