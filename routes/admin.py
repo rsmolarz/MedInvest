@@ -58,6 +58,7 @@ def analytics():
         'upcoming_amas': ExpertAMA.query.filter(ExpertAMA.status == 'scheduled').count(),
         'total_courses': Course.query.filter_by(is_published=True).count(),
         'total_events': Event.query.filter_by(is_published=True).count(),
+        'pending_verifications': User.query.filter(User.verification_status == 'pending').count(),
     }
     
     # Calculate rates
