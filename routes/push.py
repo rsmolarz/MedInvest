@@ -10,7 +10,7 @@ from models import PushSubscription
 
 push_bp = Blueprint('push', __name__, url_prefix='/push')
 
-VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
+VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '').strip().replace('\\n', '').replace('\n', '')
 
 
 @push_bp.route('/vapid-public-key')
