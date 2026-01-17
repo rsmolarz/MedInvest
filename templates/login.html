@@ -2,6 +2,29 @@
 
 {% block title %}Login - MedLearn Invest{% endblock %}
 
+{% block extra_head %}
+<!-- Facebook SDK for improved login reliability -->
+<script>
+  window.fbAsyncInit = function() {
+    FB.init({
+      appId      : '{{ config.get("FACEBOOK_APP_ID", "") }}',
+      cookie     : true,
+      xfbml      : true,
+      version    : 'v18.0'
+    });
+    FB.AppEvents.logPageView();
+  };
+
+  (function(d, s, id){
+     var js, fjs = d.getElementsByTagName(s)[0];
+     if (d.getElementById(id)) {return;}
+     js = d.createElement(s); js.id = id;
+     js.src = "https://connect.facebook.net/en_US/sdk.js";
+     fjs.parentNode.insertBefore(js, fjs);
+   }(document, 'script', 'facebook-jssdk'));
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container my-5">
     <div class="row justify-content-center">

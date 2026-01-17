@@ -23,6 +23,9 @@ app.config['SESSION_COOKIE_SECURE'] = True  # HTTPS only
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Allow OAuth redirects
 
+# Facebook SDK configuration for templates
+app.config['FACEBOOK_APP_ID'] = os.environ.get('FACEBOOK_APP_ID', '')
+
 # Configure the database
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///medlearn.db")
 
