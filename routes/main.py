@@ -484,6 +484,7 @@ def edit_profile():
     current_user.bio = request.form.get('bio', '')
     current_user.license_state = request.form.get('license_state', '') or None
     current_user.location = request.form.get('location', '') or None
+    current_user.specialty = request.form.get('specialty', '') or None
     
     db.session.commit()
     flash('Profile updated!', 'success')

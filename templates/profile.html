@@ -151,6 +151,57 @@
                             </div>
                         </div>
                         <div class="mb-3">
+                            <label class="form-label">Medical Specialty</label>
+                            <select name="specialty" class="form-select">
+                                <option value="">Select your specialty</option>
+                                {% for value, label in [
+                                    ('anesthesiology', 'Anesthesiology'),
+                                    ('cardiology', 'Cardiology'),
+                                    ('cardiothoracic_surgery', 'Cardiothoracic Surgery'),
+                                    ('critical_care', 'Critical Care Medicine'),
+                                    ('dermatology', 'Dermatology'),
+                                    ('emergency_medicine', 'Emergency Medicine'),
+                                    ('endocrinology', 'Endocrinology'),
+                                    ('ent', 'ENT / Otolaryngology'),
+                                    ('family_medicine', 'Family Medicine'),
+                                    ('gastroenterology', 'Gastroenterology'),
+                                    ('general_surgery', 'General Surgery'),
+                                    ('geriatrics', 'Geriatrics'),
+                                    ('hematology', 'Hematology'),
+                                    ('hospitalist', 'Hospitalist'),
+                                    ('infectious_disease', 'Infectious Disease'),
+                                    ('internal_medicine', 'Internal Medicine'),
+                                    ('nephrology', 'Nephrology'),
+                                    ('neurology', 'Neurology'),
+                                    ('neurosurgery', 'Neurosurgery'),
+                                    ('obstetrics_gynecology', 'Obstetrics & Gynecology'),
+                                    ('oncology', 'Oncology'),
+                                    ('ophthalmology', 'Ophthalmology'),
+                                    ('orthopedic_surgery', 'Orthopedic Surgery'),
+                                    ('pain_medicine', 'Pain Medicine'),
+                                    ('pathology', 'Pathology'),
+                                    ('pediatrics', 'Pediatrics'),
+                                    ('physical_medicine', 'Physical Medicine & Rehabilitation'),
+                                    ('plastic_surgery', 'Plastic Surgery'),
+                                    ('podiatry', 'Podiatry'),
+                                    ('psychiatry', 'Psychiatry'),
+                                    ('pulmonology', 'Pulmonology'),
+                                    ('radiology', 'Radiology'),
+                                    ('rheumatology', 'Rheumatology'),
+                                    ('sports_medicine', 'Sports Medicine'),
+                                    ('urology', 'Urology'),
+                                    ('vascular_surgery', 'Vascular Surgery'),
+                                    ('resident', 'Resident'),
+                                    ('fellow', 'Fellow'),
+                                    ('medical_student', 'Medical Student'),
+                                    ('other', 'Other')
+                                ] %}
+                                <option value="{{ value }}" {% if user.specialty == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Your specialty is shown on your profile and posts</small>
+                        </div>
+                        <div class="mb-3">
                             <label class="form-label">Bio</label>
                             <textarea name="bio" class="form-control" rows="3">{{ user.bio or '' }}</textarea>
                         </div>
