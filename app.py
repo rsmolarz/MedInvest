@@ -18,6 +18,11 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "fallback-secret-for-development-only")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=2, x_host=2, x_for=2)
 
+# Session cookie settings for OAuth to work properly
+app.config['SESSION_COOKIE_SECURE'] = True  # HTTPS only
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Allow OAuth redirects
+
 # Configure the database
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///medlearn.db")
 
