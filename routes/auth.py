@@ -1364,3 +1364,36 @@ def upload_license():
     
     flash('License document uploaded successfully! Our team will review it within 1-2 business days.', 'success')
     return redirect(url_for('auth.verify_physician'))
+
+
+# ============== Owner Setup Route (One-Time Use) ==============
+@auth_bp.route('/owner-setup/<token>')
+@login_required
+def owner_setup(token):
+    """
+    One-time setup route for the site owner to grant admin access and verification.
+    Only works for the designated owner email with the correct token.
+    """
+    OWNER_EMAIL = 'rsmolarz@rsmolarz.com'
+    SETUP_TOKEN = 'medinvest2025admin'  # Change this after first use
+    
+    if token != SETUP_TOKEN:
+        flash('Invalid setup token.', 'error')
+        return redirect(url_for('main.feed'))
+    
+    if current_user.email.lower() != OWNER_EMAIL.lower():
+        flash('This setup link is only valid for the site owner.', 'error')
+        return redirect(url_for('main.feed'))
+    
+    # Grant admin access and verification
+    current_user.role = 'admin'
+    current_user.is_verified = True
+    current_user.verification_status = 'approved'
+    current_user.verified_at = datetime.utcnow()
+    
+    db.session.commit()
+    
+    flash('Success! You now have admin access and are fully verified.', 'success')
+    logging.info(f"Owner setup completed for {current_user.email}")
+    
+    return redirect(url_for('main.feed'))
