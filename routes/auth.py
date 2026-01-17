@@ -1391,9 +1391,19 @@ def owner_setup(token):
     current_user.verification_status = 'approved'
     current_user.verified_at = datetime.utcnow()
     
+    # Generate referral code if missing
+    if not current_user.referral_code:
+        import string
+        chars = string.ascii_uppercase + string.digits
+        code = ''.join(secrets.choice(chars) for _ in range(8))
+        current_user.referral_code = code
+    
+    # Set subscription tier
+    current_user.subscription_tier = 'premium'
+    
     db.session.commit()
     
-    flash('Success! You now have admin access and are fully verified.', 'success')
+    flash('Success! You now have admin access, are fully verified, and have a referral code.', 'success')
     logging.info(f"Owner setup completed for {current_user.email}")
     
     return redirect(url_for('main.feed'))
