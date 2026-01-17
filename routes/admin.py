@@ -502,7 +502,9 @@ def manage_events():
             max_attendees=int(request.form.get('max_attendees')) if request.form.get('max_attendees') else None,
             banner_url=request.form.get('banner_url'),
             is_published=request.form.get('is_published') == 'on',
-            is_featured=request.form.get('is_featured') == 'on'
+            is_featured=request.form.get('is_featured') == 'on',
+            created_by_id=current_user.id,
+            approval_status='approved'
         )
         
         db.session.add(event)
@@ -511,8 +513,13 @@ def manage_events():
         flash('Event created successfully!', 'success')
         return redirect(url_for('admin.manage_events'))
     
-    events = Event.query.order_by(Event.start_date.desc()).all()
-    return render_template('admin/events.html', events=events)
+    pending_events = Event.query.filter_by(approval_status='pending').order_by(Event.created_at.desc()).all()
+    approved_events = Event.query.filter_by(approval_status='approved').order_by(Event.start_date.desc()).all()
+    rejected_events = Event.query.filter_by(approval_status='rejected').order_by(Event.created_at.desc()).all()
+    return render_template('admin/events.html', 
+                         pending_events=pending_events,
+                         approved_events=approved_events,
+                         rejected_events=rejected_events)
 
 
 @admin_bp.route('/events/<int:event_id>/edit', methods=['GET', 'POST'])
@@ -570,6 +577,36 @@ def toggle_event_publish(event_id):
     db.session.commit()
     
     return jsonify({'success': True, 'is_published': event.is_published})
+
+
+@admin_bp.route('/events/<int:event_id>/approve', methods=['POST'])
+@login_required
+@admin_required
+def approve_event(event_id):
+    """Approve a pending event"""
+    event = Event.query.get_or_404(event_id)
+    event.approval_status = 'approved'
+    event.is_published = True
+    event.admin_notes = request.form.get('admin_notes', '')
+    db.session.commit()
+    
+    flash(f'Event "{event.title}" approved and published!', 'success')
+    return redirect(url_for('admin.manage_events'))
+
+
+@admin_bp.route('/events/<int:event_id>/reject', methods=['POST'])
+@login_required
+@admin_required
+def reject_event(event_id):
+    """Reject a pending event"""
+    event = Event.query.get_or_404(event_id)
+    event.approval_status = 'rejected'
+    event.is_published = False
+    event.admin_notes = request.form.get('admin_notes', '')
+    db.session.commit()
+    
+    flash(f'Event "{event.title}" rejected.', 'warning')
+    return redirect(url_for('admin.manage_events'))
 
 
 # =============================================================================

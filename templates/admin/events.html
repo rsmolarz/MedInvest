@@ -99,7 +99,7 @@
                     </div>
                     <div class="col-md-4">
                         <div class="form-check">
-                            <input type="checkbox" name="is_published" class="form-check-input" id="published">
+                            <input type="checkbox" name="is_published" class="form-check-input" id="published" checked>
                             <label class="form-check-label" for="published">Published</label>
                         </div>
                     </div>
@@ -115,57 +115,167 @@
         </div>
     </div>
     
-    <h4>All Events</h4>
-    <div class="table-responsive">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Title</th>
-                    <th>Type</th>
-                    <th>Date</th>
-                    <th>Price</th>
-                    <th>Attendees</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for event in events %}
-                <tr>
-                    <td>{{ event.title }}</td>
-                    <td><span class="badge bg-info">{{ event.event_type or 'Event' }}</span></td>
-                    <td>{{ event.start_date.strftime('%b %d, %Y %I:%M %p') }}</td>
-                    <td>${{ "%.2f"|format(event.regular_price) }}</td>
-                    <td>{{ event.current_attendees }}{% if event.max_attendees %}/{{ event.max_attendees }}{% endif %}</td>
-                    <td>
-                        {% if event.is_published %}
-                            <span class="badge bg-success">Published</span>
-                        {% else %}
-                            <span class="badge bg-secondary">Draft</span>
-                        {% endif %}
-                        {% if event.is_featured %}
-                            <span class="badge bg-warning">Featured</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <a href="{{ url_for('admin.edit_event', event_id=event.id) }}" class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-edit"></i>
-                        </a>
-                        <button class="btn btn-sm btn-outline-{{ 'warning' if event.is_published else 'success' }}" onclick="togglePublish({{ event.id }})">
-                            <i class="fas fa-{{ 'eye-slash' if event.is_published else 'eye' }}"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent({{ event.id }})">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="7" class="text-center text-muted py-4">No events yet. Create one above!</td>
-                </tr>
+    <ul class="nav nav-tabs mb-3" id="eventTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">
+                Pending Approval <span class="badge bg-warning">{{ pending_events|length }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="approved-tab" data-bs-toggle="tab" data-bs-target="#approved" type="button" role="tab">
+                Approved <span class="badge bg-success">{{ approved_events|length }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="rejected-tab" data-bs-toggle="tab" data-bs-target="#rejected" type="button" role="tab">
+                Rejected <span class="badge bg-secondary">{{ rejected_events|length }}</span>
+            </button>
+        </li>
+    </ul>
+    
+    <div class="tab-content" id="eventTabsContent">
+        <div class="tab-pane fade show active" id="pending" role="tabpanel">
+            {% if pending_events %}
+            <div class="row g-3">
+                {% for event in pending_events %}
+                <div class="col-md-6">
+                    <div class="card border-warning">
+                        <div class="card-header bg-warning bg-opacity-10">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>{{ event.title }}</strong>
+                                <span class="badge bg-warning">Pending</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-2"><strong>Type:</strong> {{ event.event_type or 'Event' }}</p>
+                            <p class="mb-2"><strong>Date:</strong> {{ event.start_date.strftime('%b %d, %Y %I:%M %p') }}</p>
+                            <p class="mb-2"><strong>Price:</strong> ${{ "%.2f"|format(event.regular_price) }}</p>
+                            {% if event.created_by %}
+                            <p class="mb-2"><strong>Submitted by:</strong> {{ event.created_by.full_name or event.created_by.username }}</p>
+                            {% endif %}
+                            <p class="mb-3"><strong>Description:</strong> {{ event.description[:150] }}{% if event.description|length > 150 %}...{% endif %}</p>
+                            
+                            <div class="d-flex gap-2">
+                                <form action="{{ url_for('admin.approve_event', event_id=event.id) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-success btn-sm">
+                                        <i class="fas fa-check me-1"></i>Approve
+                                    </button>
+                                </form>
+                                <form action="{{ url_for('admin.reject_event', event_id=event.id) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-danger btn-sm">
+                                        <i class="fas fa-times me-1"></i>Reject
+                                    </button>
+                                </form>
+                                <a href="{{ url_for('admin.edit_event', event_id=event.id) }}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-edit me-1"></i>Edit
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 {% endfor %}
-            </tbody>
-        </table>
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-calendar-check fa-3x mb-3"></i>
+                <p>No pending events to review</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="tab-pane fade" id="approved" role="tabpanel">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Date</th>
+                            <th>Price</th>
+                            <th>Attendees</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for event in approved_events %}
+                        <tr>
+                            <td>{{ event.title }}</td>
+                            <td><span class="badge bg-info">{{ event.event_type or 'Event' }}</span></td>
+                            <td>{{ event.start_date.strftime('%b %d, %Y %I:%M %p') }}</td>
+                            <td>${{ "%.2f"|format(event.regular_price) }}</td>
+                            <td>{{ event.current_attendees }}{% if event.max_attendees %}/{{ event.max_attendees }}{% endif %}</td>
+                            <td>
+                                {% if event.is_published %}
+                                    <span class="badge bg-success">Published</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Draft</span>
+                                {% endif %}
+                                {% if event.is_featured %}
+                                    <span class="badge bg-warning">Featured</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('admin.edit_event', event_id=event.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button class="btn btn-sm btn-outline-{{ 'warning' if event.is_published else 'success' }}" onclick="togglePublish({{ event.id }})">
+                                    <i class="fas fa-{{ 'eye-slash' if event.is_published else 'eye' }}"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent({{ event.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">No approved events</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="tab-pane fade" id="rejected" role="tabpanel">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Date</th>
+                            <th>Submitted By</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for event in rejected_events %}
+                        <tr>
+                            <td>{{ event.title }}</td>
+                            <td><span class="badge bg-info">{{ event.event_type or 'Event' }}</span></td>
+                            <td>{{ event.start_date.strftime('%b %d, %Y %I:%M %p') }}</td>
+                            <td>{% if event.created_by %}{{ event.created_by.full_name or event.created_by.username }}{% else %}Admin{% endif %}</td>
+                            <td>
+                                <form action="{{ url_for('admin.approve_event', event_id=event.id) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-success">
+                                        <i class="fas fa-check me-1"></i>Approve
+                                    </button>
+                                </form>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent({{ event.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">No rejected events</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 

@@ -1152,9 +1152,13 @@ class Event(db.Model):
     is_published = db.Column(db.Boolean, default=False)
     is_featured = db.Column(db.Boolean, default=False)
     banner_url = db.Column(db.String(500))
+    created_by_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    approval_status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    admin_notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    created_by = db.relationship('User', foreign_keys=[created_by_id])
     registrations = db.relationship('EventRegistration', back_populates='event', lazy='dynamic')
     sessions = db.relationship('EventSession', back_populates='event', lazy='dynamic')
 

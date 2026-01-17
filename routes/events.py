@@ -117,9 +117,8 @@ def register_event(event_id):
 
 @events_bp.route('/create', methods=['GET', 'POST'])
 @login_required
-@admin_required
 def create_event():
-    """Create a new event (admin only)"""
+    """Create a new event - admin auto-approved, others need approval"""
     if request.method == 'POST':
         title = request.form.get('title', '').strip()
         description = request.form.get('description', '').strip()
@@ -148,6 +147,8 @@ def create_event():
             flash('Invalid date format', 'error')
             return redirect(url_for('events.list_events'))
         
+        is_admin = getattr(current_user, 'is_admin', False)
+        
         event = Event(
             title=title,
             description=description,
@@ -160,13 +161,18 @@ def create_event():
             max_attendees=int(max_attendees) if max_attendees else None,
             is_virtual=is_virtual,
             cover_image_url=cover_image_url if cover_image_url else None,
-            is_published=True
+            created_by_id=current_user.id,
+            is_published=is_admin,
+            approval_status='approved' if is_admin else 'pending'
         )
         
         db.session.add(event)
         db.session.commit()
         
-        flash(f'Event "{title}" created successfully!', 'success')
+        if is_admin:
+            flash(f'Event "{title}" created and published!', 'success')
+        else:
+            flash(f'Event "{title}" submitted for admin approval!', 'success')
         return redirect(url_for('events.view_event', event_id=event.id))
     
     return redirect(url_for('events.list_events'))
