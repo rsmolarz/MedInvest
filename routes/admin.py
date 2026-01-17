@@ -187,27 +187,34 @@ def feature_deal(deal_id):
 @login_required
 @admin_required
 def manage_amas():
-    """AMA management"""
+    """Spotlight session management (AMAs, Talks, Pitches, etc.)"""
     if request.method == 'POST':
-        # Create new AMA
         scheduled_str = request.form.get('scheduled_for')
+        ticket_price_str = request.form.get('ticket_price', '0')
         
         ama = ExpertAMA(
             title=request.form.get('title'),
             expert_name=request.form.get('expert_name'),
             expert_title=request.form.get('expert_title'),
             expert_bio=request.form.get('expert_bio'),
+            expert_image_url=request.form.get('expert_image_url'),
             description=request.form.get('description'),
             scheduled_for=datetime.fromisoformat(scheduled_str),
             duration_minutes=int(request.form.get('duration_minutes', 60)),
             is_premium_only=request.form.get('is_premium_only') == 'on',
+            session_type=request.form.get('session_type', 'ama'),
+            ticket_price=float(ticket_price_str) if ticket_price_str else None,
+            youtube_live_url=request.form.get('youtube_live_url'),
+            recording_url=request.form.get('recording_url'),
+            sponsor_name=request.form.get('sponsor_name'),
+            sponsor_logo_url=request.form.get('sponsor_logo_url'),
             status=AMAStatus.SCHEDULED
         )
         
         db.session.add(ama)
         db.session.commit()
         
-        flash('AMA created successfully!', 'success')
+        flash('Spotlight session created successfully!', 'success')
     
     amas = ExpertAMA.query.order_by(ExpertAMA.scheduled_for.desc()).all()
     return render_template('admin/amas.html', amas=amas)
@@ -228,6 +235,57 @@ def update_ama_status(ama_id):
         return jsonify({'success': True})
     except ValueError:
         return jsonify({'error': 'Invalid status'}), 400
+
+
+@admin_bp.route('/amas/<int:ama_id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_ama(ama_id):
+    """Edit a spotlight session"""
+    ama = ExpertAMA.query.get_or_404(ama_id)
+    
+    if request.method == 'POST':
+        ama.title = request.form.get('title')
+        ama.expert_name = request.form.get('expert_name')
+        ama.expert_title = request.form.get('expert_title')
+        ama.expert_bio = request.form.get('expert_bio')
+        ama.expert_image_url = request.form.get('expert_image_url')
+        ama.description = request.form.get('description')
+        ama.scheduled_for = datetime.fromisoformat(request.form.get('scheduled_for'))
+        ama.duration_minutes = int(request.form.get('duration_minutes', 60))
+        ama.is_premium_only = request.form.get('is_premium_only') == 'on'
+        ama.session_type = request.form.get('session_type', 'ama')
+        ticket_price_str = request.form.get('ticket_price', '0')
+        ama.ticket_price = float(ticket_price_str) if ticket_price_str else None
+        ama.youtube_live_url = request.form.get('youtube_live_url')
+        ama.recording_url = request.form.get('recording_url')
+        ama.sponsor_name = request.form.get('sponsor_name')
+        ama.sponsor_logo_url = request.form.get('sponsor_logo_url')
+        
+        status_str = request.form.get('status')
+        if status_str:
+            try:
+                ama.status = AMAStatus(status_str)
+            except ValueError:
+                pass
+        
+        db.session.commit()
+        flash('Session updated successfully!', 'success')
+        return redirect(url_for('admin.manage_amas'))
+    
+    return render_template('admin/ama_edit.html', ama=ama)
+
+
+@admin_bp.route('/amas/<int:ama_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_ama(ama_id):
+    """Delete a spotlight session"""
+    ama = ExpertAMA.query.get_or_404(ama_id)
+    db.session.delete(ama)
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'Session deleted'})
 
 
 @admin_bp.route('/rooms', methods=['GET', 'POST'])

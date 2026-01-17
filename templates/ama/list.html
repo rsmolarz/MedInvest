@@ -1,35 +1,56 @@
 {% extends "base.html" %}
-{% block title %}Expert AMAs - MedInvest{% endblock %}
+{% block title %}Spotlight - MedInvest{% endblock %}
 
 {% block content %}
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h2 mb-0"><i class="fas fa-video me-2 text-primary"></i>Expert AMAs</h1>
+        <div>
+            <h1 class="h2 mb-0"><i class="fas fa-broadcast-tower me-2 text-primary"></i>Spotlight</h1>
+            <p class="text-muted mb-0">Live sessions, expert talks, deal pitches & AMAs</p>
+        </div>
     </div>
     
     {% if live %}
-    <div class="alert alert-danger">
-        <h5><i class="fas fa-circle text-danger me-2"></i>Live Now!</h5>
+    <div class="alert alert-danger mb-4">
+        <h5 class="mb-2"><i class="fas fa-circle text-danger me-2 blink"></i>Live Now!</h5>
         {% for ama in live %}
-        <div class="d-flex justify-content-between align-items-center">
-            <span><strong>{{ ama.title }}</strong> with {{ ama.expert_name }}</span>
-            <a href="{{ url_for('ama.live_ama', ama_id=ama.id) }}" class="btn btn-danger btn-sm">Join Live</a>
+        <div class="d-flex justify-content-between align-items-center py-2">
+            <div>
+                <strong>{{ ama.title }}</strong> with {{ ama.expert_name }}
+                {% if ama.session_type %}<span class="badge bg-light text-dark ms-2">{{ ama.session_type }}</span>{% endif %}
+            </div>
+            <div>
+                {% if ama.youtube_live_url %}
+                <a href="{{ ama.youtube_live_url }}" target="_blank" class="btn btn-danger btn-sm me-2">
+                    <i class="fab fa-youtube me-1"></i>Watch on YouTube
+                </a>
+                {% endif %}
+                <a href="{{ url_for('ama.live_ama', ama_id=ama.id) }}" class="btn btn-outline-danger btn-sm">Join Discussion</a>
+            </div>
         </div>
         {% endfor %}
     </div>
     {% endif %}
     
-    <h4 class="mt-4 mb-3">Upcoming AMAs</h4>
+    <h4 class="mt-4 mb-3">Upcoming Sessions</h4>
     <div class="row g-4">
         {% for ama in upcoming %}
         <div class="col-md-6 col-lg-4">
             <div class="card h-100">
                 <div class="card-body">
-                    {% if ama.is_premium_only %}<span class="badge bg-warning mb-2"><i class="fas fa-crown"></i> Premium</span>{% endif %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="badge bg-{{ 'primary' if ama.session_type == 'ama' else 'info' if ama.session_type == 'talk' else 'success' if ama.session_type == 'pitch' else 'warning' if ama.session_type == 'education' else 'secondary' }}">
+                            {{ ama.session_type|default('AMA', true)|upper }}
+                        </span>
+                        {% if ama.is_premium_only %}<span class="badge bg-warning"><i class="fas fa-crown"></i> Premium</span>{% endif %}
+                    </div>
                     <h5 class="card-title">{{ ama.title }}</h5>
-                    <p class="text-muted small">{{ ama.expert_name }} - {{ ama.expert_title }}</p>
-                    <p class="small">{{ ama.description[:100] }}...</p>
+                    <p class="text-muted small">{{ ama.expert_name }}{% if ama.expert_title %} - {{ ama.expert_title }}{% endif %}</p>
+                    {% if ama.description %}<p class="small">{{ ama.description[:100] }}{% if ama.description|length > 100 %}...{% endif %}</p>{% endif %}
                     <p class="mb-2"><i class="fas fa-calendar me-2"></i>{{ ama.scheduled_for.strftime('%b %d, %Y at %I:%M %p') }}</p>
+                    {% if ama.ticket_price and ama.ticket_price > 0 %}
+                    <p class="mb-2 text-success"><i class="fas fa-ticket-alt me-2"></i>${{ '%.0f'|format(ama.ticket_price) }}</p>
+                    {% endif %}
                     <div class="d-flex justify-content-between align-items-center">
                         <small class="text-muted">{{ ama.participant_count }} registered</small>
                         <a href="{{ url_for('ama.view_ama', ama_id=ama.id) }}" class="btn btn-outline-primary btn-sm">
@@ -40,22 +61,27 @@
             </div>
         </div>
         {% else %}
-        <div class="col-12"><p class="text-muted">No upcoming AMAs scheduled</p></div>
+        <div class="col-12"><p class="text-muted">No upcoming sessions scheduled</p></div>
         {% endfor %}
     </div>
     
-    <h4 class="mt-5 mb-3">Past AMAs</h4>
+    <h4 class="mt-5 mb-3">Past Sessions</h4>
     <div class="row g-4">
         {% for ama in past %}
         <div class="col-md-6 col-lg-4">
-            <div class="card h-100">
+            <div class="card h-100 bg-light">
                 <div class="card-body">
+                    <span class="badge bg-secondary mb-2">{{ ama.session_type|default('AMA', true)|upper }}</span>
                     <h5 class="card-title">{{ ama.title }}</h5>
                     <p class="text-muted small">{{ ama.expert_name }}</p>
                     <p class="small">{{ ama.scheduled_for.strftime('%b %d, %Y') }} • {{ ama.question_count }} questions</p>
-                    <a href="{{ url_for('ama.view_ama', ama_id=ama.id) }}" class="btn btn-outline-secondary btn-sm">
-                        {% if ama.recording_url %}Watch Recording{% else %}View Q&A{% endif %}
+                    {% if ama.recording_url or ama.youtube_live_url %}
+                    <a href="{{ ama.recording_url or ama.youtube_live_url }}" target="_blank" class="btn btn-outline-danger btn-sm">
+                        <i class="fab fa-youtube me-1"></i>Watch Recording
                     </a>
+                    {% else %}
+                    <a href="{{ url_for('ama.view_ama', ama_id=ama.id) }}" class="btn btn-outline-secondary btn-sm">View Q&A</a>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -63,4 +89,12 @@
     </div>
 </div>
 
+<style>
+.blink {
+    animation: blink-animation 1s steps(5, start) infinite;
+}
+@keyframes blink-animation {
+    to { visibility: hidden; }
+}
+</style>
 {% endblock %}

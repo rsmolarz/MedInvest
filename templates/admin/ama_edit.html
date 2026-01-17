@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Edit Spotlight Session - Admin{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2 mb-0"><i class="fas fa-edit me-2"></i>Edit Session</h1>
+        <a href="{{ url_for('admin.manage_amas') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Sessions
+        </a>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Title <span class="text-danger">*</span></label>
+                        <input type="text" name="title" class="form-control" value="{{ ama.title }}" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Session Type</label>
+                        <select name="session_type" class="form-select">
+                            <option value="ama" {% if ama.session_type == 'ama' %}selected{% endif %}>AMA (Q&A)</option>
+                            <option value="talk" {% if ama.session_type == 'talk' %}selected{% endif %}>Expert Talk</option>
+                            <option value="pitch" {% if ama.session_type == 'pitch' %}selected{% endif %}>Deal Pitch</option>
+                            <option value="education" {% if ama.session_type == 'education' %}selected{% endif %}>Educational Session</option>
+                            <option value="webinar" {% if ama.session_type == 'webinar' %}selected{% endif %}>Webinar</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="scheduled" {% if ama.status.value == 'scheduled' %}selected{% endif %}>Scheduled</option>
+                            <option value="live" {% if ama.status.value == 'live' %}selected{% endif %}>Live</option>
+                            <option value="ended" {% if ama.status.value == 'ended' %}selected{% endif %}>Ended</option>
+                            <option value="cancelled" {% if ama.status.value == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Presenter Name <span class="text-danger">*</span></label>
+                        <input type="text" name="expert_name" class="form-control" value="{{ ama.expert_name }}" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Presenter Title</label>
+                        <input type="text" name="expert_title" class="form-control" value="{{ ama.expert_title or '' }}">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Scheduled For <span class="text-danger">*</span></label>
+                        <input type="datetime-local" name="scheduled_for" class="form-control" value="{{ ama.scheduled_for.strftime('%Y-%m-%dT%H:%M') }}" required>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Duration (min)</label>
+                        <input type="number" name="duration_minutes" class="form-control" value="{{ ama.duration_minutes or 60 }}">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Ticket Price ($)</label>
+                        <input type="number" name="ticket_price" class="form-control" step="0.01" value="{{ ama.ticket_price or 0 }}">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Presenter Image URL</label>
+                        <input type="url" name="expert_image_url" class="form-control" value="{{ ama.expert_image_url or '' }}">
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea name="description" class="form-control" rows="3">{{ ama.description or '' }}</textarea>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Presenter Bio</label>
+                    <textarea name="expert_bio" class="form-control" rows="2">{{ ama.expert_bio or '' }}</textarea>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><i class="fab fa-youtube text-danger me-1"></i>YouTube Live URL</label>
+                        <input type="url" name="youtube_live_url" class="form-control" value="{{ ama.youtube_live_url or '' }}" placeholder="https://youtube.com/live/...">
+                        <small class="text-muted">When going live, users will be redirected to this YouTube stream</small>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Recording URL (after session ends)</label>
+                        <input type="url" name="recording_url" class="form-control" value="{{ ama.recording_url or '' }}" placeholder="https://youtube.com/watch?v=...">
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Sponsor Name</label>
+                        <input type="text" name="sponsor_name" class="form-control" value="{{ ama.sponsor_name or '' }}">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Sponsor Logo URL</label>
+                        <input type="url" name="sponsor_logo_url" class="form-control" value="{{ ama.sponsor_logo_url or '' }}">
+                    </div>
+                    <div class="col-md-4 mb-3 d-flex align-items-end">
+                        <div class="form-check">
+                            <input type="checkbox" name="is_premium_only" class="form-check-input" id="premium" {% if ama.is_premium_only %}checked{% endif %}>
+                            <label class="form-check-label" for="premium"><i class="fas fa-crown text-warning me-1"></i>Premium Members Only</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Save Changes</button>
+                    <a href="{{ url_for('admin.manage_amas') }}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

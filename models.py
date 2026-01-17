@@ -878,6 +878,9 @@ class ExpertAMA(db.Model):
     sponsor_url = db.Column(db.String(500))
     recording_url = db.Column(db.String(500))
     recording_price = db.Column(db.Float)
+    youtube_live_url = db.Column(db.String(500))
+    session_type = db.Column(db.String(50), default='ama')  # ama, talk, pitch, education, webinar
+    ticket_price = db.Column(db.Float)
     participant_count = db.Column(db.Integer, default=0)
     question_count = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

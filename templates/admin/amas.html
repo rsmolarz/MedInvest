@@ -1,67 +1,166 @@
 {% extends "base.html" %}
-{% block title %}Manage AMAs - Admin{% endblock %}
+{% block title %}Manage Spotlight Sessions - Admin{% endblock %}
 
 {% block content %}
 <div class="container py-4">
-    <h1 class="h2 mb-4">Manage AMAs</h1>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2 mb-0"><i class="fas fa-broadcast-tower me-2"></i>Manage Spotlight Sessions</h1>
+        <a href="{{ url_for('admin.analytics') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Admin
+        </a>
+    </div>
     
     <div class="card mb-4">
-        <div class="card-header"><h5 class="mb-0">Create New AMA</h5></div>
+        <div class="card-header"><h5 class="mb-0">Create New Session</h5></div>
         <div class="card-body">
             <form method="POST">
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Title</label>
-                        <input type="text" name="title" class="form-control" required>
+                        <label class="form-label">Title <span class="text-danger">*</span></label>
+                        <input type="text" name="title" class="form-control" required placeholder="e.g., Real Estate Syndication 101">
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Scheduled For</label>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Session Type</label>
+                        <select name="session_type" class="form-select">
+                            <option value="ama">AMA (Q&A)</option>
+                            <option value="talk">Expert Talk</option>
+                            <option value="pitch">Deal Pitch</option>
+                            <option value="education">Educational Session</option>
+                            <option value="webinar">Webinar</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Scheduled For <span class="text-danger">*</span></label>
                         <input type="datetime-local" name="scheduled_for" class="form-control" required>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Expert Name</label>
-                        <input type="text" name="expert_name" class="form-control" required>
+                        <label class="form-label">Presenter Name <span class="text-danger">*</span></label>
+                        <input type="text" name="expert_name" class="form-control" required placeholder="e.g., Dr. Jane Smith">
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Expert Title</label>
-                        <input type="text" name="expert_title" class="form-control">
+                        <label class="form-label">Presenter Title</label>
+                        <input type="text" name="expert_title" class="form-control" placeholder="e.g., Real Estate Investor, CPA">
                     </div>
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-2 mb-3">
                         <label class="form-label">Duration (min)</label>
                         <input type="number" name="duration_minutes" class="form-control" value="60">
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label class="form-label">Ticket Price ($)</label>
+                        <input type="number" name="ticket_price" class="form-control" step="0.01" value="0" placeholder="0 = Free">
                     </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Description</label>
-                    <textarea name="description" class="form-control" rows="2"></textarea>
+                    <textarea name="description" class="form-control" rows="3" placeholder="What will be covered in this session?"></textarea>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label"><i class="fab fa-youtube text-danger me-1"></i>YouTube Live URL</label>
+                        <input type="url" name="youtube_live_url" class="form-control" placeholder="https://youtube.com/live/...">
+                        <small class="text-muted">When going live, users will be redirected to this YouTube stream</small>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Recording URL (after session ends)</label>
+                        <input type="url" name="recording_url" class="form-control" placeholder="https://youtube.com/watch?v=...">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Presenter Image URL</label>
+                        <input type="url" name="expert_image_url" class="form-control" placeholder="https://...">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Sponsor Name</label>
+                        <input type="text" name="sponsor_name" class="form-control" placeholder="Optional sponsor">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Sponsor Logo URL</label>
+                        <input type="url" name="sponsor_logo_url" class="form-control" placeholder="https://...">
+                    </div>
                 </div>
                 <div class="form-check mb-3">
                     <input type="checkbox" name="is_premium_only" class="form-check-input" id="premium">
-                    <label class="form-check-label" for="premium">Premium Only</label>
+                    <label class="form-check-label" for="premium"><i class="fas fa-crown text-warning me-1"></i>Premium Members Only</label>
                 </div>
-                <button type="submit" class="btn btn-primary">Create AMA</button>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Create Session</button>
             </form>
         </div>
     </div>
     
-    <h4>All AMAs</h4>
+    <h4>All Spotlight Sessions</h4>
     <div class="table-responsive">
-        <table class="table">
-            <thead><tr><th>Title</th><th>Expert</th><th>Date</th><th>Status</th><th>Participants</th></tr></thead>
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Type</th>
+                    <th>Presenter</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>YouTube</th>
+                    <th>Registrations</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
             <tbody>
                 {% for ama in amas %}
                 <tr>
                     <td>{{ ama.title }}</td>
+                    <td>
+                        <span class="badge bg-{{ 'primary' if ama.session_type == 'ama' else 'info' if ama.session_type == 'talk' else 'success' if ama.session_type == 'pitch' else 'warning' if ama.session_type == 'education' else 'secondary' }}">
+                            {{ ama.session_type or 'AMA' }}
+                        </span>
+                    </td>
                     <td>{{ ama.expert_name }}</td>
                     <td>{{ ama.scheduled_for.strftime('%b %d, %Y %I:%M %p') }}</td>
-                    <td><span class="badge bg-{{ 'success' if ama.status.value == 'live' else 'secondary' }}">{{ ama.status.value }}</span></td>
+                    <td>
+                        {% if ama.status == 'live' or (ama.status.value if ama.status.value is defined else ama.status) == 'live' %}
+                            <span class="badge bg-danger"><i class="fas fa-circle me-1"></i>LIVE</span>
+                        {% elif ama.status == 'ended' or (ama.status.value if ama.status.value is defined else ama.status) == 'ended' %}
+                            <span class="badge bg-secondary">Ended</span>
+                        {% else %}
+                            <span class="badge bg-primary">Scheduled</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if ama.youtube_live_url %}
+                            <a href="{{ ama.youtube_live_url }}" target="_blank" class="text-danger"><i class="fab fa-youtube"></i></a>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
                     <td>{{ ama.participant_count }}</td>
+                    <td>
+                        <a href="{{ url_for('admin.edit_ama', ama_id=ama.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteAMA({{ ama.id }})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-4">No sessions yet. Create one above!</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
+
+<script>
+function deleteAMA(amaId) {
+    if (confirm('Are you sure you want to delete this session?')) {
+        fetch(`/admin/amas/${amaId}/delete`, {method: 'POST'})
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) location.reload();
+            });
+    }
+}
+</script>
 {% endblock %}
