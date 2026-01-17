@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash,
 from flask_login import login_required, current_user
 from datetime import datetime
 from app import db
-from models import User, Mentorship, MentorshipStatus
+from models import User, Mentorship, MentorshipStatus, MentorApplication
 
 mentorship_bp = Blueprint('mentorship', __name__, url_prefix='/mentorship')
 
@@ -124,3 +124,56 @@ def complete_mentorship(mentorship_id):
     db.session.commit()
     
     return jsonify({'success': True, 'message': 'Mentorship completed!'})
+
+
+# ============== Mentor Application Routes ==============
+
+@mentorship_bp.route('/become-a-mentor')
+@login_required
+def become_mentor():
+    """Show mentor application form"""
+    # Check if user already has an application
+    existing_app = MentorApplication.query.filter_by(user_id=current_user.id).first()
+    
+    return render_template('mentorship/apply.html', existing_application=existing_app)
+
+
+@mentorship_bp.route('/apply', methods=['POST'])
+@login_required
+def submit_mentor_application():
+    """Submit mentor application"""
+    # Check for existing pending/approved application
+    existing = MentorApplication.query.filter(
+        MentorApplication.user_id == current_user.id,
+        MentorApplication.status.in_(['pending', 'approved'])
+    ).first()
+    
+    if existing:
+        if existing.status == 'approved':
+            flash('You are already an approved mentor!', 'info')
+        else:
+            flash('You already have a pending application.', 'warning')
+        return redirect(url_for('mentorship.become_mentor'))
+    
+    application = MentorApplication(
+        user_id=current_user.id,
+        specialty_areas=request.form.get('specialty_areas'),
+        years_investing=request.form.get('years_investing', type=int),
+        investment_experience=request.form.get('investment_experience'),
+        mentoring_experience=request.form.get('mentoring_experience'),
+        motivation=request.form.get('motivation'),
+        availability=request.form.get('availability'),
+        linkedin_url=request.form.get('linkedin_url')
+    )
+    
+    db.session.add(application)
+    db.session.commit()
+    
+    flash('Your mentor application has been submitted! We will review it shortly.', 'success')
+    return redirect(url_for('mentorship.index'))
+
+
+def is_approved_mentor(user):
+    """Check if a user is an approved mentor"""
+    app = MentorApplication.query.filter_by(user_id=user.id, status='approved').first()
+    return app is not None

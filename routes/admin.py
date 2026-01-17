@@ -8,7 +8,7 @@ from functools import wraps
 from app import db
 from models import (User, Post, Room, ExpertAMA, AMAStatus, InvestmentDeal, 
                    DealStatus, Course, Event, SubscriptionTier, AdAdvertiser, 
-                   AdCampaign, AdCreative, AdImpression, AdClick)
+                   AdCampaign, AdCreative, AdImpression, AdClick, MentorApplication)
 import json
 import hmac
 import hashlib
@@ -648,3 +648,90 @@ def reject_verification(user_id):
         'message': f'{user.full_name} verification has been rejected',
         'next_user_id': next_pending.id if next_pending else None
     })
+
+
+# ============== Mentor Management ==============
+
+@admin_bp.route('/mentors')
+@login_required
+@admin_required
+def manage_mentors():
+    """Manage mentors and mentor applications"""
+    tab = request.args.get('tab', 'applications')
+    
+    # Get pending mentor applications
+    pending_applications = MentorApplication.query.filter_by(status='pending')\
+        .order_by(MentorApplication.created_at.desc()).all()
+    
+    # Get approved mentors (users who have approved applications)
+    approved_applications = MentorApplication.query.filter_by(status='approved')\
+        .order_by(MentorApplication.reviewed_at.desc()).all()
+    
+    # Get rejected applications
+    rejected_applications = MentorApplication.query.filter_by(status='rejected')\
+        .order_by(MentorApplication.reviewed_at.desc()).all()
+    
+    stats = {
+        'pending': len(pending_applications),
+        'approved': len(approved_applications),
+        'rejected': len(rejected_applications)
+    }
+    
+    return render_template('admin/mentors.html',
+                          tab=tab,
+                          pending_applications=pending_applications,
+                          approved_applications=approved_applications,
+                          rejected_applications=rejected_applications,
+                          stats=stats)
+
+
+@admin_bp.route('/mentors/approve/<int:app_id>', methods=['POST'])
+@login_required
+@admin_required
+def approve_mentor_application(app_id):
+    """Approve a mentor application"""
+    application = MentorApplication.query.get_or_404(app_id)
+    
+    application.status = 'approved'
+    application.reviewed_by_id = current_user.id
+    application.reviewed_at = datetime.utcnow()
+    application.admin_notes = request.form.get('notes', '')
+    
+    db.session.commit()
+    
+    flash(f'{application.user.full_name} has been approved as a mentor!', 'success')
+    return redirect(url_for('admin.manage_mentors'))
+
+
+@admin_bp.route('/mentors/reject/<int:app_id>', methods=['POST'])
+@login_required
+@admin_required
+def reject_mentor_application(app_id):
+    """Reject a mentor application"""
+    application = MentorApplication.query.get_or_404(app_id)
+    
+    application.status = 'rejected'
+    application.reviewed_by_id = current_user.id
+    application.reviewed_at = datetime.utcnow()
+    application.admin_notes = request.form.get('notes', '')
+    
+    db.session.commit()
+    
+    flash(f'{application.user.full_name} mentor application has been rejected.', 'info')
+    return redirect(url_for('admin.manage_mentors'))
+
+
+@admin_bp.route('/mentors/revoke/<int:app_id>', methods=['POST'])
+@login_required
+@admin_required
+def revoke_mentor_status(app_id):
+    """Revoke mentor status"""
+    application = MentorApplication.query.get_or_404(app_id)
+    
+    application.status = 'rejected'
+    application.admin_notes = f"Revoked by admin on {datetime.utcnow().strftime('%Y-%m-%d')}"
+    
+    db.session.commit()
+    
+    flash(f'{application.user.full_name} mentor status has been revoked.', 'warning')
+    return redirect(url_for('admin.manage_mentors', tab='approved'))

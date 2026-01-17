@@ -1027,6 +1027,30 @@ class MentorshipSession(db.Model):
     mentorship = db.relationship('Mentorship', back_populates='sessions')
 
 
+class MentorApplication(db.Model):
+    """Applications to become a mentor"""
+    __tablename__ = 'mentor_applications'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    specialty_areas = db.Column(db.String(500))  # Investment topics they can mentor on
+    years_investing = db.Column(db.Integer)
+    investment_experience = db.Column(db.Text)  # Description of their investing experience
+    mentoring_experience = db.Column(db.Text)  # Prior mentoring experience
+    motivation = db.Column(db.Text)  # Why they want to be a mentor
+    availability = db.Column(db.String(200))  # Hours per month available
+    linkedin_url = db.Column(db.String(500))
+    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    admin_notes = db.Column(db.Text)
+    reviewed_by_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    reviewed_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = db.relationship('User', foreign_keys=[user_id], backref='mentor_applications')
+    reviewed_by = db.relationship('User', foreign_keys=[reviewed_by_id])
+
+
 # ============================================================================
 # COURSES & EDUCATIONAL CONTENT
 # ============================================================================

@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Become a Mentor - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('mentorship.index') }}">Mentorship</a></li>
+            <li class="breadcrumb-item active">Become a Mentor</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="fas fa-chalkboard-teacher me-2"></i>Become a Mentor</h4>
+                </div>
+                <div class="card-body">
+                    {% if existing_application %}
+                        {% if existing_application.status == 'pending' %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-clock me-2"></i>
+                            <strong>Application Pending</strong><br>
+                            Your mentor application is currently under review. We'll notify you once a decision is made.
+                            <hr>
+                            <small>Submitted: {{ existing_application.created_at.strftime('%B %d, %Y') }}</small>
+                        </div>
+                        {% elif existing_application.status == 'approved' %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>You're an Approved Mentor!</strong><br>
+                            Congratulations! You can now accept mentorship requests from other members.
+                            <hr>
+                            <a href="{{ url_for('mentorship.index') }}" class="btn btn-success">
+                                <i class="fas fa-arrow-left me-1"></i>Go to Mentorship Dashboard
+                            </a>
+                        </div>
+                        {% elif existing_application.status == 'rejected' %}
+                        <div class="alert alert-danger mb-4">
+                            <i class="fas fa-times-circle me-2"></i>
+                            <strong>Previous Application Not Approved</strong><br>
+                            {% if existing_application.admin_notes %}
+                            Reason: {{ existing_application.admin_notes }}
+                            {% endif %}
+                        </div>
+                        <p>You may submit a new application below:</p>
+                        {% endif %}
+                    {% endif %}
+
+                    {% if not existing_application or existing_application.status == 'rejected' %}
+                    <p class="text-muted mb-4">
+                        Share your investment knowledge with fellow physicians! As a mentor, you'll help colleagues 
+                        navigate their financial journey and build wealth outside of medicine.
+                    </p>
+
+                    <form method="POST" action="{{ url_for('mentorship.submit_mentor_application') }}">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Investment Topics You Can Mentor On <span class="text-danger">*</span></label>
+                            <input type="text" name="specialty_areas" class="form-control" required
+                                   placeholder="e.g., Real Estate, Index Funds, Tax Strategy, Syndications">
+                            <small class="text-muted">Separate multiple topics with commas</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Years of Investing Experience <span class="text-danger">*</span></label>
+                            <select name="years_investing" class="form-select" required>
+                                <option value="">Select...</option>
+                                <option value="1">1-2 years</option>
+                                <option value="3">3-5 years</option>
+                                <option value="6">6-10 years</option>
+                                <option value="11">11-15 years</option>
+                                <option value="16">16+ years</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Describe Your Investment Experience <span class="text-danger">*</span></label>
+                            <textarea name="investment_experience" class="form-control" rows="4" required
+                                      placeholder="Tell us about your investment journey, what you've learned, and any notable successes or lessons learned..."></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Prior Mentoring Experience</label>
+                            <textarea name="mentoring_experience" class="form-control" rows="3"
+                                      placeholder="Have you mentored others before? In what capacity?"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Why Do You Want to Be a Mentor? <span class="text-danger">*</span></label>
+                            <textarea name="motivation" class="form-control" rows="3" required
+                                      placeholder="What motivates you to help other physicians with their investment education?"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Availability</label>
+                            <select name="availability" class="form-select">
+                                <option value="">Select your availability...</option>
+                                <option value="1-2 hours/month">1-2 hours per month</option>
+                                <option value="3-4 hours/month">3-4 hours per month</option>
+                                <option value="5+ hours/month">5+ hours per month</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">LinkedIn Profile URL</label>
+                            <input type="url" name="linkedin_url" class="form-control"
+                                   placeholder="https://linkedin.com/in/yourprofile">
+                            <small class="text-muted">Optional, but helps us verify your background</small>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-paper-plane me-2"></i>Submit Application
+                            </button>
+                            <a href="{{ url_for('mentorship.index') }}" class="btn btn-outline-secondary">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
