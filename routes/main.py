@@ -14,7 +14,7 @@ from utils.content import (
     search_users_for_mention, search_hashtags
 )
 from utils.algorithm import generate_feed, get_user_interests, get_people_you_may_know
-from utils.news_aggregator import get_medical_investment_news
+from utils.news_aggregator import get_medical_investment_news, get_bloomberg_headlines
 from routes.notifications import create_notification, notify_mention
 from facebook_page import share_platform_post, is_facebook_configured
 
@@ -129,6 +129,12 @@ def feed():
     except:
         feed_articles = []
     
+    # Get Bloomberg headlines for ticker
+    try:
+        bloomberg_headlines = get_bloomberg_headlines(limit=10) if page == 1 else []
+    except:
+        bloomberg_headlines = []
+    
     # Create mixed feed items (posts + news)
     mixed_feed = []
     news_positions = [2, 7, 14]  # Insert news after these post positions
@@ -160,6 +166,7 @@ def feed():
                          feed_type=feed_type,
                          articles=articles,
                          mixed_feed=mixed_feed,
+                         bloomberg_headlines=bloomberg_headlines,
                          render_content=render_content_with_links)
 
 

@@ -191,8 +191,42 @@ RSS_FEEDS = {
     "business": [
         ("https://feeds.bbci.co.uk/news/business/rss.xml", "BBC Business"),
         ("https://rss.nytimes.com/services/xml/rss/nyt/Business.xml", "NY Times Business"),
+    ],
+    "bloomberg": [
+        ("https://feeds.bloomberg.com/markets/news.rss", "Bloomberg Markets"),
+        ("https://feeds.bloomberg.com/bview/news.rss", "Bloomberg Opinion"),
     ]
 }
+
+
+def get_bloomberg_headlines(limit: int = 10) -> List[Dict[str, Any]]:
+    """Get Bloomberg global business news headlines for ticker display"""
+    cache_key = f"bloomberg_headlines_{limit}"
+    cached = _get_cached(cache_key)
+    if cached:
+        return cached
+    
+    all_articles = []
+    for url, source_name in RSS_FEEDS.get("bloomberg", []):
+        articles = fetch_rss_feed(url, source_name, limit=limit)
+        all_articles.extend(articles)
+    
+    # Sort by time and deduplicate
+    all_articles.sort(key=lambda x: x.get("time_published", ""), reverse=True)
+    
+    seen = set()
+    unique = []
+    for article in all_articles:
+        key = article.get("title", "").lower()[:40]
+        if key and key not in seen:
+            seen.add(key)
+            unique.append(article)
+    
+    result = unique[:limit]
+    if result:
+        _set_cached(cache_key, result)
+    
+    return result
 
 
 def fetch_rss_feed(url: str, source_name: str, limit: int = 5) -> List[Dict[str, Any]]:

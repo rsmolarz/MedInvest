@@ -61,6 +61,42 @@
 {% endblock %}
 
 {% block content %}
+<!-- Bloomberg News Ticker -->
+{% if bloomberg_headlines %}
+<div class="bg-dark text-white py-2 mb-0" style="overflow: hidden;">
+    <div class="container-fluid">
+        <div class="d-flex align-items-center">
+            <span class="badge bg-danger me-3 flex-shrink-0">
+                <i class="fas fa-chart-line me-1"></i>BLOOMBERG
+            </span>
+            <div class="news-ticker-wrapper" style="overflow: hidden; flex-grow: 1;">
+                <div class="news-ticker" style="display: flex; animation: ticker 60s linear infinite; white-space: nowrap;">
+                    {% for headline in bloomberg_headlines %}
+                    <a href="{{ headline.url }}" target="_blank" class="text-white text-decoration-none me-5" style="flex-shrink: 0;">
+                        <span class="text-warning me-1">{{ headline.time_formatted }}</span>
+                        {{ headline.title }}
+                    </a>
+                    {% endfor %}
+                    {% for headline in bloomberg_headlines %}
+                    <a href="{{ headline.url }}" target="_blank" class="text-white text-decoration-none me-5" style="flex-shrink: 0;">
+                        <span class="text-warning me-1">{{ headline.time_formatted }}</span>
+                        {{ headline.title }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+@keyframes ticker {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+.news-ticker:hover { animation-play-state: paused; }
+</style>
+{% endif %}
+
 <div class="container py-4">
     <div class="row">
         <!-- Main Feed -->
