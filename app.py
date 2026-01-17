@@ -128,6 +128,15 @@ with app.app_context():
         db.session.rollback()
         logging.debug(f"Schema migration skipped (likely already applied): {e}")
     
+    # Migration 6: Add course_embed_code column to courses table
+    try:
+        db.session.execute(text("ALTER TABLE courses ADD COLUMN course_embed_code TEXT"))
+        db.session.commit()
+        logging.info("Applied schema migration: courses.course_embed_code added")
+    except Exception as e:
+        db.session.rollback()
+        logging.debug(f"Schema migration skipped (likely already applied): {e}")
+    
     # Auto-sync Ghost CMS articles on startup if database is empty
     try:
         from routes.opmed import auto_sync_ghost_articles

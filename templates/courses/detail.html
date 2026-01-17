@@ -34,7 +34,12 @@
                 <div class="card-body text-center">
                     <div class="display-4 fw-bold mb-3">${{ '{:.0f}'.format(course.price) }}</div>
                     <p class="text-muted">{{ course.total_modules }} modules • {{ course.total_duration_minutes }} minutes</p>
-                    {% if course.course_url %}
+                    {% if course.course_embed_code %}
+                    <a href="#course-content" class="btn btn-success btn-lg w-100 mb-2">
+                        <i class="fas fa-play-circle me-2"></i>Start Learning
+                    </a>
+                    <small class="text-muted d-block mb-3">Course content embedded below</small>
+                    {% elif course.course_url %}
                     <a href="{{ course.course_url }}" target="_blank" class="btn btn-success btn-lg w-100 mb-2">
                         <i class="fas fa-external-link-alt me-2"></i>Access Course
                     </a>
@@ -53,6 +58,23 @@
             </div>
         </div>
     </div>
+    
+    {% if course.course_embed_code %}
+    <div class="row mt-5" id="course-content">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-graduation-cap me-2"></i>Course Content</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="course-embed-container" style="width: 100%; min-height: 700px; overflow: hidden;">
+                        {{ course.course_embed_code|safe }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 {% block extra_js %}

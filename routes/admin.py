@@ -468,6 +468,7 @@ def manage_courses():
             difficulty_level=request.form.get('difficulty_level'),
             thumbnail_url=request.form.get('thumbnail_url'),
             course_url=request.form.get('course_url'),
+            course_embed_code=request.form.get('course_embed_code'),
             is_published=request.form.get('is_published') == 'on',
             is_featured=request.form.get('is_featured') == 'on'
         )
@@ -498,6 +499,7 @@ def edit_course(course_id):
         course.difficulty_level = request.form.get('difficulty_level')
         course.thumbnail_url = request.form.get('thumbnail_url')
         course.course_url = request.form.get('course_url')
+        course.course_embed_code = request.form.get('course_embed_code')
         course.is_published = request.form.get('is_published') == 'on'
         course.is_featured = request.form.get('is_featured') == 'on'
         

@@ -1074,6 +1074,7 @@ class Course(db.Model):
     thumbnail_url = db.Column(db.String(500))
     preview_video_url = db.Column(db.String(500))
     course_url = db.Column(db.String(500))
+    course_embed_code = db.Column(db.Text)  # Iframe or embed code for external courses
     is_published = db.Column(db.Boolean, default=False)
     is_featured = db.Column(db.Boolean, default=False)
     enrolled_count = db.Column(db.Integer, default=0)
