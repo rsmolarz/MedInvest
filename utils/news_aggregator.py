@@ -280,8 +280,14 @@ def fetch_rss_category(category: str, limit: int = 10) -> List[Dict[str, Any]]:
     feeds = RSS_FEEDS.get(category, RSS_FEEDS.get("business", []))
     all_articles = []
     
+    if not feeds:
+        return []
+    
+    # Calculate per-feed limit, ensuring at least 3 per feed
+    per_feed_limit = max(3, (limit + len(feeds) - 1) // len(feeds))
+    
     for url, source_name in feeds:
-        articles = fetch_rss_feed(url, source_name, limit=limit // len(feeds) + 1)
+        articles = fetch_rss_feed(url, source_name, limit=per_feed_limit)
         all_articles.extend(articles)
     
     # Sort by time and limit
@@ -296,6 +302,19 @@ def fetch_rss_category(category: str, limit: int = 10) -> List[Dict[str, Any]]:
 
 
 # ============== Aggregator ==============
+
+# Map categories to Alpha Vantage topics for specialized queries
+ALPHA_VANTAGE_TOPICS = {
+    "business": ["economy_macro", "finance"],
+    "healthcare": ["life_sciences"],
+    "finance": ["finance", "earnings"],
+    "real_estate": ["real_estate"],
+    "technology": ["technology"],
+    "earnings": ["earnings", "finance"],
+    "economy": ["economy_macro"],
+}
+
+
 def get_aggregated_news(
     category: str = "business",
     limit: int = 15,
@@ -311,15 +330,16 @@ def get_aggregated_news(
         return cached
     
     all_articles = []
-    per_source_limit = max(5, limit // 3)
+    per_source_limit = max(5, (limit + 2) // 3)  # Ensure at least 5 per source
     
     # Map categories to source-specific categories
     category_map = {
-        "business": {"newsapi": "business", "finnhub": "general", "rss": "business"},
-        "healthcare": {"newsapi": "health", "finnhub": "general", "rss": "healthcare"},
-        "finance": {"newsapi": "business", "finnhub": "general", "rss": "finance"},
-        "real_estate": {"newsapi": "business", "finnhub": "general", "rss": "real_estate"},
-        "technology": {"newsapi": "technology", "finnhub": "technology", "rss": "business"},
+        "business": {"newsapi": "business", "finnhub": "general", "rss": "business", "alpha": ["economy_macro", "finance"]},
+        "healthcare": {"newsapi": "health", "finnhub": "general", "rss": "healthcare", "alpha": ["life_sciences"]},
+        "finance": {"newsapi": "business", "finnhub": "general", "rss": "finance", "alpha": ["finance", "earnings"]},
+        "real_estate": {"newsapi": "business", "finnhub": "general", "rss": "real_estate", "alpha": ["real_estate"]},
+        "technology": {"newsapi": "technology", "finnhub": "technology", "rss": "business", "alpha": ["technology"]},
+        "earnings": {"newsapi": "business", "finnhub": "general", "rss": "finance", "alpha": ["earnings"]},
     }
     cats = category_map.get(category, category_map["business"])
     
@@ -339,14 +359,7 @@ def get_aggregated_news(
         # Alpha Vantage (if enabled and not rate limited)
         if include_alpha_vantage:
             from utils.news import fetch_news as fetch_alpha_vantage
-            topic_map = {
-                "business": ["economy_macro", "finance"],
-                "healthcare": ["life_sciences"],
-                "finance": ["finance", "earnings"],
-                "real_estate": ["real_estate"],
-                "technology": ["technology"],
-            }
-            topics = topic_map.get(category, ["finance"])
+            topics = cats.get("alpha", ["finance"])
             futures.append(executor.submit(fetch_alpha_vantage, None, topics, per_source_limit))
         
         for future in as_completed(futures):

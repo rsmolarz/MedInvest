@@ -1,16 +1,13 @@
 """
-News Routes - Business news feeds powered by Alpha Vantage
+News Routes - Business news feeds from multiple sources
 """
 from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required, current_user
-from utils.news import (
-    get_personalized_news,
-    get_trending_market_news,
-    get_real_estate_news,
-    get_healthcare_news,
-    get_news_by_ticker,
-    get_news_by_topic,
+from utils.news_aggregator import (
+    get_aggregated_news,
+    get_medical_investment_news,
 )
+from utils.news import get_news_by_ticker
 
 news_bp = Blueprint('news', __name__, url_prefix='/news')
 
@@ -18,7 +15,7 @@ news_bp = Blueprint('news', __name__, url_prefix='/news')
 @news_bp.route('/')
 @login_required
 def news_feed():
-    """Main news feed page with personalized news"""
+    """Main news feed page with aggregated news from multiple sources"""
     topic = request.args.get('topic', 'for_you')
     ticker = request.args.get('ticker', '')
     
@@ -26,25 +23,25 @@ def news_feed():
         articles = get_news_by_ticker(ticker, limit=20)
         page_title = f"News for {ticker.upper()}"
     elif topic == 'for_you':
-        articles = get_personalized_news(current_user, limit=20)
+        articles = get_medical_investment_news(limit=20)
         page_title = "News For You"
     elif topic == 'trending':
-        articles = get_trending_market_news(limit=20)
+        articles = get_aggregated_news("business", limit=20)
         page_title = "Trending Market News"
     elif topic == 'real_estate':
-        articles = get_real_estate_news(limit=20)
+        articles = get_aggregated_news("real_estate", limit=20)
         page_title = "Real Estate News"
     elif topic == 'healthcare':
-        articles = get_healthcare_news(limit=20)
+        articles = get_aggregated_news("healthcare", limit=20)
         page_title = "Healthcare & Life Sciences"
     elif topic == 'earnings':
-        articles = get_news_by_topic('earnings', limit=20)
+        articles = get_aggregated_news("earnings", limit=20)
         page_title = "Earnings News"
     elif topic == 'technology':
-        articles = get_news_by_topic('technology', limit=20)
+        articles = get_aggregated_news("technology", limit=20)
         page_title = "Technology News"
     else:
-        articles = get_news_by_topic(topic, limit=20)
+        articles = get_aggregated_news("business", limit=20)
         page_title = f"{topic.replace('_', ' ').title()} News"
     
     topics = [
@@ -75,15 +72,15 @@ def api_articles():
     if ticker:
         articles = get_news_by_ticker(ticker, limit=limit)
     elif topic == 'for_you':
-        articles = get_personalized_news(current_user, limit=limit)
+        articles = get_medical_investment_news(limit=limit)
     elif topic == 'trending':
-        articles = get_trending_market_news(limit=limit)
+        articles = get_aggregated_news("business", limit=limit)
     elif topic == 'real_estate':
-        articles = get_real_estate_news(limit=limit)
+        articles = get_aggregated_news("real_estate", limit=limit)
     elif topic == 'healthcare':
-        articles = get_healthcare_news(limit=limit)
+        articles = get_aggregated_news("healthcare", limit=limit)
     else:
-        articles = get_news_by_topic(topic, limit=limit)
+        articles = get_aggregated_news("business", limit=limit)
     
     return jsonify({'articles': articles})
 
@@ -92,5 +89,5 @@ def api_articles():
 @login_required
 def news_widget():
     """Small news widget for sidebar"""
-    articles = get_personalized_news(current_user, limit=5)
+    articles = get_medical_investment_news(limit=5)
     return render_template('news/widget.html', articles=articles)

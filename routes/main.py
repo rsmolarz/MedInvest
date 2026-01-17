@@ -14,7 +14,7 @@ from utils.content import (
     search_users_for_mention, search_hashtags
 )
 from utils.algorithm import generate_feed, get_user_interests, get_people_you_may_know
-from utils.news import get_personalized_news
+from utils.news_aggregator import get_medical_investment_news
 from routes.notifications import create_notification, notify_mention
 from facebook_page import share_platform_post, is_facebook_configured
 
@@ -117,15 +117,15 @@ def feed():
     # Get people you may know suggestions
     suggested_users = get_people_you_may_know(current_user, limit=6)
     
-    # Get personalized news for sidebar widget
+    # Get aggregated news for sidebar widget from multiple sources
     try:
-        articles = get_personalized_news(current_user, limit=5)
+        articles = get_medical_investment_news(limit=5)
     except:
         articles = []
     
     # Get news articles for feed integration (interspersed with posts)
     try:
-        feed_articles = get_personalized_news(current_user, limit=3) if page == 1 else []
+        feed_articles = get_medical_investment_news(limit=3) if page == 1 else []
     except:
         feed_articles = []
     
