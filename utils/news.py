@@ -5,11 +5,16 @@ Fetches and personalizes financial news for users
 import os
 import requests
 import logging
+import time
 from datetime import datetime, timedelta
 from functools import lru_cache
 from typing import Optional, List, Dict, Any
 
 logger = logging.getLogger(__name__)
+
+# Simple in-memory cache with TTL (30 minutes)
+_news_cache: Dict[str, Dict[str, Any]] = {}
+CACHE_TTL_SECONDS = 1800  # 30 minutes
 
 ALPHA_VANTAGE_BASE_URL = "https://www.alphavantage.co/query"
 
@@ -86,6 +91,35 @@ def format_published_time(time_str: str) -> str:
         return time_str
 
 
+def _get_cache_key(tickers: Optional[List[str]], topics: Optional[List[str]], limit: int, sort: str) -> str:
+    """Generate a cache key from parameters"""
+    ticker_str = ",".join(sorted(tickers)) if tickers else ""
+    topic_str = ",".join(sorted(topics)) if topics else ""
+    return f"{ticker_str}|{topic_str}|{limit}|{sort}"
+
+
+def _get_cached_news(cache_key: str) -> Optional[List[Dict[str, Any]]]:
+    """Get news from cache if still valid"""
+    if cache_key in _news_cache:
+        cached = _news_cache[cache_key]
+        if time.time() - cached["timestamp"] < CACHE_TTL_SECONDS:
+            logger.debug(f"Returning cached news for key: {cache_key[:50]}")
+            return cached["data"]
+    return None
+
+
+def _set_cached_news(cache_key: str, data: List[Dict[str, Any]]) -> None:
+    """Store news in cache"""
+    _news_cache[cache_key] = {
+        "timestamp": time.time(),
+        "data": data
+    }
+    # Limit cache size to prevent memory issues
+    if len(_news_cache) > 50:
+        oldest_key = min(_news_cache.keys(), key=lambda k: _news_cache[k]["timestamp"])
+        del _news_cache[oldest_key]
+
+
 def fetch_news(
     tickers: Optional[List[str]] = None,
     topics: Optional[List[str]] = None,
@@ -93,7 +127,7 @@ def fetch_news(
     sort: str = "LATEST"
 ) -> List[Dict[str, Any]]:
     """
-    Fetch news from Alpha Vantage API
+    Fetch news from Alpha Vantage API with caching
     
     Args:
         tickers: List of stock tickers to filter by
@@ -104,6 +138,12 @@ def fetch_news(
     Returns:
         List of processed news articles
     """
+    # Check cache first
+    cache_key = _get_cache_key(tickers, topics, limit, sort)
+    cached = _get_cached_news(cache_key)
+    if cached is not None:
+        return cached
+    
     api_key = os.environ.get("ALPHA_VANTAGE_API_KEY")
     if not api_key:
         logger.error("ALPHA_VANTAGE_API_KEY not found in environment")
@@ -166,6 +206,9 @@ def fetch_news(
                 "ticker_sentiments": ticker_sentiments,
             })
         
+        # Cache the result
+        _set_cached_news(cache_key, articles)
+        logger.info(f"Cached {len(articles)} news articles")
         return articles
         
     except requests.RequestException as e:
