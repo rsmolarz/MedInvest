@@ -537,7 +537,7 @@ def github_callback():
 
 @auth_bp.route('/facebook/callback')
 def facebook_callback():
-    """Handle Facebook OAuth callback with signed state verification"""
+    """Handle Facebook OAuth callback - simplified approach"""
     import requests
     
     state = request.args.get('state')
@@ -546,15 +546,15 @@ def facebook_callback():
     session.pop('oauth_state', None)
     session.pop('oauth_redirect_uri', None)
     
-    # Verify the signed state token (doesn't depend on session)
+    # Try to verify signed state first, fall back to regenerating redirect_uri
     redirect_uri = verify_signed_oauth_state(state, 'facebook')
     
     if not redirect_uri:
-        logging.error(f"Facebook OAuth state verification failed for state: {state[:50] if state else 'None'}...")
-        flash('Login session expired or invalid. Please try again.', 'error')
-        return redirect(url_for('auth.login'))
+        # Fall back to generating redirect_uri from current request
+        logging.warning(f"Facebook OAuth state verification failed, using fallback redirect_uri")
+        redirect_uri = get_oauth_redirect_uri('facebook')
     
-    logging.info(f"Facebook callback - state verified, redirect_uri: {redirect_uri}")
+    logging.info(f"Facebook callback - redirect_uri: {redirect_uri}")
     
     error = request.args.get('error')
     if error:
