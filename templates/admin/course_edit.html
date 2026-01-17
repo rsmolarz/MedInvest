@@ -49,6 +49,12 @@
                         <input type="url" name="thumbnail_url" class="form-control" value="{{ course.thumbnail_url or '' }}" placeholder="https://...">
                     </div>
                 </div>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Course URL</label>
+                        <input type="url" name="course_url" class="form-control" value="{{ course.course_url or '' }}" placeholder="https://... (link to external course content)">
+                    </div>
+                </div>
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <div class="form-check">

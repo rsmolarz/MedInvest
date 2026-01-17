@@ -1073,6 +1073,7 @@ class Course(db.Model):
     difficulty_level = db.Column(db.String(20))
     thumbnail_url = db.Column(db.String(500))
     preview_video_url = db.Column(db.String(500))
+    course_url = db.Column(db.String(500))
     is_published = db.Column(db.Boolean, default=False)
     is_featured = db.Column(db.Boolean, default=False)
     enrolled_count = db.Column(db.Integer, default=0)

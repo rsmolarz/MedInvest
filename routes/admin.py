@@ -467,6 +467,7 @@ def manage_courses():
             original_price=float(request.form.get('original_price', 0)) if request.form.get('original_price') else None,
             difficulty_level=request.form.get('difficulty_level'),
             thumbnail_url=request.form.get('thumbnail_url'),
+            course_url=request.form.get('course_url'),
             is_published=request.form.get('is_published') == 'on',
             is_featured=request.form.get('is_featured') == 'on'
         )
@@ -496,6 +497,7 @@ def edit_course(course_id):
         course.original_price = float(request.form.get('original_price', 0)) if request.form.get('original_price') else None
         course.difficulty_level = request.form.get('difficulty_level')
         course.thumbnail_url = request.form.get('thumbnail_url')
+        course.course_url = request.form.get('course_url')
         course.is_published = request.form.get('is_published') == 'on'
         course.is_featured = request.form.get('is_featured') == 'on'
         

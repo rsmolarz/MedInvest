@@ -111,6 +111,15 @@ with app.app_context():
             db.session.rollback()
             logging.debug(f"Schema migration skipped (likely already applied): {e}")
     
+    # Migration 5: Add course_url column to courses table
+    try:
+        db.session.execute(text("ALTER TABLE courses ADD COLUMN course_url VARCHAR(500)"))
+        db.session.commit()
+        logging.info("Applied schema migration: courses.course_url added")
+    except Exception as e:
+        db.session.rollback()
+        logging.debug(f"Schema migration skipped (likely already applied): {e}")
+    
     # Auto-sync Ghost CMS articles on startup if database is empty
     try:
         from routes.opmed import auto_sync_ghost_articles
