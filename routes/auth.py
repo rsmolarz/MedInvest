@@ -473,7 +473,10 @@ def facebook_callback():
     stored_state = session.pop('oauth_state', None)
     redirect_uri = session.pop('oauth_redirect_uri', get_oauth_redirect_uri('facebook'))
     
+    logging.info(f"Facebook callback - state: {state}, stored_state: {stored_state}, redirect_uri: {redirect_uri}")
+    
     if not state or state != stored_state:
+        logging.error(f"Facebook OAuth state mismatch - received: {state}, expected: {stored_state}")
         flash('Invalid OAuth state. Please try again.', 'error')
         return redirect(url_for('auth.login'))
     
