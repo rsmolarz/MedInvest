@@ -161,7 +161,7 @@ def facebook_login():
         'client_id': FACEBOOK_APP_ID,
         'redirect_uri': redirect_uri,
         'response_type': 'code',
-        'scope': 'public_profile',  # Only request public_profile until email permission is approved
+        'scope': 'public_profile,email',
         'state': state
     }
     
