@@ -18,8 +18,8 @@
                         <br><small class="text-muted">{{ module.duration_minutes }} minutes</small>
                     </div>
                     {% if enrollment %}
-                    <span class="badge bg-{% if module.id in (enrollment.completed_modules or []) %}success{% else %}secondary{% endif %}">
-                        {% if module.id in (enrollment.completed_modules or []) %}Completed{% else %}Pending{% endif %}
+                    <span class="badge bg-{% if (module.id|string) in (enrollment.completed_modules or '') %}success{% else %}secondary{% endif %}">
+                        {% if (module.id|string) in (enrollment.completed_modules or '') %}Completed{% else %}Pending{% endif %}
                     </span>
                     {% else %}
                     <i class="fas fa-lock text-muted"></i>
