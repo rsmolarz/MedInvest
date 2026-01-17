@@ -34,7 +34,12 @@
                 <div class="card-body text-center">
                     <div class="display-4 fw-bold mb-3">${{ '{:.0f}'.format(course.price) }}</div>
                     <p class="text-muted">{{ course.total_modules }} modules • {{ course.total_duration_minutes }} minutes</p>
-                    {% if enrollment %}
+                    {% if course.course_url %}
+                    <a href="{{ course.course_url }}" target="_blank" class="btn btn-success btn-lg w-100 mb-2">
+                        <i class="fas fa-external-link-alt me-2"></i>Access Course
+                    </a>
+                    <small class="text-muted d-block mb-3">Opens in a new tab</small>
+                    {% elif enrollment %}
                     <div class="progress mb-3">
                         <div class="progress-bar bg-success" style="width: {{ enrollment.progress_percent }}%"></div>
                     </div>

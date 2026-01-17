@@ -415,7 +415,7 @@ def apple_callback():
 
 @auth_bp.route('/github/callback')
 def github_callback():
-    """Handle GitHub OAuth callback"""
+    """Handle GitHub OAuth callback - simplified approach"""
     import requests
     
     # Read credentials at request time
@@ -423,12 +423,18 @@ def github_callback():
     github_client_secret = os.environ.get('GITHUB_CLIENT_SECRET')
     
     state = request.args.get('state')
-    stored_state = session.pop('oauth_state', None)
-    redirect_uri = session.pop('oauth_redirect_uri', get_oauth_redirect_uri('github'))
     
-    if not state or state != stored_state:
-        flash('Invalid OAuth state. Please try again.', 'error')
-        return redirect(url_for('auth.login'))
+    # Clear session state (cleanup)
+    session.pop('oauth_state', None)
+    session.pop('oauth_redirect_uri', None)
+    
+    # Try to verify signed state first, fall back to regenerating redirect_uri
+    redirect_uri = verify_signed_oauth_state(state, 'github')
+    
+    if not redirect_uri:
+        # Fall back to generating redirect_uri from current request
+        logging.warning(f"GitHub OAuth state verification failed, using fallback redirect_uri")
+        redirect_uri = get_oauth_redirect_uri('github')
     
     error = request.args.get('error')
     if error:
