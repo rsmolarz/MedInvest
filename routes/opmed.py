@@ -685,9 +685,21 @@ def editorial_dashboard():
         'total_published': OpMedArticle.query.filter_by(status='published').count()
     }
     
+    # Get list of authors with article counts for bulk reassign
+    from sqlalchemy import func
+    author_stats = db.session.query(
+        User.email,
+        User.first_name,
+        User.last_name,
+        func.count(OpMedArticle.id).label('article_count')
+    ).join(OpMedArticle, OpMedArticle.author_id == User.id)\
+     .group_by(User.id, User.email, User.first_name, User.last_name)\
+     .order_by(func.count(OpMedArticle.id).desc()).all()
+    
     return render_template('opmed/editorial_dashboard.html',
                          articles=articles,
                          stats=stats,
+                         author_stats=author_stats,
                          filter=filter_status)
 
 

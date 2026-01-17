@@ -82,14 +82,27 @@
             <h6 class="mb-0"><i class="fas fa-exchange-alt me-2"></i>Bulk Reassign Author</h6>
         </div>
         <div class="card-body">
+            {% if author_stats %}
+            <div class="mb-3">
+                <label class="form-label fw-bold">Current Authors with Articles:</label>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for author in author_stats %}
+                    <span class="badge bg-secondary" style="cursor: pointer;" onclick="document.getElementById('from_email').value='{{ author.email }}'">
+                        {{ author.first_name }} {{ author.last_name }} ({{ author.email }}) - {{ author.article_count }} articles
+                    </span>
+                    {% endfor %}
+                </div>
+                <small class="text-muted">Click an author badge to auto-fill the "From" field</small>
+            </div>
+            {% endif %}
             <form method="POST" action="{{ url_for('opmed.bulk_reassign_author') }}" class="row g-3 align-items-end">
                 <div class="col-md-4">
                     <label class="form-label">From Author (email)</label>
-                    <input type="email" name="from_email" class="form-control form-control-sm" placeholder="test@test.com" required>
+                    <input type="email" name="from_email" id="from_email" class="form-control form-control-sm" placeholder="test@test.com" required>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">To Author (email)</label>
-                    <input type="email" name="to_email" class="form-control form-control-sm" placeholder="rsmolarz@rsmolarz.com" required>
+                    <input type="email" name="to_email" class="form-control form-control-sm" value="{{ current_user.email }}" required>
                 </div>
                 <div class="col-md-4">
                     <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Reassign ALL articles from the source author to the target author?')">
