@@ -75,7 +75,12 @@
                         <h2 class="text-primary mb-0">${{ "%.0f"|format(course.price) }}</h2>
                     </div>
 
-                    {% if enrollment %}
+                    {% if course.course_url %}
+                    <a href="{{ course.course_url }}" target="_blank" class="btn btn-success btn-lg w-100 mb-3">
+                        <i class="fas fa-external-link-alt me-2"></i>Access Course
+                    </a>
+                    <small class="text-muted d-block">Opens in a new tab</small>
+                    {% elif enrollment %}
                     <div class="mb-3">
                         <div class="progress" style="height: 20px;">
                             <div class="progress-bar bg-success" style="width: {{ enrollment.progress_percent }}%">
