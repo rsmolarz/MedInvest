@@ -11,10 +11,11 @@
                 Verifications {% if stats.pending_verifications %}<span class="badge bg-warning text-dark">{{ stats.pending_verifications }}</span>{% endif %}
             </a>
             <a href="{{ url_for('admin.manage_deals') }}" class="btn btn-outline-secondary">Deals</a>
-            <a href="{{ url_for('admin.manage_amas') }}" class="btn btn-outline-secondary">AMAs</a>
+            <a href="{{ url_for('admin.manage_amas') }}" class="btn btn-outline-secondary">Spotlight</a>
             <a href="{{ url_for('admin.manage_courses') }}" class="btn btn-outline-secondary">Courses</a>
             <a href="{{ url_for('admin.manage_events') }}" class="btn btn-outline-secondary">Events</a>
             <a href="{{ url_for('admin.manage_rooms') }}" class="btn btn-outline-secondary">Rooms</a>
+            <a href="{{ url_for('admin.ads_dashboard') }}" class="btn btn-outline-success">Ads</a>
         </div>
     </div>
     
@@ -79,11 +80,12 @@
                     <a href="{{ url_for('admin.manage_deals') }}" class="btn btn-outline-primary w-100 mb-2">
                         Review Pending Deals ({{ stats.pending_deals }})
                     </a>
-                    <a href="{{ url_for('admin.manage_amas') }}" class="btn btn-outline-primary w-100 mb-2">Create New AMA</a>
+                    <a href="{{ url_for('admin.manage_amas') }}" class="btn btn-outline-primary w-100 mb-2">Create New Spotlight Session</a>
                     <a href="{{ url_for('admin.manage_courses') }}" class="btn btn-outline-primary w-100 mb-2">Manage Courses</a>
                     <a href="{{ url_for('admin.manage_events') }}" class="btn btn-outline-primary w-100 mb-2">Manage Events</a>
                     <a href="{{ url_for('admin.manage_rooms') }}" class="btn btn-outline-primary w-100 mb-2">Manage Rooms</a>
-                    <a href="{{ url_for('admin.manage_mentors') }}" class="btn btn-outline-success w-100">Manage Mentors</a>
+                    <a href="{{ url_for('admin.manage_mentors') }}" class="btn btn-outline-success w-100 mb-2">Manage Mentors</a>
+                    <a href="{{ url_for('admin.ads_dashboard') }}" class="btn btn-outline-warning w-100">Manage Ads</a>
                 </div>
             </div>
         </div>

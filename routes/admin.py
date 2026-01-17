@@ -430,12 +430,9 @@ def ads_admin_creatives():
 
 @admin_bp.route('/ads/dashboard')
 @login_required
+@admin_required
 def ads_dashboard():
     """Visual admin dashboard for managing ads"""
-    from flask_login import current_user
-    if current_user.email != 'rsmolarz@rsmolarz.com':
-        flash('Access denied', 'error')
-        return redirect(url_for('main.feed'))
     
     advertisers = AdAdvertiser.query.order_by(AdAdvertiser.id.desc()).all()
     campaigns = AdCampaign.query.order_by(AdCampaign.id.desc()).all()
