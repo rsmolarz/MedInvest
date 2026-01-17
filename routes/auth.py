@@ -56,6 +56,67 @@ def get_oauth_redirect_uri(provider):
     return f"{base_url}/auth/{provider}/callback"
 
 
+def create_signed_oauth_state(provider, redirect_uri):
+    """Create a signed OAuth state token that doesn't depend on session"""
+    import hashlib
+    import hmac
+    import base64
+    import json
+    
+    secret = os.environ.get('SESSION_SECRET', 'fallback-secret')
+    nonce = secrets.token_urlsafe(16)
+    timestamp = int(time.time())
+    
+    data = {
+        'p': provider,
+        'r': redirect_uri,
+        't': timestamp,
+        'n': nonce
+    }
+    
+    payload = base64.urlsafe_b64encode(json.dumps(data).encode()).decode()
+    signature = hmac.new(secret.encode(), payload.encode(), hashlib.sha256).hexdigest()[:16]
+    
+    return f"{payload}.{signature}"
+
+
+def verify_signed_oauth_state(state, provider, max_age=600):
+    """Verify a signed OAuth state token"""
+    import hashlib
+    import hmac
+    import base64
+    import json
+    
+    try:
+        if not state or '.' not in state:
+            logging.error(f"OAuth state missing or malformed: {state}")
+            return None
+        
+        payload, signature = state.rsplit('.', 1)
+        secret = os.environ.get('SESSION_SECRET', 'fallback-secret')
+        
+        expected_sig = hmac.new(secret.encode(), payload.encode(), hashlib.sha256).hexdigest()[:16]
+        if not hmac.compare_digest(signature, expected_sig):
+            logging.error("OAuth state signature mismatch")
+            return None
+        
+        data = json.loads(base64.urlsafe_b64decode(payload).decode())
+        
+        if data.get('p') != provider:
+            logging.error(f"OAuth state provider mismatch: expected {provider}, got {data.get('p')}")
+            return None
+        
+        if int(time.time()) - data.get('t', 0) > max_age:
+            logging.error("OAuth state expired")
+            return None
+        
+        return data.get('r')  # Return the redirect_uri
+        
+    except Exception as e:
+        logging.error(f"OAuth state verification failed: {e}")
+        return None
+
+
 def generate_apple_client_secret():
     """Generate Apple client secret dynamically using JWT"""
     if not all([APPLE_TEAM_ID, APPLE_CLIENT_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY]):
@@ -149,7 +210,7 @@ def google_login_custom():
 
 @auth_bp.route('/facebook-login')
 def facebook_login():
-    """Facebook OAuth login with dynamic redirect_uri"""
+    """Facebook OAuth login with dynamic redirect_uri using signed state"""
     # Read credentials at request time to ensure latest values
     facebook_app_id = os.environ.get('FACEBOOK_APP_ID')
     
@@ -157,11 +218,14 @@ def facebook_login():
         flash('Facebook login is not configured.', 'error')
         return redirect(url_for('auth.login'))
     
-    state = secrets.token_urlsafe(32)
+    redirect_uri = get_oauth_redirect_uri('facebook')
+    
+    # Use signed state that doesn't depend on session persistence
+    state = create_signed_oauth_state('facebook', redirect_uri)
+    
+    # Also store in session as backup
     session['oauth_state'] = state
     session['oauth_provider'] = 'facebook'
-    
-    redirect_uri = get_oauth_redirect_uri('facebook')
     session['oauth_redirect_uri'] = redirect_uri
     
     params = {
@@ -473,19 +537,24 @@ def github_callback():
 
 @auth_bp.route('/facebook/callback')
 def facebook_callback():
-    """Handle Facebook OAuth callback"""
+    """Handle Facebook OAuth callback with signed state verification"""
     import requests
     
     state = request.args.get('state')
-    stored_state = session.pop('oauth_state', None)
-    redirect_uri = session.pop('oauth_redirect_uri', get_oauth_redirect_uri('facebook'))
     
-    logging.info(f"Facebook callback - state: {state}, stored_state: {stored_state}, redirect_uri: {redirect_uri}")
+    # Clear session state (cleanup)
+    session.pop('oauth_state', None)
+    session.pop('oauth_redirect_uri', None)
     
-    if not state or state != stored_state:
-        logging.error(f"Facebook OAuth state mismatch - received: {state}, expected: {stored_state}")
-        flash('Invalid OAuth state. Please try again.', 'error')
+    # Verify the signed state token (doesn't depend on session)
+    redirect_uri = verify_signed_oauth_state(state, 'facebook')
+    
+    if not redirect_uri:
+        logging.error(f"Facebook OAuth state verification failed for state: {state[:50] if state else 'None'}...")
+        flash('Login session expired or invalid. Please try again.', 'error')
         return redirect(url_for('auth.login'))
+    
+    logging.info(f"Facebook callback - state verified, redirect_uri: {redirect_uri}")
     
     error = request.args.get('error')
     if error:
