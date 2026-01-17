@@ -795,9 +795,35 @@
             }
         }
 
+        .mobile-nav-btn {
+            display: none;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-decoration: none;
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+
+        .mobile-nav-btn:hover {
+            background: var(--primary-dark);
+        }
+
         @media (max-width: 768px) {
-            .nav-links {
+            .nav-links .nav-link {
                 display: none;
+            }
+            
+            .nav-links .nav-btn-outline {
+                display: none;
+            }
+
+            .mobile-nav-btn {
+                display: inline-block;
             }
 
             .hero-content h1 {
@@ -852,6 +878,7 @@
                 <a href="{{ url_for('deals.list_deals') }}" class="nav-link">Deals</a>
                 <a href="{{ url_for('auth.login') }}" class="nav-btn nav-btn-outline">Sign in</a>
                 <a href="{{ url_for('auth.register') }}" class="nav-btn nav-btn-primary">Join now</a>
+                <a href="{{ url_for('auth.login') }}" class="mobile-nav-btn">Login</a>
             </div>
         </div>
     </nav>
