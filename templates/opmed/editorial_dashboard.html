@@ -77,6 +77,29 @@
         </li>
     </ul>
 
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h6 class="mb-0"><i class="fas fa-exchange-alt me-2"></i>Bulk Reassign Author</h6>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('opmed.bulk_reassign_author') }}" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">From Author (email)</label>
+                    <input type="email" name="from_email" class="form-control form-control-sm" placeholder="test@test.com" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">To Author (email)</label>
+                    <input type="email" name="to_email" class="form-control form-control-sm" placeholder="rsmolarz@rsmolarz.com" required>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Reassign ALL articles from the source author to the target author?')">
+                        <i class="fas fa-exchange-alt me-1"></i>Reassign All
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     {% if articles %}
     <div class="card">
         <div class="table-responsive">

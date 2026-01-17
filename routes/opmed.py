@@ -887,3 +887,69 @@ def share_article_facebook(article_id):
         flash(f'Facebook post failed: {fb_result.get("error", "unknown")}', 'error')
     
     return redirect(url_for('opmed.editorial_dashboard'))
+
+
+@opmed_bp.route('/reassign-author/<int:article_id>', methods=['POST'])
+@login_required
+def reassign_author(article_id):
+    """Reassign article author (admin only)"""
+    if not current_user.is_admin:
+        flash('Admin access required', 'error')
+        return redirect(url_for('opmed.index'))
+    
+    article = OpMedArticle.query.get_or_404(article_id)
+    
+    new_author_email = request.form.get('author_email')
+    if not new_author_email:
+        flash('Please provide an author email', 'error')
+        return redirect(url_for('opmed.review_article', article_id=article_id))
+    
+    new_author = User.query.filter_by(email=new_author_email).first()
+    if not new_author:
+        flash(f'No user found with email: {new_author_email}', 'error')
+        return redirect(url_for('opmed.review_article', article_id=article_id))
+    
+    old_author = article.author
+    article.author_id = new_author.id
+    db.session.commit()
+    
+    flash(f'Article author changed from {old_author.first_name} {old_author.last_name} to {new_author.first_name} {new_author.last_name}', 'success')
+    return redirect(url_for('opmed.editorial_dashboard', filter='published'))
+
+
+@opmed_bp.route('/bulk-reassign-author', methods=['POST'])
+@login_required
+def bulk_reassign_author():
+    """Bulk reassign all articles from one author to another (admin only)"""
+    if not current_user.is_admin:
+        flash('Admin access required', 'error')
+        return redirect(url_for('opmed.index'))
+    
+    from_email = request.form.get('from_email')
+    to_email = request.form.get('to_email')
+    
+    if not from_email or not to_email:
+        flash('Please provide both source and target author emails', 'error')
+        return redirect(url_for('opmed.editorial_dashboard'))
+    
+    from_user = User.query.filter_by(email=from_email).first()
+    to_user = User.query.filter_by(email=to_email).first()
+    
+    if not from_user:
+        flash(f'No user found with email: {from_email}', 'error')
+        return redirect(url_for('opmed.editorial_dashboard'))
+    
+    if not to_user:
+        flash(f'No user found with email: {to_email}', 'error')
+        return redirect(url_for('opmed.editorial_dashboard'))
+    
+    articles = OpMedArticle.query.filter_by(author_id=from_user.id).all()
+    count = len(articles)
+    
+    for article in articles:
+        article.author_id = to_user.id
+    
+    db.session.commit()
+    
+    flash(f'Reassigned {count} articles from {from_user.first_name} {from_user.last_name} to {to_user.first_name} {to_user.last_name}', 'success')
+    return redirect(url_for('opmed.editorial_dashboard', filter='published'))
