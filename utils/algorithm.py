@@ -477,24 +477,40 @@ def get_people_you_may_know(user, limit=6):
     3. Followed by people you follow (mutual connections)
     4. Active users with high engagement
     
-    Excludes: current user, users already following
+    Excludes: current user, users already following, users with pending/accepted connections
     """
-    from models import User, Follow, Post
-    from sqlalchemy import func, and_
+    from models import User, Follow, Post, Connection
+    from sqlalchemy import func, and_, or_
     
     # Get list of users already being followed
     following_ids = [f.following_id for f in 
                      Follow.query.filter_by(follower_id=user.id).all()]
     following_ids.append(user.id)  # Also exclude self
     
+    # Get list of users with existing connection requests (sent or received)
+    connection_ids = set()
+    connections = Connection.query.filter(
+        or_(
+            Connection.requester_id == user.id,
+            Connection.addressee_id == user.id
+        )
+    ).all()
+    for conn in connections:
+        connection_ids.add(conn.requester_id)
+        connection_ids.add(conn.addressee_id)
+    connection_ids.discard(user.id)  # Don't include self
+    
+    # Combine exclusions
+    exclude_ids = set(following_ids) | connection_ids
+    
     suggestions = []
     suggestion_ids = set()
     
-    # Priority 1: Same specialty, not following
+    # Priority 1: Same specialty, not following/connected
     if user.specialty:
         same_specialty = User.query.filter(
             User.specialty == user.specialty,
-            User.id.notin_(following_ids),
+            User.id.notin_(exclude_ids),
             User.is_verified == True
         ).order_by(User.level.desc()).limit(limit * 2).all()
         
@@ -507,7 +523,7 @@ def get_people_you_may_know(user, limit=6):
     if user.license_state and len(suggestions) < limit:
         same_location = User.query.filter(
             User.license_state == user.license_state,
-            User.id.notin_(following_ids),
+            User.id.notin_(exclude_ids),
             User.id.notin_(list(suggestion_ids))
         ).order_by(User.level.desc()).limit(limit).all()
         
@@ -523,7 +539,7 @@ def get_people_you_may_know(user, limit=6):
             Follow, Follow.following_id == User.id
         ).filter(
             Follow.follower_id.in_(following_ids),
-            User.id.notin_(following_ids),
+            User.id.notin_(exclude_ids),
             User.id.notin_(list(suggestion_ids))
         ).group_by(User.id).order_by(
             func.count(Follow.id).desc()
@@ -537,7 +553,7 @@ def get_people_you_may_know(user, limit=6):
     # Priority 4: Active verified users
     if len(suggestions) < limit:
         active_users = User.query.filter(
-            User.id.notin_(following_ids),
+            User.id.notin_(exclude_ids),
             User.id.notin_(list(suggestion_ids)),
             User.is_verified == True
         ).order_by(User.points.desc()).limit(limit).all()

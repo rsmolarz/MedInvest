@@ -853,6 +853,19 @@ def network():
         
         suggestions = get_people_you_may_know(current_user, limit=20)
         
+        # Get ALL connections involving current user (for exclusion)
+        all_connection_user_ids = set()
+        all_connections = Connection.query.filter(
+            db.or_(Connection.requester_id == current_user.id, Connection.addressee_id == current_user.id)
+        ).all()
+        for conn in all_connections:
+            all_connection_user_ids.add(conn.requester_id)
+            all_connection_user_ids.add(conn.addressee_id)
+        all_connection_user_ids.discard(current_user.id)
+        
+        # Combine connected IDs with all connection IDs for exclusion
+        exclude_ids = all_connected_ids.union(all_connection_user_ids)
+        
         # People near me
         near_me = []
         if current_user.license_state:
@@ -860,8 +873,8 @@ def network():
                 User.license_state == current_user.license_state,
                 User.id != current_user.id
             )
-            if all_connected_ids:
-                near_me_query = near_me_query.filter(User.id.notin_(list(all_connected_ids)))
+            if exclude_ids:
+                near_me_query = near_me_query.filter(User.id.notin_(list(exclude_ids)))
             near_me = near_me_query.order_by(User.points.desc()).limit(20).all()
         
         # People in the same specialty
@@ -871,8 +884,8 @@ def network():
                 User.specialty == current_user.specialty,
                 User.id != current_user.id
             )
-            if all_connected_ids:
-                same_specialty_query = same_specialty_query.filter(User.id.notin_(list(all_connected_ids)))
+            if exclude_ids:
+                same_specialty_query = same_specialty_query.filter(User.id.notin_(list(exclude_ids)))
             same_specialty = same_specialty_query.order_by(User.points.desc()).limit(20).all()
         
         # Colleagues = all accepted connections
@@ -883,6 +896,7 @@ def network():
             ).order_by(User.last_name).all()
         
         # New members (joined in last 7 days)
+        # Exclude users we've already connected or sent connection requests to
         new_members = []
         try:
             week_ago = datetime.utcnow() - timedelta(days=7)
@@ -890,8 +904,8 @@ def network():
                 User.created_at >= week_ago,
                 User.id != current_user.id
             )
-            if all_connected_ids:
-                new_members_query = new_members_query.filter(User.id.notin_(list(all_connected_ids)))
+            if exclude_ids:
+                new_members_query = new_members_query.filter(User.id.notin_(list(exclude_ids)))
             new_members = new_members_query.order_by(User.created_at.desc()).limit(10).all()
         except Exception:
             new_members = []
