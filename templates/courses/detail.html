@@ -60,15 +60,31 @@
     </div>
     
     {% if course.course_embed_code %}
-    <div class="row mt-5" id="course-content">
+    <div class="row mt-4" id="course-content">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-success text-white">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="fas fa-graduation-cap me-2"></i>Course Content</h5>
+                    {% if course.course_url %}
+                    <a href="{{ course.course_url }}" target="_blank" class="btn btn-light btn-sm">
+                        <i class="fas fa-external-link-alt me-1"></i>Open in New Tab
+                    </a>
+                    {% endif %}
                 </div>
                 <div class="card-body p-0">
-                    <div class="course-embed-container" style="width: 100%; height: 800px; overflow: hidden;">
-                        {{ course.course_embed_code|replace('height="100%"', 'height="800"')|safe }}
+                    <div class="course-embed-container" style="width: 100%; min-height: 800px; overflow: hidden; position: relative;">
+                        {{ course.course_embed_code|replace('height="100%"', 'height="800px"')|replace('width="100%"', 'width="100%" style="min-height:800px;border:none;"')|safe }}
+                    </div>
+                    <div class="p-3 bg-light border-top text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            If the content doesn't load, 
+                            {% if course.course_url %}
+                            <a href="{{ course.course_url }}" target="_blank">click here to open the course directly</a>.
+                            {% else %}
+                            please try refreshing the page.
+                            {% endif %}
+                        </small>
                     </div>
                 </div>
             </div>
