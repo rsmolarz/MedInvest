@@ -150,6 +150,13 @@ def google_login_custom():
 @auth_bp.route('/facebook-login')
 def facebook_login():
     """Facebook OAuth login with dynamic redirect_uri"""
+    # Read credentials at request time to ensure latest values
+    facebook_app_id = os.environ.get('FACEBOOK_APP_ID')
+    
+    if not facebook_app_id:
+        flash('Facebook login is not configured.', 'error')
+        return redirect(url_for('auth.login'))
+    
     state = secrets.token_urlsafe(32)
     session['oauth_state'] = state
     session['oauth_provider'] = 'facebook'
@@ -158,7 +165,7 @@ def facebook_login():
     session['oauth_redirect_uri'] = redirect_uri
     
     params = {
-        'client_id': FACEBOOK_APP_ID,
+        'client_id': facebook_app_id,
         'redirect_uri': redirect_uri,
         'response_type': 'code',
         'scope': 'public_profile,email',
@@ -166,7 +173,7 @@ def facebook_login():
     }
     
     auth_url = f"https://www.facebook.com/v18.0/dialog/oauth?{urlencode(params)}"
-    logging.info(f"Redirecting to Facebook OAuth with redirect_uri: {redirect_uri}")
+    logging.info(f"Facebook OAuth - App ID: {facebook_app_id}, redirect_uri: {redirect_uri}")
     return redirect(auth_url)
 
 
@@ -492,10 +499,14 @@ def facebook_callback():
         return redirect(url_for('auth.login'))
     
     try:
+        # Read credentials at request time to ensure latest values
+        facebook_app_id = os.environ.get('FACEBOOK_APP_ID')
+        facebook_app_secret = os.environ.get('FACEBOOK_APP_SECRET')
+        
         token_url = 'https://graph.facebook.com/v18.0/oauth/access_token'
         token_params = {
-            'client_id': FACEBOOK_APP_ID,
-            'client_secret': FACEBOOK_APP_SECRET,
+            'client_id': facebook_app_id,
+            'client_secret': facebook_app_secret,
             'redirect_uri': redirect_uri,
             'code': code
         }
