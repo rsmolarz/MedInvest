@@ -534,6 +534,77 @@ def toggle_course_publish(course_id):
     return jsonify({'success': True, 'is_published': course.is_published})
 
 
+@admin_bp.route('/courses/<int:course_id>/modules', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def manage_course_modules(course_id):
+    """Manage course modules/curriculum"""
+    from models import CourseModule
+    course = Course.query.get_or_404(course_id)
+    
+    if request.method == 'POST':
+        module = CourseModule(
+            course_id=course_id,
+            title=request.form.get('title'),
+            description=request.form.get('description'),
+            content=request.form.get('content'),
+            video_url=request.form.get('video_url'),
+            duration_minutes=int(request.form.get('duration_minutes', 0)) if request.form.get('duration_minutes') else 0,
+            order_index=CourseModule.query.filter_by(course_id=course_id).count()
+        )
+        db.session.add(module)
+        
+        course.total_modules = CourseModule.query.filter_by(course_id=course_id).count() + 1
+        course.total_duration_minutes = sum(m.duration_minutes or 0 for m in course.modules) + (module.duration_minutes or 0)
+        
+        db.session.commit()
+        flash('Module added successfully!', 'success')
+        return redirect(url_for('admin.manage_course_modules', course_id=course_id))
+    
+    modules = CourseModule.query.filter_by(course_id=course_id).order_by(CourseModule.order_index).all()
+    return render_template('admin/course_modules.html', course=course, modules=modules)
+
+
+@admin_bp.route('/courses/<int:course_id>/modules/<int:module_id>/edit', methods=['POST'])
+@login_required
+@admin_required
+def edit_course_module(course_id, module_id):
+    """Edit a course module"""
+    from models import CourseModule
+    module = CourseModule.query.get_or_404(module_id)
+    course = Course.query.get_or_404(course_id)
+    
+    module.title = request.form.get('title')
+    module.description = request.form.get('description')
+    module.content = request.form.get('content')
+    module.video_url = request.form.get('video_url')
+    module.duration_minutes = int(request.form.get('duration_minutes', 0)) if request.form.get('duration_minutes') else 0
+    
+    course.total_duration_minutes = sum(m.duration_minutes or 0 for m in course.modules)
+    
+    db.session.commit()
+    flash('Module updated successfully!', 'success')
+    return redirect(url_for('admin.manage_course_modules', course_id=course_id))
+
+
+@admin_bp.route('/courses/<int:course_id>/modules/<int:module_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_course_module(course_id, module_id):
+    """Delete a course module"""
+    from models import CourseModule
+    module = CourseModule.query.get_or_404(module_id)
+    course = Course.query.get_or_404(course_id)
+    
+    db.session.delete(module)
+    
+    course.total_modules = CourseModule.query.filter_by(course_id=course_id).count() - 1
+    course.total_duration_minutes = sum(m.duration_minutes or 0 for m in course.modules if m.id != module_id)
+    
+    db.session.commit()
+    return jsonify({'success': True})
+
+
 # ============================================================================
 # EVENTS MANAGEMENT
 # ============================================================================

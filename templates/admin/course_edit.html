@@ -79,6 +79,9 @@
                 </div>
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <a href="{{ url_for('admin.manage_course_modules', course_id=course.id) }}" class="btn btn-success">
+                        <i class="fas fa-list me-1"></i> Manage Curriculum
+                    </a>
                     <a href="{{ url_for('admin.manage_courses') }}" class="btn btn-outline-secondary">Cancel</a>
                 </div>
             </form>

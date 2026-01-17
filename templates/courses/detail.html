@@ -67,8 +67,8 @@
                     <h5 class="mb-0"><i class="fas fa-graduation-cap me-2"></i>Course Content</h5>
                 </div>
                 <div class="card-body p-0">
-                    <div class="course-embed-container" style="width: 100%; min-height: 700px; overflow: hidden;">
-                        {{ course.course_embed_code|safe }}
+                    <div class="course-embed-container" style="width: 100%; height: 800px; overflow: hidden;">
+                        {{ course.course_embed_code|replace('height="100%"', 'height="800"')|safe }}
                     </div>
                 </div>
             </div>
