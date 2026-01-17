@@ -580,7 +580,9 @@ def facebook_callback():
         return redirect(next_url or url_for('main.feed'))
         
     except Exception as e:
+        import traceback
         logging.error(f"Facebook OAuth error: {str(e)}")
+        logging.error(f"Facebook OAuth traceback: {traceback.format_exc()}")
         flash('An error occurred during Facebook login.', 'error')
         return redirect(url_for('auth.login'))
 
@@ -614,7 +616,7 @@ def facebook_data_deletion():
         data = json.loads(decoded_payload)
         
         # Verify signature
-        secret = FACEBOOK_APP_SECRET
+        secret = os.environ.get('FACEBOOK_APP_SECRET', '')
         expected_sig = hmac.new(
             secret.encode('utf-8'),
             payload.encode('utf-8'),
