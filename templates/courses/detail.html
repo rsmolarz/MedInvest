@@ -18,11 +18,11 @@
                         <br><small class="text-muted">{{ module.duration_minutes }} minutes</small>
                     </div>
                     {% if enrollment %}
-                    <span class="badge bg-{% if (module.id|string) in (enrollment.completed_modules or '') %}success{% else %}secondary{% endif %}">
-                        {% if (module.id|string) in (enrollment.completed_modules or '') %}Completed{% else %}Pending{% endif %}
+                    <span class="badge bg-{% if (module.id|string) in (enrollment.completed_modules or '') %}success{% else %}outline-secondary text-muted{% endif %}">
+                        {% if (module.id|string) in (enrollment.completed_modules or '') %}<i class="fas fa-check me-1"></i>Completed{% else %}<i class="fas fa-circle me-1"></i>Not Started{% endif %}
                     </span>
                     {% else %}
-                    <i class="fas fa-lock text-muted"></i>
+                    <i class="fas fa-lock text-muted" title="Enroll to access"></i>
                     {% endif %}
                 </div>
                 {% endfor %}
