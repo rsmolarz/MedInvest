@@ -1,7 +1,8 @@
-{% extends "admin/base.html" %}
+{% extends "base.html" %}
 {% block title %}LTI Tools - Admin{% endblock %}
 
-{% block admin_content %}
+{% block content %}
+<div class="container py-4">
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="fas fa-plug me-2"></i>LTI Tools</h2>
     <a href="{{ url_for('admin.create_lti_tool') }}" class="btn btn-success">
@@ -85,5 +86,6 @@
             <li><strong>Seamless Access</strong> - Users launch courses without additional login</li>
         </ol>
     </div>
+</div>
 </div>
 {% endblock %}
