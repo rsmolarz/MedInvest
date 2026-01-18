@@ -557,7 +557,7 @@ def facebook_callback():
     
     # Always use the fixed production redirect URI for Facebook
     # This ensures consistency between login and callback
-    redirect_uri = "https://med-invest-rsmolarz.replit.app/auth/facebook/callback"
+    redirect_uri = get_oauth_redirect_uri('facebook')
     
     logging.info(f"Facebook callback - Using redirect_uri: {redirect_uri}")
     
