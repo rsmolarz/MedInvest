@@ -42,6 +42,7 @@ Preferred communication style: Simple, everyday language.
 - **Enhanced Security**:
     - **Two-Factor Authentication (2FA)**: TOTP-based using pyotp and qrcode.
     - **Password Reset**: Secure token-based password reset flow.
+- **LTI 1.3 Integration**: Single Sign-On for external learning platforms (e.g., Coursebox). Includes RSA key management, JWKS endpoint, OIDC flow, and admin interface for tool configuration.
 - **Deployment**: Optimized health checks, port binding, and environment detection for cloud deployment.
 
 ## Data Models

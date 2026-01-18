@@ -137,22 +137,51 @@ def initiate_login(tool_id):
 @lti_bp.route('/auth/callback', methods=['GET', 'POST'])
 @login_required
 def auth_callback():
-    """Handle OIDC authentication callback from the tool"""
-    state = request.values.get('state')
+    """
+    Handle OIDC authentication callback from the tool.
     
-    if state != session.get('lti_state'):
-        flash('Invalid state parameter', 'error')
+    In LTI 1.3 platform-initiated flow:
+    1. Platform (us) initiates login to tool with state/nonce
+    2. Tool redirects back to this callback
+    3. Platform creates and signs JWT (id_token) with user claims
+    4. Platform POSTs id_token to tool's launch URL
+    
+    We don't receive a JWT from the tool - we create one for them to verify
+    using our JWKS endpoint.
+    """
+    state = request.values.get('state')
+    stored_state = session.get('lti_state')
+    
+    if not state or not stored_state or state != stored_state:
+        logger.warning(f"LTI callback: invalid state. Got {state}, expected {stored_state}")
+        flash('Invalid or expired session. Please try again.', 'error')
         return redirect(url_for('courses.list_courses'))
     
     tool_id = session.get('lti_tool_id')
-    tool = LTITool.query.get_or_404(tool_id)
-    course_id = session.get('lti_course_id')
+    if not tool_id:
+        flash('Session expired. Please try again.', 'error')
+        return redirect(url_for('courses.list_courses'))
     
+    tool = LTITool.query.get(tool_id)
+    if not tool or not tool.is_active:
+        flash('LTI tool not found or inactive.', 'error')
+        return redirect(url_for('courses.list_courses'))
+    
+    course_id = session.get('lti_course_id')
     course = None
     if course_id:
         course = Course.query.get(course_id)
     
-    id_token = create_lti_message(tool, course)
+    stored_state = session.pop('lti_state', None)
+    stored_nonce = session.pop('lti_nonce', None)
+    session.pop('lti_tool_id', None)
+    session.pop('lti_course_id', None)
+    
+    if not stored_nonce:
+        flash('Session expired. Please try again.', 'error')
+        return redirect(url_for('courses.list_courses'))
+    
+    id_token = create_lti_message(tool, course, nonce=stored_nonce)
     
     launch_url = tool.launch_url
     if course and course.lti_resource_link_id:
@@ -161,10 +190,7 @@ def auth_callback():
         else:
             launch_url += f"?resource_link_id={course.lti_resource_link_id}"
     
-    session.pop('lti_state', None)
-    session.pop('lti_nonce', None)
-    session.pop('lti_tool_id', None)
-    session.pop('lti_course_id', None)
+    logger.info(f"LTI launch: user {current_user.id} launching tool {tool.id} for course {course_id}")
     
     return render_template('lti/launch.html', 
                          launch_url=launch_url, 
@@ -172,10 +198,11 @@ def auth_callback():
                          state=state)
 
 
-def create_lti_message(tool, course=None):
+def create_lti_message(tool, course=None, nonce=None):
     """Create LTI 1.3 launch message JWT"""
     platform_issuer = get_platform_issuer()
-    nonce = session.get('lti_nonce', str(uuid.uuid4()))
+    if not nonce:
+        nonce = str(uuid.uuid4())
     
     now = datetime.utcnow()
     
