@@ -655,9 +655,12 @@ def facebook_callback():
         
     except Exception as e:
         import traceback
-        logging.error(f"Facebook OAuth error: {str(e)}")
-        logging.error(f"Facebook OAuth traceback: {traceback.format_exc()}")
-        flash('An error occurred during Facebook login.', 'error')
+        error_msg = str(e)
+        tb = traceback.format_exc()
+        logging.error(f"Facebook OAuth error: {error_msg}")
+        logging.error(f"Facebook OAuth traceback: {tb}")
+        # Show more detail to help debug (remove in production)
+        flash(f'Facebook login error: {error_msg[:200]}', 'error')
         return redirect(url_for('auth.login'))
 
 
