@@ -962,17 +962,17 @@ def create_lti_tool():
 def view_lti_tool(tool_id):
     """View LTI tool details and platform configuration"""
     from routes.lti import get_platform_issuer
-    from flask import url_for as flask_url_for
     
     tool = LTITool.query.get_or_404(tool_id)
     platform_issuer = get_platform_issuer()
     
+    # Use the platform issuer as base URL to ensure correct public URLs
     platform_config = {
         'issuer': platform_issuer,
         'client_id': tool.client_id,
-        'oidc_auth_url': flask_url_for('lti.auth_callback', _external=True),
-        'jwks_url': flask_url_for('lti.jwks', _external=True),
-        'launch_url': flask_url_for('lti.initiate_login', tool_id=tool.id, _external=True)
+        'oidc_auth_url': f"{platform_issuer}/lti/auth/callback",
+        'jwks_url': f"{platform_issuer}/lti/jwks.json",
+        'launch_url': f"{platform_issuer}/lti/login/{tool.id}"
     }
     
     return render_template('admin/lti_tool_view.html', tool=tool, platform_config=platform_config)

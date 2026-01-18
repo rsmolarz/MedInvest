@@ -57,10 +57,17 @@ def generate_rsa_key_pair():
 
 
 def get_platform_issuer():
-    """Get the platform issuer URL"""
-    if os.environ.get('REPLIT_DEPLOYMENT'):
-        return f"https://{os.environ.get('REPL_SLUG')}.replit.app"
-    return request.host_url.rstrip('/')
+    """Get the platform issuer URL - always use the public URL"""
+    # Always use the production URL for LTI to ensure consistency
+    repl_slug = os.environ.get('REPL_SLUG', 'med-invest-rsmolarz')
+    repl_owner = os.environ.get('REPL_OWNER', 'rsmolarz')
+    
+    # Check for custom domain or use replit.app domain
+    if os.environ.get('REPLIT_DEV_DOMAIN'):
+        return f"https://{os.environ.get('REPLIT_DEV_DOMAIN')}"
+    
+    # Construct the public URL
+    return f"https://{repl_slug}-{repl_owner}.replit.app"
 
 
 @lti_bp.route('/jwks.json')
