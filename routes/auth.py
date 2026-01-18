@@ -545,21 +545,21 @@ def facebook_callback():
     """Handle Facebook OAuth callback - simplified approach"""
     import requests
     
+    # Log all incoming parameters for debugging
+    logging.info(f"Facebook callback - Full URL: {request.url}")
+    logging.info(f"Facebook callback - Args: {dict(request.args)}")
+    
     state = request.args.get('state')
     
     # Clear session state (cleanup)
     session.pop('oauth_state', None)
     session.pop('oauth_redirect_uri', None)
     
-    # Try to verify signed state first, fall back to regenerating redirect_uri
-    redirect_uri = verify_signed_oauth_state(state, 'facebook')
+    # Always use the fixed production redirect URI for Facebook
+    # This ensures consistency between login and callback
+    redirect_uri = "https://med-invest-rsmolarz.replit.app/auth/facebook/callback"
     
-    if not redirect_uri:
-        # Fall back to generating redirect_uri from current request
-        logging.warning(f"Facebook OAuth state verification failed, using fallback redirect_uri")
-        redirect_uri = get_oauth_redirect_uri('facebook')
-    
-    logging.info(f"Facebook callback - redirect_uri: {redirect_uri}")
+    logging.info(f"Facebook callback - Using redirect_uri: {redirect_uri}")
     
     error = request.args.get('error')
     if error:
