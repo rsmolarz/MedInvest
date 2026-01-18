@@ -1,0 +1,91 @@
+email
+The email permission allows your app to read a person's primary email address.
+…
+Full Description
+Requirements
+0
+Ready to publish
+public_profile
+The public_profile permission allows an app to read the Default Public Profile Fields on the User node. This permission is automatically granted to all apps.
+…
+Full Description
+Requirements
+7
+Ready to publish
+user_age_range
+The user_age_range permission allows your app to access a person's age range as listed in their Facebook profile.
+…
+Full Description
+Requirements
+
+
+user_birthday
+The user_birthday permission allows your app to read a person's birthday as listed in their Facebook profile.
+…
+Full Description
+Requirements
+
+
+user_friends
+The user_friends permission allows your app to get a list of a person's friends using that app.
+…
+Full Description
+Requirements
+
+
+user_gender
+The user_gender permission allows your app to read a person's gender as listed in their Facebook profile.
+…
+Full Description
+Requirements
+
+
+user_hometown
+The user_hometown permission allows your app to read a person's hometown location from their Facebook profile.
+…
+Full Description
+Requirements
+
+
+user_likes
+The user_likes permission allows your app to read a list of all Facebook Pages that a user has liked.
+…
+Full Description
+Requirements
+
+
+user_link
+The user_link permission allows your app to access the Facebook profile URL of the person using your app.
+…
+Full Description
+Requirements
+
+
+user_location
+The user_location permission allows your app to read the city name as listed in the location field of a person's Facebook profile.
+…
+Full Description
+Requirements
+
+
+user_photos
+The user_photos permission allows your app to read the photos a person has uploaded to Facebook.
+…
+Full Description
+Requirements
+
+
+user_posts
+The user_posts permission allows your app to access the posts that a user has made on their timeline.
+…
+Full Description
+Requirements
+
+
+user_videos
+The user_videos permission allows your app to read a list of videos uploaded by a person.
+…
+Full Description
+Requirements
+
+
