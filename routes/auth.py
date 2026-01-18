@@ -41,16 +41,22 @@ APPLE_PRIVATE_KEY = os.environ.get('APPLE_PRIVATE_KEY', '').replace('\\n', '\n')
 
 
 def get_oauth_redirect_uri(provider):
-    """Get the OAuth redirect URI based on the current request URL"""
+    """Get the OAuth redirect URI - always use the public production URL for consistency"""
+    # Check for custom domain first
     custom_domain = os.environ.get('CUSTOM_DOMAIN')
     if custom_domain:
         base_url = f"https://{custom_domain}"
-    elif request.host.endswith('.replit.app') or request.host.endswith('.replit.dev'):
-        base_url = f"https://{request.host}"
-    elif request.headers.get('X-Forwarded-Proto') == 'https':
-        base_url = f"https://{request.host}"
     else:
-        base_url = request.host_url.rstrip('/')
+        # Always construct the public Replit URL for OAuth consistency
+        repl_slug = os.environ.get('REPL_SLUG', 'med-invest-rsmolarz')
+        repl_owner = os.environ.get('REPL_OWNER', 'rsmolarz')
+        
+        # Check if we're on a .replit.app domain already
+        if request.host.endswith('.replit.app'):
+            base_url = f"https://{request.host}"
+        else:
+            # Construct the public URL
+            base_url = f"https://{repl_slug}-{repl_owner}.replit.app"
     
     logging.info(f"OAuth redirect URI for {provider}: {base_url}/auth/{provider}/callback")
     return f"{base_url}/auth/{provider}/callback"
