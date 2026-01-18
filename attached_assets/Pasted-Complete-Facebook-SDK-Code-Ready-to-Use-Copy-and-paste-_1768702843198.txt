@@ -1,0 +1,71 @@
+Complete Facebook SDK Code (Ready to Use)
+Copy and paste this entire code block into your login page HTML. It should go right after the opening <body> tag or at the very top of your <head> section:
+html<script>
+  window.fbAsyncInit = function() {
+    FB.init({
+      appId      : '136830059484019',
+      cookie     : true,
+      xfbml      : true,
+      version    : 'v18.0'
+    });
+    FB.AppEvents.logPageView();
+  };
+  
+  (function(d, s, id){
+    var js, fjs = d.getElementsByTagName(s)[0];
+    if (d.getElementById(id)) {return;}
+    js = d.createElement(s);
+    js.id = id;
+    js.src = "https://connect.facebook.net/en_US/sdk.js";
+    fjs.parentNode.insertBefore(js, fjs);
+  }(document, 'script', 'facebook-jssdk'));
+</script>
+Where to Place It
+The best location is right after your opening <body> tag:
+html<body>
+  <!-- PLACE THE FACEBOOK SDK HERE -->
+  <script>
+    window.fbAsyncInit = function() {
+      FB.init({
+        appId      : '136830059484019',
+        cookie     : true,
+        xfbml      : true,
+        version    : 'v18.0'
+      });
+      FB.AppEvents.logPageView();
+    };
+    
+    (function(d, s, id){
+      var js, fjs = d.getElementsByTagName(s)[0];
+      if (d.getElementById(id)) {return;}
+      js = d.createElement(s);
+      js.id = id;
+      js.src = "https://connect.facebook.net/en_US/sdk.js";
+      fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));
+  </script>
+
+  <!-- Rest of your page content -->
+  <nav>...</nav>
+  <main>...</main>
+</body>
+```
+
+## **What This Code Does**
+
+- **Loads the Facebook SDK** from Facebook's CDN
+- **Initializes it** with your App ID (`136830059484019`)
+- **Logs page views** for analytics
+- **Enables cookies** for proper authentication flow
+
+## **Important Next Step: Configure Your Callback URL**
+
+You also need to tell Facebook where to redirect users after they authenticate. In your **Facebook Developer Dashboard**:
+
+1. Go to [https://developers.facebook.com/apps](https://developers.facebook.com/apps)
+2. Select your app
+3. Go to **Settings > Basic** (or **Facebook Login > Settings**)
+4. Under "Valid OAuth Redirect URIs", add:
+```
+   https://medmoneyincubator.com/auth/facebook-login/callback
+After You Add the Code
