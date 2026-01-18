@@ -73,6 +73,18 @@ def serve_media(filename):
 @login_required
 def feed():
     """Main feed with posts - algorithmic by default, with chronological toggle"""
+    try:
+        return _feed_internal()
+    except Exception as e:
+        import traceback
+        logging.error(f"Feed error: {str(e)}")
+        logging.error(f"Feed traceback: {traceback.format_exc()}")
+        flash(f'Feed error: {str(e)[:300]}', 'error')
+        return render_template('error.html', error_code=500, error_message=f'Feed error: {str(e)[:200]}'), 500
+
+
+def _feed_internal():
+    """Internal feed logic - separated for error handling"""
     page = request.args.get('page', 1, type=int)
     feed_type = request.args.get('sort', 'algorithm')  # 'algorithm' or 'latest'
     per_page = 20
