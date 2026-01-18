@@ -40,7 +40,7 @@ APPLE_KEY_ID = os.environ.get('APPLE_KEY_ID')
 APPLE_PRIVATE_KEY = os.environ.get('APPLE_PRIVATE_KEY', '').replace('\\n', '\n')
 
 
-n(provider):
+def get_oauth_redirect_uri(provider):
     """Get the OAuth redirect URI - always use the public production URL for consistency"""
     # Check for custom domain first
     custom_domain = os.environ.get('CUSTOM_DOMAIN')

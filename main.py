@@ -4,10 +4,8 @@ from flask import session
 from app import app, db
 
 # Configure logging for production
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s %(levelname)s %(name)s %(message)s'
-)
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s %(levelname)s %(name)s %(message)s')
 
 # Set up Replit Auth (includes Flask-Login)
 from replit_auth import make_replit_blueprint, login_manager
@@ -16,10 +14,12 @@ from replit_auth import make_replit_blueprint, login_manager
 login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'info'
 
+
 # Make session permanent
 @app.before_request
 def make_session_permanent():
     session.permanent = True
+
 
 # Register Replit Auth blueprint
 app.register_blueprint(make_replit_blueprint(), url_prefix="/auth")
@@ -47,6 +47,7 @@ from routes.opmed import opmed_bp
 from routes.connections import connections_bp
 from routes.push import push_bp
 from routes.lti import lti_bp
+from routes.webhooks import webhooks_bp
 
 app.register_blueprint(main_bp)
 app.register_blueprint(auth_bp)
@@ -75,10 +76,14 @@ app.register_blueprint(lti_bp)
 app.register_blueprint(errors_bp)
 
 # Template filter for getting user by ID
+app.register_blueprint(webhooks_bp)
 from models import User
+
+
 @app.template_filter('get_user')
 def get_user_filter(user_id):
     return User.query.get(user_id)
+
 
 # Import legacy routes for backwards compatibility
 import routes  # noqa: F401
