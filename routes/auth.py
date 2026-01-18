@@ -634,6 +634,10 @@ def facebook_callback():
             if picture_url and not user.profile_image_url:
                 user.profile_image_url = picture_url
         else:
+            # Generate a random unusable password for OAuth users
+            from werkzeug.security import generate_password_hash
+            random_password = secrets.token_urlsafe(32)
+            
             user = User(
                 email=email,
                 first_name=fb_info.get('first_name', 'User'),
@@ -642,6 +646,7 @@ def facebook_callback():
                 profile_image_url=picture_url,
                 specialty='',
                 medical_license=f'FACEBOOK-{fb_id}',
+                password_hash=generate_password_hash(random_password),
             )
             user.generate_referral_code()
             db.session.add(user)
