@@ -47,16 +47,9 @@ def get_oauth_redirect_uri(provider):
     if custom_domain:
         base_url = f"https://{custom_domain}"
     else:
-        # Always construct the public Replit URL for OAuth consistency
-        repl_slug = os.environ.get('REPL_SLUG', 'med-invest-rsmolarz')
-        repl_owner = os.environ.get('REPL_OWNER', 'rsmolarz')
-        
-        # Check if we're on a .replit.app domain already
-        if request.host.endswith('.replit.app'):
-            base_url = f"https://{request.host}"
-        else:
-            # Construct the public URL
-            base_url = f"https://{repl_slug}-{repl_owner}.replit.app"
+        # Always use the fixed production URL for OAuth callbacks
+        # This ensures Facebook, Google, GitHub etc. callbacks match their configured URLs
+        base_url = "https://med-invest-rsmolarz.replit.app"
     
     logging.info(f"OAuth redirect URI for {provider}: {base_url}/auth/{provider}/callback")
     return f"{base_url}/auth/{provider}/callback"
