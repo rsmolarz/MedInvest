@@ -63,6 +63,40 @@
                         <small class="text-muted">Paste iframe or embed code here. This will embed the course directly on the page (takes priority over Course URL)</small>
                     </div>
                 </div>
+                
+                <div class="card bg-dark border-success mb-3">
+                    <div class="card-header bg-success bg-opacity-25">
+                        <h6 class="mb-0"><i class="fas fa-plug me-2"></i>LTI Integration (Single Sign-On)</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small">Enable seamless login to external course platforms. Users won't need to log in separately.</p>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">LTI Tool</label>
+                                <select name="lti_tool_id" class="form-select">
+                                    <option value="">-- None (No LTI) --</option>
+                                    {% for tool in lti_tools %}
+                                    <option value="{{ tool.id }}" {% if course.lti_tool_id == tool.id %}selected{% endif %}>
+                                        {{ tool.name }} {% if not tool.is_active %}(Inactive){% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Select an LTI tool to enable SSO launch</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">LTI Resource Link ID</label>
+                                <input type="text" name="lti_resource_link_id" class="form-control" 
+                                       value="{{ course.lti_resource_link_id or '' }}"
+                                       placeholder="Optional: Course ID in the external platform">
+                                <small class="text-muted">Unique identifier for this course in the external system</small>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('admin.manage_lti_tools') }}" class="btn btn-sm btn-outline-success">
+                            <i class="fas fa-cog me-1"></i>Manage LTI Tools
+                        </a>
+                    </div>
+                </div>
+                
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <div class="form-check">

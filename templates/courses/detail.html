@@ -34,7 +34,12 @@
                 <div class="card-body text-center">
                     <div class="display-4 fw-bold mb-3">${{ '{:.0f}'.format(course.price) }}</div>
                     <p class="text-muted">{{ course.total_modules }} modules • {{ course.total_duration_minutes }} minutes</p>
-                    {% if course.course_embed_code %}
+                    {% if course.lti_tool_id and course.lti_tool and course.lti_tool.is_active %}
+                    <a href="{{ url_for('lti.launch_course', course_id=course.id) }}" class="btn btn-success btn-lg w-100 mb-2">
+                        <i class="fas fa-sign-in-alt me-2"></i>Launch Course
+                    </a>
+                    <small class="text-muted d-block mb-3"><i class="fas fa-check-circle text-success me-1"></i>Single sign-on enabled</small>
+                    {% elif course.course_embed_code %}
                     <a href="#course-content" class="btn btn-success btn-lg w-100 mb-2">
                         <i class="fas fa-play-circle me-2"></i>Start Learning
                     </a>

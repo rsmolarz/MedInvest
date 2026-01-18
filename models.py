@@ -1055,6 +1055,40 @@ class MentorApplication(db.Model):
 
 
 # ============================================================================
+# LTI 1.3 INTEGRATION
+# ============================================================================
+
+class LTITool(db.Model):
+    """LTI 1.3 Tool configuration for external learning platforms"""
+    __tablename__ = 'lti_tools'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    
+    # LTI 1.3 Configuration
+    issuer = db.Column(db.String(500), nullable=False)  # Tool's issuer/platform ID
+    client_id = db.Column(db.String(200), nullable=False)  # Our client ID registered with the tool
+    deployment_id = db.Column(db.String(200))  # Deployment ID
+    
+    # Tool Endpoints
+    oidc_auth_url = db.Column(db.String(500), nullable=False)  # OIDC authorization URL
+    token_url = db.Column(db.String(500))  # Token endpoint for API calls
+    jwks_url = db.Column(db.String(500), nullable=False)  # Tool's JWKS endpoint
+    launch_url = db.Column(db.String(500), nullable=False)  # Tool launch/target link URL
+    
+    # Our Platform Keys (generated)
+    public_key = db.Column(db.Text)  # Our platform's public key (PEM)
+    private_key = db.Column(db.Text)  # Our platform's private key (PEM)
+    
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    courses = db.relationship('Course', backref='lti_tool', lazy='dynamic')
+
+
+# ============================================================================
 # COURSES & EDUCATIONAL CONTENT
 # ============================================================================
 
@@ -1075,6 +1109,8 @@ class Course(db.Model):
     preview_video_url = db.Column(db.String(500))
     course_url = db.Column(db.String(500))
     course_embed_code = db.Column(db.Text)  # Iframe or embed code for external courses
+    lti_tool_id = db.Column(db.Integer, db.ForeignKey('lti_tools.id'))  # LTI tool for this course
+    lti_resource_link_id = db.Column(db.String(200))  # Unique ID for this course in LTI context
     is_published = db.Column(db.Boolean, default=False)
     is_featured = db.Column(db.Boolean, default=False)
     enrolled_count = db.Column(db.Integer, default=0)

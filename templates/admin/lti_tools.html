@@ -1,0 +1,89 @@
+{% extends "admin/base.html" %}
+{% block title %}LTI Tools - Admin{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-plug me-2"></i>LTI Tools</h2>
+    <a href="{{ url_for('admin.create_lti_tool') }}" class="btn btn-success">
+        <i class="fas fa-plus me-2"></i>Add LTI Tool
+    </a>
+</div>
+
+<div class="card bg-dark">
+    <div class="card-body">
+        <p class="text-muted mb-4">
+            LTI (Learning Tools Interoperability) allows seamless integration with external learning platforms. 
+            Users can access courses on platforms like Coursebox without logging in separately.
+        </p>
+        
+        {% if tools %}
+        <div class="table-responsive">
+            <table class="table table-dark table-hover">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Issuer</th>
+                        <th>Status</th>
+                        <th>Courses</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tool in tools %}
+                    <tr>
+                        <td>
+                            <strong>{{ tool.name }}</strong>
+                            {% if tool.description %}
+                            <br><small class="text-muted">{{ tool.description[:50] }}...</small>
+                            {% endif %}
+                        </td>
+                        <td><small>{{ tool.issuer[:40] }}...</small></td>
+                        <td>
+                            {% if tool.is_active %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ tool.courses.count() }}</td>
+                        <td>{{ tool.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            <a href="{{ url_for('admin.view_lti_tool', tool_id=tool.id) }}" class="btn btn-sm btn-outline-info">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{{ url_for('admin.edit_lti_tool', tool_id=tool.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-plug fa-3x text-muted mb-3"></i>
+            <p class="text-muted">No LTI tools configured yet.</p>
+            <a href="{{ url_for('admin.create_lti_tool') }}" class="btn btn-success">
+                <i class="fas fa-plus me-2"></i>Add Your First LTI Tool
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card bg-dark mt-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>How LTI Integration Works</h5>
+    </div>
+    <div class="card-body">
+        <ol class="mb-0">
+            <li class="mb-2"><strong>Add an LTI Tool</strong> - Enter your learning platform's LTI configuration (like Coursebox)</li>
+            <li class="mb-2"><strong>Configure in Platform</strong> - Add MedInvest's platform details to your learning platform</li>
+            <li class="mb-2"><strong>Link Courses</strong> - Associate MedInvest courses with the LTI tool</li>
+            <li><strong>Seamless Access</strong> - Users launch courses without additional login</li>
+        </ol>
+    </div>
+</div>
+{% endblock %}

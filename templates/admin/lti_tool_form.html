@@ -1,0 +1,146 @@
+{% extends "admin/base.html" %}
+{% block title %}{% if tool %}Edit{% else %}Add{% endif %} LTI Tool - Admin{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-plug me-2"></i>
+        {% if tool %}Edit LTI Tool{% else %}Add LTI Tool{% endif %}
+    </h2>
+    <a href="{{ url_for('admin.manage_lti_tools') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Tools
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <form method="POST">
+            <div class="card bg-dark mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Basic Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tool Name</label>
+                        <input type="text" name="name" class="form-control bg-dark text-white" 
+                               value="{{ tool.name if tool else '' }}" required
+                               placeholder="e.g., Coursebox">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control bg-dark text-white" rows="2"
+                                  placeholder="Optional description">{{ tool.description if tool else '' }}</textarea>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input type="checkbox" name="is_active" class="form-check-input" id="is_active"
+                               {{ 'checked' if not tool or tool.is_active else '' }}>
+                        <label class="form-check-label" for="is_active">Active</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card bg-dark mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">LTI 1.3 Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-4">
+                        Get these values from your LTI tool's admin settings (e.g., Coursebox Developer Settings)
+                    </p>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Issuer / Platform ID</label>
+                        <input type="text" name="issuer" class="form-control bg-dark text-white" 
+                               value="{{ tool.issuer if tool else '' }}" required
+                               placeholder="e.g., https://my.coursebox.ai">
+                        <small class="text-muted">The tool's issuer URL (usually their domain)</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Client ID</label>
+                            <input type="text" name="client_id" class="form-control bg-dark text-white" 
+                                   value="{{ tool.client_id if tool else '' }}" required
+                                   placeholder="Your client ID from the tool">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Deployment ID</label>
+                            <input type="text" name="deployment_id" class="form-control bg-dark text-white" 
+                                   value="{{ tool.deployment_id if tool else '' }}"
+                                   placeholder="Optional deployment ID">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card bg-dark mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Tool Endpoints</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">OIDC Authorization URL</label>
+                        <input type="url" name="oidc_auth_url" class="form-control bg-dark text-white" 
+                               value="{{ tool.oidc_auth_url if tool else '' }}" required
+                               placeholder="https://my.coursebox.ai/lti/oidc/auth">
+                        <small class="text-muted">The tool's OIDC login initiation endpoint</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">JWKS URL</label>
+                        <input type="url" name="jwks_url" class="form-control bg-dark text-white" 
+                               value="{{ tool.jwks_url if tool else '' }}" required
+                               placeholder="https://my.coursebox.ai/.well-known/jwks.json">
+                        <small class="text-muted">The tool's public key endpoint</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Launch URL / Target Link URI</label>
+                        <input type="url" name="launch_url" class="form-control bg-dark text-white" 
+                               value="{{ tool.launch_url if tool else '' }}" required
+                               placeholder="https://my.coursebox.ai/lti/launch">
+                        <small class="text-muted">Where to send the LTI launch request</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Token URL (Optional)</label>
+                        <input type="url" name="token_url" class="form-control bg-dark text-white" 
+                               value="{{ tool.token_url if tool else '' }}"
+                               placeholder="https://my.coursebox.ai/lti/token">
+                        <small class="text-muted">For API access (if supported)</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-save me-2"></i>{% if tool %}Save Changes{% else %}Create Tool{% endif %}
+                </button>
+                <a href="{{ url_for('admin.manage_lti_tools') }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card bg-dark">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Platform Info</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">
+                    After creating this tool, you'll get MedInvest's platform details to configure in your LTI tool.
+                </p>
+                
+                <p class="mb-2"><strong>Platform Issuer:</strong></p>
+                <code class="d-block p-2 bg-secondary rounded mb-3">{{ platform_issuer }}</code>
+                
+                <p class="text-muted small">
+                    The JWKS URL and other endpoints will be shown after you save this configuration.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

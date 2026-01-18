@@ -1,0 +1,207 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ tool.name }} - LTI Tool - Admin{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2>
+            <i class="fas fa-plug me-2"></i>{{ tool.name }}
+            {% if tool.is_active %}
+            <span class="badge bg-success ms-2">Active</span>
+            {% else %}
+            <span class="badge bg-secondary ms-2">Inactive</span>
+            {% endif %}
+        </h2>
+        {% if tool.description %}
+        <p class="text-muted mb-0">{{ tool.description }}</p>
+        {% endif %}
+    </div>
+    <div>
+        <a href="{{ url_for('admin.edit_lti_tool', tool_id=tool.id) }}" class="btn btn-primary">
+            <i class="fas fa-edit me-2"></i>Edit
+        </a>
+        <a href="{{ url_for('admin.manage_lti_tools') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card bg-dark mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-server me-2"></i>MedInvest Platform Configuration</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-4">
+                    Add these values to your LTI tool (Coursebox, etc.) to complete the integration:
+                </p>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">Platform Issuer</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control bg-dark text-white" 
+                               value="{{ platform_config.issuer }}" readonly id="issuer">
+                        <button class="btn btn-outline-secondary" onclick="copyToClipboard('issuer')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">Client ID</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control bg-dark text-white" 
+                               value="{{ platform_config.client_id }}" readonly id="clientId">
+                        <button class="btn btn-outline-secondary" onclick="copyToClipboard('clientId')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">OIDC Authentication URL</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control bg-dark text-white" 
+                               value="{{ platform_config.oidc_auth_url }}" readonly id="oidcUrl">
+                        <button class="btn btn-outline-secondary" onclick="copyToClipboard('oidcUrl')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">JWKS URL (Public Keys)</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control bg-dark text-white" 
+                               value="{{ platform_config.jwks_url }}" readonly id="jwksUrl">
+                        <button class="btn btn-outline-secondary" onclick="copyToClipboard('jwksUrl')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">Launch Initiation URL</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control bg-dark text-white" 
+                               value="{{ platform_config.launch_url }}" readonly id="launchUrl">
+                        <button class="btn btn-outline-secondary" onclick="copyToClipboard('launchUrl')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card bg-dark">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-key me-2"></i>RSA Keys</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">
+                    These keys are used for signing LTI messages. Regenerate only if compromised.
+                </p>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">Public Key (PEM)</label>
+                    <textarea class="form-control bg-dark text-white font-monospace" rows="4" readonly>{{ tool.public_key }}</textarea>
+                </div>
+                
+                <form method="POST" action="{{ url_for('admin.regenerate_lti_keys', tool_id=tool.id) }}" 
+                      onsubmit="return confirm('Are you sure? This will invalidate existing connections.')">
+                    <button type="submit" class="btn btn-outline-warning btn-sm">
+                        <i class="fas fa-sync me-2"></i>Regenerate Keys
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card bg-dark mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Tool Configuration</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-dark table-sm">
+                    <tr>
+                        <td class="text-muted">Issuer</td>
+                        <td>{{ tool.issuer }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Client ID</td>
+                        <td>{{ tool.client_id }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Deployment ID</td>
+                        <td>{{ tool.deployment_id or 'Not set' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">OIDC Auth URL</td>
+                        <td><small>{{ tool.oidc_auth_url }}</small></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">JWKS URL</td>
+                        <td><small>{{ tool.jwks_url }}</small></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Launch URL</td>
+                        <td><small>{{ tool.launch_url }}</small></td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Token URL</td>
+                        <td><small>{{ tool.token_url or 'Not set' }}</small></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <div class="card bg-dark">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-graduation-cap me-2"></i>Linked Courses</h5>
+            </div>
+            <div class="card-body">
+                {% set courses = tool.courses.all() %}
+                {% if courses %}
+                <ul class="list-group list-group-flush">
+                    {% for course in courses %}
+                    <li class="list-group-item bg-dark d-flex justify-content-between align-items-center">
+                        {{ course.title }}
+                        <a href="{{ url_for('admin.edit_course', course_id=course.id) }}" class="btn btn-sm btn-outline-primary">
+                            Edit
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted mb-0">No courses linked to this tool yet.</p>
+                <p class="small text-muted">Link courses by editing them and selecting this LTI tool.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <form method="POST" action="{{ url_for('admin.delete_lti_tool', tool_id=tool.id) }}" 
+          onsubmit="return confirm('Are you sure you want to delete this LTI tool?')">
+        <button type="submit" class="btn btn-outline-danger">
+            <i class="fas fa-trash me-2"></i>Delete Tool
+        </button>
+    </form>
+</div>
+
+<script>
+function copyToClipboard(elementId) {
+    const input = document.getElementById(elementId);
+    input.select();
+    document.execCommand('copy');
+    
+    const btn = input.nextElementSibling;
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i>';
+    setTimeout(() => btn.innerHTML = originalHtml, 2000);
+}
+</script>
+{% endblock %}

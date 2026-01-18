@@ -46,6 +46,7 @@ from routes.news import news_bp
 from routes.opmed import opmed_bp
 from routes.connections import connections_bp
 from routes.push import push_bp
+from routes.lti import lti_bp
 
 app.register_blueprint(main_bp)
 app.register_blueprint(auth_bp)
@@ -70,6 +71,7 @@ app.register_blueprint(news_bp)
 app.register_blueprint(opmed_bp)
 app.register_blueprint(connections_bp)
 app.register_blueprint(push_bp)
+app.register_blueprint(lti_bp)
 app.register_blueprint(errors_bp)
 
 # Template filter for getting user by ID

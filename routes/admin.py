@@ -8,7 +8,7 @@ from functools import wraps
 from app import db
 from models import (User, Post, Room, ExpertAMA, AMAStatus, InvestmentDeal, 
                    DealStatus, Course, Event, SubscriptionTier, AdAdvertiser, 
-                   AdCampaign, AdCreative, AdImpression, AdClick, MentorApplication)
+                   AdCampaign, AdCreative, AdImpression, AdClick, MentorApplication, LTITool)
 import json
 import hmac
 import hashlib
@@ -500,6 +500,9 @@ def edit_course(course_id):
         course.thumbnail_url = request.form.get('thumbnail_url')
         course.course_url = request.form.get('course_url')
         course.course_embed_code = request.form.get('course_embed_code')
+        lti_tool_id = request.form.get('lti_tool_id')
+        course.lti_tool_id = int(lti_tool_id) if lti_tool_id else None
+        course.lti_resource_link_id = request.form.get('lti_resource_link_id') or None
         course.is_published = request.form.get('is_published') == 'on'
         course.is_featured = request.form.get('is_featured') == 'on'
         
@@ -507,7 +510,8 @@ def edit_course(course_id):
         flash('Course updated successfully!', 'success')
         return redirect(url_for('admin.manage_courses'))
     
-    return render_template('admin/course_edit.html', course=course)
+    lti_tools = LTITool.query.order_by(LTITool.name).all()
+    return render_template('admin/course_edit.html', course=course, lti_tools=lti_tools)
 
 
 @admin_bp.route('/courses/<int:course_id>/delete', methods=['POST'])
@@ -902,3 +906,137 @@ def revoke_mentor_status(app_id):
     
     flash(f'{application.user.full_name} mentor status has been revoked.', 'warning')
     return redirect(url_for('admin.manage_mentors', tab='approved'))
+
+
+# ============================================================================
+# LTI TOOL MANAGEMENT
+# ============================================================================
+
+@admin_bp.route('/lti-tools')
+@login_required
+@admin_required
+def manage_lti_tools():
+    """List and manage LTI tools"""
+    tools = LTITool.query.order_by(LTITool.created_at.desc()).all()
+    return render_template('admin/lti_tools.html', tools=tools)
+
+
+@admin_bp.route('/lti-tools/new', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def create_lti_tool():
+    """Create a new LTI tool configuration"""
+    from routes.lti import generate_rsa_key_pair, get_platform_issuer
+    
+    if request.method == 'POST':
+        private_key, public_key = generate_rsa_key_pair()
+        
+        tool = LTITool(
+            name=request.form.get('name'),
+            description=request.form.get('description'),
+            issuer=request.form.get('issuer'),
+            client_id=request.form.get('client_id'),
+            deployment_id=request.form.get('deployment_id'),
+            oidc_auth_url=request.form.get('oidc_auth_url'),
+            token_url=request.form.get('token_url'),
+            jwks_url=request.form.get('jwks_url'),
+            launch_url=request.form.get('launch_url'),
+            public_key=public_key,
+            private_key=private_key,
+            is_active=request.form.get('is_active') == 'on'
+        )
+        
+        db.session.add(tool)
+        db.session.commit()
+        
+        flash('LTI tool created successfully!', 'success')
+        return redirect(url_for('admin.view_lti_tool', tool_id=tool.id))
+    
+    platform_issuer = get_platform_issuer()
+    return render_template('admin/lti_tool_form.html', tool=None, platform_issuer=platform_issuer)
+
+
+@admin_bp.route('/lti-tools/<int:tool_id>')
+@login_required
+@admin_required
+def view_lti_tool(tool_id):
+    """View LTI tool details and platform configuration"""
+    from routes.lti import get_platform_issuer
+    from flask import url_for as flask_url_for
+    
+    tool = LTITool.query.get_or_404(tool_id)
+    platform_issuer = get_platform_issuer()
+    
+    platform_config = {
+        'issuer': platform_issuer,
+        'client_id': tool.client_id,
+        'oidc_auth_url': flask_url_for('lti.auth_callback', _external=True),
+        'jwks_url': flask_url_for('lti.jwks', _external=True),
+        'launch_url': flask_url_for('lti.initiate_login', tool_id=tool.id, _external=True)
+    }
+    
+    return render_template('admin/lti_tool_view.html', tool=tool, platform_config=platform_config)
+
+
+@admin_bp.route('/lti-tools/<int:tool_id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_lti_tool(tool_id):
+    """Edit LTI tool configuration"""
+    from routes.lti import get_platform_issuer
+    
+    tool = LTITool.query.get_or_404(tool_id)
+    
+    if request.method == 'POST':
+        tool.name = request.form.get('name')
+        tool.description = request.form.get('description')
+        tool.issuer = request.form.get('issuer')
+        tool.client_id = request.form.get('client_id')
+        tool.deployment_id = request.form.get('deployment_id')
+        tool.oidc_auth_url = request.form.get('oidc_auth_url')
+        tool.token_url = request.form.get('token_url')
+        tool.jwks_url = request.form.get('jwks_url')
+        tool.launch_url = request.form.get('launch_url')
+        tool.is_active = request.form.get('is_active') == 'on'
+        
+        db.session.commit()
+        flash('LTI tool updated successfully!', 'success')
+        return redirect(url_for('admin.view_lti_tool', tool_id=tool.id))
+    
+    platform_issuer = get_platform_issuer()
+    return render_template('admin/lti_tool_form.html', tool=tool, platform_issuer=platform_issuer)
+
+
+@admin_bp.route('/lti-tools/<int:tool_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_lti_tool(tool_id):
+    """Delete an LTI tool"""
+    tool = LTITool.query.get_or_404(tool_id)
+    
+    Course.query.filter_by(lti_tool_id=tool_id).update({'lti_tool_id': None})
+    
+    db.session.delete(tool)
+    db.session.commit()
+    
+    flash('LTI tool deleted', 'success')
+    return redirect(url_for('admin.manage_lti_tools'))
+
+
+@admin_bp.route('/lti-tools/<int:tool_id>/regenerate-keys', methods=['POST'])
+@login_required
+@admin_required
+def regenerate_lti_keys(tool_id):
+    """Regenerate RSA keys for an LTI tool"""
+    from routes.lti import generate_rsa_key_pair
+    
+    tool = LTITool.query.get_or_404(tool_id)
+    private_key, public_key = generate_rsa_key_pair()
+    
+    tool.private_key = private_key
+    tool.public_key = public_key
+    
+    db.session.commit()
+    
+    flash('RSA keys regenerated. Update the JWKS in your LTI tool configuration.', 'warning')
+    return redirect(url_for('admin.view_lti_tool', tool_id=tool.id))

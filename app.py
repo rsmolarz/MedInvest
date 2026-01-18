@@ -137,6 +137,20 @@ with app.app_context():
         db.session.rollback()
         logging.debug(f"Schema migration skipped (likely already applied): {e}")
     
+    # Migration 7: Add LTI columns to courses table
+    lti_course_columns = [
+        ("lti_tool_id", "INTEGER REFERENCES lti_tools(id)"),
+        ("lti_resource_link_id", "VARCHAR(200)"),
+    ]
+    for col_name, col_type in lti_course_columns:
+        try:
+            db.session.execute(text(f"ALTER TABLE courses ADD COLUMN {col_name} {col_type}"))
+            db.session.commit()
+            logging.info(f"Applied schema migration: courses.{col_name} added")
+        except Exception as e:
+            db.session.rollback()
+            logging.debug(f"Schema migration skipped (likely already applied): {e}")
+    
     # Auto-sync Ghost CMS articles on startup if database is empty
     try:
         from routes.opmed import auto_sync_ghost_articles
