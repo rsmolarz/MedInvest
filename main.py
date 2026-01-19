@@ -77,7 +77,6 @@ app.register_blueprint(errors_bp)
 
 # Template filter for getting user by ID
 app.register_blueprint(webhooks_bp)
-from models import User
 
 
 @app.template_filter('get_user')

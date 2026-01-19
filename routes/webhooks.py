@@ -140,3 +140,42 @@ def process_messaging_event(messaging):
                       logger.error(f"Error s")
                       }
                 )
+
+def process_message_for_platform(sender_id, message_text):
+              """Process incoming Facebook message and create post on platform"""""
+              try:
+                                logger.info(f"Processing message for platform from {sender_id}: {message_text}")
+
+        # Get or create user from Facebook sender_id
+                  user = User.query.filter_by(facebook_id=sender_id).first()
+
+        if not user:
+                              logger.info(f"Creating new user with Facebook ID {sender_id}")
+                              # Create new user with Facebook ID
+                              user = User(
+                                                        facebook_id=sender_id,
+                                                        username=f"fb_{sender_id}",
+                                                        email=f"fb_{sender_id}@medmoneyincubator.com"
+                              )
+            db.session.add(user)
+            db.session.commit()
+
+        # Create a post/activity from the message
+        from models import Post
+
+        post = Post(
+                              user_id=user.id,
+                              title="Facebook Page Post",
+                              content=message_text,
+                              source="facebook_page"
+        )
+        db.session.add(post)
+        db.session.commit()
+
+        logger.info(f"Created post from Facebook message for user {user.id}")
+
+except Exception as e:
+        logger.error(f"Error processing message for platform: {e}")
+        db.session.rollback()
+        )
+                              )
