@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, send_from_directory
 from flask_login import login_required, current_user
 from app import db
-from models import Post, Room, PostVote, Bookmark, PostMedia, User, Hashtag, NotificationType, PostScore, UserFeedPreference, InvestmentSkill, SkillEndorsement, Recommendation
+from models import Post, Room, PostVote, Bookmark, PostMedia, User, Hashtag, NotificationType, PostScore, UserFeedPreference, InvestmentSkill, SkillEndorsement, Recommendation, PostMention
 from utils.content import (
     extract_mentions, extract_hashtags, process_hashtags, 
     link_hashtag, render_content_with_links, get_trending_hashtags,
@@ -264,6 +264,23 @@ def create_post():
         db.session.add(post_media)
     
     current_user.add_points(5 if post_type == 'text' else 10)  # More points for media posts
+    
+    # Process @mentions - extract, save, and notify
+    if content:
+        mentioned_usernames = extract_mentions(content)
+        for username in mentioned_usernames:
+            mentioned_user = User.query.filter(
+                db.or_(
+                    db.func.lower(db.func.concat(User.first_name, User.last_name)) == username.lower(),
+                    db.func.lower(User.first_name) == username.lower()
+                )
+            ).first()
+            if mentioned_user and mentioned_user.id != current_user.id:
+                mention = PostMention(post_id=post.id, mentioned_user_id=mentioned_user.id)
+                db.session.add(mention)
+                if not is_anonymous:
+                    notify_mention(mentioned_user.id, current_user.id, post.id)
+    
     db.session.commit()
     
     # Share to Facebook Page if configured (non-anonymous posts only)
@@ -350,18 +367,20 @@ def create_post_ajax():
         for hashtag in hashtags:
             link_hashtag(post.id, hashtag, db)
         
-        # Process mentions (only if not anonymous)
-        if not is_anonymous:
-            mentioned_usernames = extract_mentions(content)
-            for username in mentioned_usernames:
-                # Find user by first name (simplified matching)
-                mentioned_user = User.query.filter(
+        # Process mentions - save records and notify
+        mentioned_usernames = extract_mentions(content)
+        for username in mentioned_usernames:
+            mentioned_user = User.query.filter(
+                db.or_(
+                    db.func.lower(db.func.concat(User.first_name, User.last_name)) == username.lower(),
                     db.func.lower(User.first_name) == username.lower()
-                ).first()
-                
-                if mentioned_user and mentioned_user.id != current_user.id:
-                    # Create notification for mention
-                    notify_mention(mentioned_user.id, current_user, post=post)
+                )
+            ).first()
+            if mentioned_user and mentioned_user.id != current_user.id:
+                mention = PostMention(post_id=post.id, mentioned_user_id=mentioned_user.id)
+                db.session.add(mention)
+                if not is_anonymous:
+                    notify_mention(mentioned_user.id, current_user.id, post.id)
     
     current_user.add_points(5 if post_type == 'text' else 10)
     db.session.commit()

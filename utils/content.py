@@ -155,17 +155,18 @@ def get_trending_hashtags(limit=10):
 def search_users_for_mention(query, limit=10):
     """Search users for @mention autocomplete"""
     from models import User
+    from app import db
     
     if not query:
         return []
     
-    query = query.lower()
+    query_lower = query.lower()
     
     users = User.query.filter(
         db.or_(
-            db.func.lower(User.first_name).like(f'{query}%'),
-            db.func.lower(User.last_name).like(f'{query}%'),
-            db.func.lower(User.email).like(f'{query}%')
+            db.func.lower(User.first_name).like(f'{query_lower}%'),
+            db.func.lower(User.last_name).like(f'{query_lower}%'),
+            db.func.lower(User.email).like(f'{query_lower}%')
         )
     ).limit(limit).all()
     

@@ -5,7 +5,9 @@ import re
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 from app import db
-from models import Room, Post, PostVote, Comment, RoomMembership
+from models import Room, Post, PostVote, Comment, RoomMembership, PostMention, User
+from utils.content import extract_mentions
+from routes.notifications import notify_mention
 
 rooms_bp = Blueprint('rooms', __name__, url_prefix='/rooms')
 
@@ -207,6 +209,23 @@ def create_room_post(slug):
     )
     
     db.session.add(post)
+    db.session.flush()
+    
+    # Process @mentions - extract, save, and notify
+    mentioned_usernames = extract_mentions(content)
+    for username in mentioned_usernames:
+        mentioned_user = User.query.filter(
+            db.or_(
+                db.func.lower(db.func.concat(User.first_name, User.last_name)) == username.lower(),
+                db.func.lower(User.first_name) == username.lower()
+            )
+        ).first()
+        if mentioned_user and mentioned_user.id != current_user.id:
+            mention = PostMention(post_id=post.id, mentioned_user_id=mentioned_user.id)
+            db.session.add(mention)
+            if not is_anonymous:
+                notify_mention(mentioned_user.id, current_user.id, post.id)
+    
     current_user.add_points(5)
     db.session.commit()
     
