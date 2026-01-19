@@ -198,9 +198,9 @@
                     {% elif current_user.verification_status == 'pending' %}
                     <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Verification Pending</span>
                     {% elif current_user.verification_status == 'rejected' %}
-                    <a href="{{ url_for('auth.verification') }}" class="badge bg-danger text-decoration-none"><i class="fas fa-exclamation-circle me-1"></i>Verification Rejected - Retry</a>
+                    <a href="{{ url_for('auth.verify_physician') }}" class="badge bg-danger text-decoration-none"><i class="fas fa-exclamation-circle me-1"></i>Verification Rejected - Retry</a>
                     {% else %}
-                    <a href="{{ url_for('auth.verification') }}" class="badge bg-secondary text-decoration-none"><i class="fas fa-user-md me-1"></i>Get Verified</a>
+                    <a href="{{ url_for('auth.verify_physician') }}" class="badge bg-secondary text-decoration-none"><i class="fas fa-user-md me-1"></i>Get Verified</a>
                     {% endif %}
                     <div class="btn-group btn-group-sm" role="group">
                     <a href="{{ url_for('main.feed', sort='algorithm') }}" 
