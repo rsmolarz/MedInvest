@@ -81,12 +81,15 @@ def analytics():
 def facebook_sync_status():
     """Facebook sync status and testing page"""
     import requests
-    from facebook_page import is_facebook_configured, FACEBOOK_PAGE_ID, FACEBOOK_PAGE_ACCESS_TOKEN
+    from facebook_page import is_facebook_configured, get_facebook_page_id, get_facebook_token
+    
+    page_id = get_facebook_page_id()
+    token = get_facebook_token()
     
     status = {
         'configured': is_facebook_configured(),
-        'page_id': FACEBOOK_PAGE_ID,
-        'token_present': bool(FACEBOOK_PAGE_ACCESS_TOKEN),
+        'page_id': page_id,
+        'token_present': bool(token),
         'token_valid': False,
         'page_name': None,
         'error': None,
@@ -97,8 +100,8 @@ def facebook_sync_status():
     if status['configured']:
         try:
             response = requests.get(
-                f"https://graph.facebook.com/v18.0/{FACEBOOK_PAGE_ID}",
-                params={'access_token': FACEBOOK_PAGE_ACCESS_TOKEN, 'fields': 'name,id'},
+                f"https://graph.facebook.com/v18.0/{page_id}",
+                params={'access_token': token, 'fields': 'name,id'},
                 timeout=10
             )
             if response.ok:
@@ -139,7 +142,7 @@ def facebook_sync_test():
 def facebook_sync_validate():
     """Validate Facebook webhook subscription"""
     import requests
-    from facebook_page import FACEBOOK_PAGE_ACCESS_TOKEN
+    from facebook_page import get_facebook_token
     
     # Check current webhook subscriptions
     try:

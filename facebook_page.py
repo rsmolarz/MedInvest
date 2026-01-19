@@ -7,17 +7,32 @@ import logging
 import requests
 from urllib.parse import urljoin
 
-FACEBOOK_PAGE_ACCESS_TOKEN = os.environ.get('FACEBOOK_PAGE_ACCESS_TOKEN')
-FACEBOOK_PAGE_ID = os.environ.get('FACEBOOK_PAGE_ID')
-PLATFORM_URL = os.environ.get('CUSTOM_DOMAIN', 'medmoneyincubator.com')
 
-if not PLATFORM_URL.startswith('http'):
-    PLATFORM_URL = f'https://{PLATFORM_URL}'
+def get_facebook_token():
+    """Get fresh Facebook token from environment"""
+    return os.environ.get('FACEBOOK_PAGE_ACCESS_TOKEN')
+
+
+def get_facebook_page_id():
+    """Get fresh Facebook page ID from environment"""
+    return os.environ.get('FACEBOOK_PAGE_ID')
+
+
+def get_platform_url():
+    """Get platform URL"""
+    url = os.environ.get('CUSTOM_DOMAIN', 'medmoneyincubator.com')
+    if not url.startswith('http'):
+        url = f'https://{url}'
+    return url
+
+
+# For backward compatibility - use getter functions for fresh values
+PLATFORM_URL = get_platform_url()
 
 
 def is_facebook_configured():
     """Check if Facebook page integration is configured"""
-    return bool(FACEBOOK_PAGE_ACCESS_TOKEN and FACEBOOK_PAGE_ID)
+    return bool(get_facebook_token() and get_facebook_page_id())
 
 
 def post_to_facebook(message, link=None, image_url=None):
@@ -37,10 +52,10 @@ def post_to_facebook(message, link=None, image_url=None):
         return {'success': False, 'error': 'Facebook not configured'}
     
     try:
-        api_url = f"https://graph.facebook.com/v18.0/{FACEBOOK_PAGE_ID}/feed"
+        api_url = f"https://graph.facebook.com/v18.0/{get_facebook_page_id()}/feed"
         
         params = {
-            'access_token': FACEBOOK_PAGE_ACCESS_TOKEN,
+            'access_token': get_facebook_token(),
             'message': message
         }
         
@@ -78,14 +93,14 @@ def post_with_photo(message, image_url, link=None):
         return {'success': False, 'error': 'Facebook not configured'}
     
     try:
-        api_url = f"https://graph.facebook.com/v18.0/{FACEBOOK_PAGE_ID}/photos"
+        api_url = f"https://graph.facebook.com/v18.0/{get_facebook_page_id()}/photos"
         
         full_message = message
         if link:
             full_message = f"{message}\n\n🔗 Read more: {link}"
         
         params = {
-            'access_token': FACEBOOK_PAGE_ACCESS_TOKEN,
+            'access_token': get_facebook_token(),
             'message': full_message,
             'url': image_url
         }
