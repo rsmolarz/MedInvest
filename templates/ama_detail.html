@@ -38,7 +38,7 @@
                             {{ ama.status|capitalize }}
                         </span>
                         <span class="badge bg-light text-dark">
-                            <i class="fas fa-clock me-1"></i>{{ ama.scheduled_for.strftime('%B %d, %Y at %I:%M %p') }}
+                            <i class="fas fa-clock me-1"></i>{{ ama.scheduled_for|localtime('full') }}
                         </span>
                         <span class="badge bg-light text-dark">
                             <i class="fas fa-hourglass-half me-1"></i>{{ ama.duration_minutes }} minutes

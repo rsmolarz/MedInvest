@@ -49,7 +49,7 @@
                             </form>
                             {% endif %}
                             {% endif %}
-                            <br><small class="text-muted">{{ post.created_at.strftime('%B %d, %Y at %I:%M %p') }}</small>
+                            <br><small class="text-muted">{{ post.created_at|localtime('full') }}</small>
                         </div>
                     </div>
                     {% if post.title %}<h4>{{ post.title }}</h4>{% endif %}

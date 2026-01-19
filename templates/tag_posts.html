@@ -48,7 +48,7 @@
                                             {% endif %}
                                         </h6>
                                         <small class="text-muted">
-                                            {{ post.created_at.strftime('%B %d at %I:%M %p') }}
+                                            {{ post.created_at|localtime('short') }}
                                             {% if post.room %}
                                             • in <a href="{{ url_for('room_detail', room_id=post.room.id) }}">{{ post.room.name }}</a>
                                             {% endif %}

@@ -174,3 +174,14 @@ with app.app_context():
         auto_sync_ghost_articles()
     except Exception as e:
         logging.debug(f"Ghost auto-sync skipped: {e}")
+
+from markupsafe import Markup
+
+@app.template_filter('localtime')
+def localtime_filter(dt, format='short'):
+    """Output a datetime as a span with data-utc for client-side conversion"""
+    if dt is None:
+        return ''
+    utc_str = dt.strftime('%Y-%m-%dT%H:%M:%S')
+    fallback = dt.strftime('%b %d at %I:%M %p')
+    return Markup(f'<span data-utc="{utc_str}" data-format="{format}">{fallback}</span>')
