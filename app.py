@@ -151,6 +151,23 @@ with app.app_context():
             db.session.rollback()
             logging.debug(f"Schema migration skipped (likely already applied): {e}")
     
+    # Migration 8: Add Facebook sync columns
+    facebook_sync_columns = [
+        ("users", "facebook_id", "VARCHAR(50) UNIQUE"),
+        ("users", "google_id", "VARCHAR(50) UNIQUE"),
+        ("users", "apple_id", "VARCHAR(100) UNIQUE"),
+        ("users", "github_id", "VARCHAR(50) UNIQUE"),
+        ("posts", "facebook_post_id", "VARCHAR(100) UNIQUE"),
+    ]
+    for table, col_name, col_type in facebook_sync_columns:
+        try:
+            db.session.execute(text(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type}"))
+            db.session.commit()
+            logging.info(f"Applied schema migration: {table}.{col_name} added")
+        except Exception as e:
+            db.session.rollback()
+            logging.debug(f"Schema migration skipped (likely already applied): {e}")
+    
     # Auto-sync Ghost CMS articles on startup if database is empty
     try:
         from routes.opmed import auto_sync_ghost_articles

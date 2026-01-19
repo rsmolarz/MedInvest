@@ -73,6 +73,115 @@ def analytics():
     return render_template('admin/analytics.html', stats=stats)
 
 
+# ============== Facebook Sync Admin ==============
+
+@admin_bp.route('/facebook-sync')
+@login_required
+@admin_required
+def facebook_sync_status():
+    """Facebook sync status and testing page"""
+    import requests
+    from facebook_page import is_facebook_configured, FACEBOOK_PAGE_ID, FACEBOOK_PAGE_ACCESS_TOKEN
+    
+    status = {
+        'configured': is_facebook_configured(),
+        'page_id': FACEBOOK_PAGE_ID,
+        'token_present': bool(FACEBOOK_PAGE_ACCESS_TOKEN),
+        'token_valid': False,
+        'page_name': None,
+        'error': None,
+        'webhook_url': request.host_url.rstrip('/') + '/webhooks/facebook'
+    }
+    
+    # Test token validity
+    if status['configured']:
+        try:
+            response = requests.get(
+                f"https://graph.facebook.com/v18.0/{FACEBOOK_PAGE_ID}",
+                params={'access_token': FACEBOOK_PAGE_ACCESS_TOKEN, 'fields': 'name,id'},
+                timeout=10
+            )
+            if response.ok:
+                data = response.json()
+                status['token_valid'] = True
+                status['page_name'] = data.get('name')
+            else:
+                error_data = response.json()
+                status['error'] = error_data.get('error', {}).get('message', 'Unknown error')
+        except Exception as e:
+            status['error'] = str(e)
+    
+    # Get recent posts that were shared to Facebook
+    recent_posts = Post.query.filter(Post.facebook_post_id.isnot(None)).order_by(Post.created_at.desc()).limit(10).all()
+    
+    return render_template('admin/facebook_sync.html', status=status, recent_posts=recent_posts)
+
+
+@admin_bp.route('/facebook-sync/test', methods=['POST'])
+@login_required
+@admin_required
+def facebook_sync_test():
+    """Test posting to Facebook"""
+    from facebook_page import post_to_facebook, is_facebook_configured
+    
+    if not is_facebook_configured():
+        return jsonify({'success': False, 'error': 'Facebook not configured'})
+    
+    message = request.form.get('message', 'Test post from MedInvest admin panel')
+    result = post_to_facebook(message)
+    
+    return jsonify(result)
+
+
+@admin_bp.route('/facebook-sync/validate')
+@login_required  
+@admin_required
+def facebook_sync_validate():
+    """Validate Facebook webhook subscription"""
+    import requests
+    from facebook_page import FACEBOOK_PAGE_ACCESS_TOKEN
+    
+    # Check current webhook subscriptions
+    try:
+        app_id = os.environ.get('FACEBOOK_APP_ID')
+        app_secret = os.environ.get('FACEBOOK_APP_SECRET')
+        
+        # Get app access token
+        token_response = requests.get(
+            'https://graph.facebook.com/oauth/access_token',
+            params={
+                'client_id': app_id,
+                'client_secret': app_secret,
+                'grant_type': 'client_credentials'
+            },
+            timeout=10
+        )
+        
+        if not token_response.ok:
+            return jsonify({'error': 'Failed to get app token', 'details': token_response.text})
+        
+        app_token = token_response.json().get('access_token')
+        
+        # Get current subscriptions
+        subs_response = requests.get(
+            f'https://graph.facebook.com/v18.0/{app_id}/subscriptions',
+            params={'access_token': app_token},
+            timeout=10
+        )
+        
+        subscriptions = subs_response.json() if subs_response.ok else {'error': subs_response.text}
+        
+        return jsonify({
+            'success': True,
+            'subscriptions': subscriptions,
+            'webhook_url': request.host_url.rstrip('/') + '/webhooks/facebook',
+            'required_fields': ['feed', 'messages']
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+
 @admin_bp.route('/users')
 @login_required
 @admin_required

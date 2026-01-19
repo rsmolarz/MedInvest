@@ -118,6 +118,12 @@ class User(UserMixin, db.Model):
     password_reset_token = db.Column(db.String(100))
     password_reset_expires = db.Column(db.DateTime)
     
+    # Social login IDs
+    facebook_id = db.Column(db.String(50), unique=True, nullable=True)
+    google_id = db.Column(db.String(50), unique=True, nullable=True)
+    apple_id = db.Column(db.String(100), unique=True, nullable=True)
+    github_id = db.Column(db.String(50), unique=True, nullable=True)
+    
     # Physician verification fields
     professional_email = db.Column(db.String(120))
     professional_email_verified = db.Column(db.Boolean, default=False)
@@ -396,6 +402,7 @@ class Post(db.Model):
     share_count = db.Column(db.Integer, default=0)
     media_count = db.Column(db.Integer, default=0)
     is_pinned = db.Column(db.Boolean, default=False)
+    facebook_post_id = db.Column(db.String(100), unique=True, nullable=True)  # For FB sync deduplication
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

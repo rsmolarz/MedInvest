@@ -631,6 +631,7 @@ def facebook_callback():
         
         if user:
             user.replit_id = f'facebook_{fb_id}'
+            user.facebook_id = fb_id  # Store Facebook ID for sync
             if picture_url and not user.profile_image_url:
                 user.profile_image_url = picture_url
         else:
@@ -643,6 +644,7 @@ def facebook_callback():
                 first_name=fb_info.get('first_name', 'User'),
                 last_name=fb_info.get('last_name', ''),
                 replit_id=f'facebook_{fb_id}',
+                facebook_id=fb_id,  # Store Facebook ID for sync
                 profile_image_url=picture_url,
                 specialty='',
                 medical_license=f'FACEBOOK-{fb_id}',

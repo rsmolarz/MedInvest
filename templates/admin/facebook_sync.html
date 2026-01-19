@@ -1,0 +1,167 @@
+{% extends "admin/base.html" %}
+{% block title %}Facebook Sync - Admin{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fab fa-facebook me-2"></i>Facebook Sync</h2>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Back to Admin
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Connection Status</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <td><strong>Configured:</strong></td>
+                        <td>
+                            {% if status.configured %}
+                            <span class="badge bg-success"><i class="fas fa-check"></i> Yes</span>
+                            {% else %}
+                            <span class="badge bg-danger"><i class="fas fa-times"></i> No</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Page ID:</strong></td>
+                        <td><code>{{ status.page_id or 'Not set' }}</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Token Present:</strong></td>
+                        <td>
+                            {% if status.token_present %}
+                            <span class="badge bg-success"><i class="fas fa-check"></i> Yes</span>
+                            {% else %}
+                            <span class="badge bg-danger"><i class="fas fa-times"></i> No</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Token Valid:</strong></td>
+                        <td>
+                            {% if status.token_valid %}
+                            <span class="badge bg-success"><i class="fas fa-check"></i> Valid</span>
+                            {% else %}
+                            <span class="badge bg-danger"><i class="fas fa-times"></i> Invalid</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Page Name:</strong></td>
+                        <td>{{ status.page_name or 'N/A' }}</td>
+                    </tr>
+                    {% if status.error %}
+                    <tr>
+                        <td><strong>Error:</strong></td>
+                        <td><span class="text-danger">{{ status.error }}</span></td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Test Post to Facebook</h5>
+            </div>
+            <div class="card-body">
+                <form id="testPostForm">
+                    <div class="mb-3">
+                        <label class="form-label">Test Message</label>
+                        <textarea name="message" class="form-control" rows="3" placeholder="Enter a test message to post to Facebook..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" {% if not status.token_valid %}disabled{% endif %}>
+                        <i class="fab fa-facebook me-1"></i>Send Test Post
+                    </button>
+                </form>
+                <div id="testResult" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Webhook Configuration</h5>
+            </div>
+            <div class="card-body">
+                <p>To enable Facebook → MedInvest sync, configure webhooks in your Facebook App:</p>
+                <ol class="mb-3">
+                    <li>Go to <a href="https://developers.facebook.com/apps/" target="_blank">Facebook Developers</a></li>
+                    <li>Select your app → Webhooks</li>
+                    <li>Add Page subscription with these settings:</li>
+                </ol>
+                <table class="table table-sm">
+                    <tr>
+                        <td><strong>Callback URL:</strong></td>
+                        <td><code>{{ status.webhook_url }}</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Verify Token:</strong></td>
+                        <td><code>(Your FACEBOOK_WEBHOOK_VERIFY_TOKEN secret)</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Subscribe to:</strong></td>
+                        <td><code>feed</code>, <code>messages</code></td>
+                    </tr>
+                </table>
+                <a href="{{ url_for('admin.facebook_sync_validate') }}" class="btn btn-outline-info btn-sm" target="_blank">
+                    <i class="fas fa-check-circle me-1"></i>Check Webhook Subscriptions
+                </a>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Synced Posts</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_posts %}
+                <ul class="list-group list-group-flush">
+                    {% for post in recent_posts %}
+                    <li class="list-group-item">
+                        <small class="text-muted">{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                        <br>{{ post.content[:100] }}{% if post.content|length > 100 %}...{% endif %}
+                        <br><small class="text-info">FB ID: {{ post.facebook_post_id }}</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted mb-0">No posts synced from Facebook yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('testPostForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const resultDiv = document.getElementById('testResult');
+    resultDiv.innerHTML = '<div class="spinner-border spinner-border-sm"></div> Sending...';
+    
+    const formData = new FormData(this);
+    
+    try {
+        const response = await fetch('{{ url_for("admin.facebook_sync_test") }}', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            resultDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check"></i> Posted successfully! Post ID: ' + data.post_id + '</div>';
+        } else {
+            resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times"></i> Failed: ' + data.error + '</div>';
+        }
+    } catch (error) {
+        resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times"></i> Error: ' + error.message + '</div>';
+    }
+});
+</script>
+{% endblock %}
