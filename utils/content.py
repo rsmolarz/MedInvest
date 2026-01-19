@@ -2,9 +2,10 @@
 Content Utilities - Parse mentions, hashtags, and format content
 """
 import re
+import html
 from datetime import datetime
 from flask import url_for
-from markupsafe import Markup, escape
+from markupsafe import Markup
 
 
 # Regex patterns
@@ -116,8 +117,8 @@ def render_content_with_links(text):
     if not text:
         return ''
     
-    # Escape HTML first
-    text = str(escape(text))
+    # Escape HTML tags but preserve quotes/apostrophes
+    text = html.escape(text, quote=False)
     
     # Replace @mentions with links
     def mention_replacer(match):
