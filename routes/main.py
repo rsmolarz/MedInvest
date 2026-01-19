@@ -94,7 +94,7 @@ def feed():
 def _feed_internal():
     """Internal feed logic - separated for error handling"""
     page = request.args.get('page', 1, type=int)
-    feed_type = request.args.get('sort', 'algorithm')  # 'algorithm' or 'latest'
+    feed_type = request.args.get('sort', 'latest')  # 'latest' or 'algorithm'
     per_page = 20
     
     if feed_type == 'latest':
