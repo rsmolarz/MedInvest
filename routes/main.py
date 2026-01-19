@@ -1083,6 +1083,51 @@ def api_search_hashtags():
     } for h in hashtags])
 
 
+@main_bp.route('/report-bug', methods=['GET', 'POST'])
+@login_required
+def report_bug():
+    """Submit a bug/error report"""
+    from models import BugReport
+    
+    if request.method == 'POST':
+        category = request.form.get('category', 'bug')
+        title = request.form.get('title', '').strip()
+        description = request.form.get('description', '').strip()
+        page_url = request.form.get('page_url', '').strip()
+        
+        if not title or not description:
+            flash('Please provide a title and description', 'error')
+            return redirect(url_for('main.report_bug'))
+        
+        report = BugReport(
+            reporter_id=current_user.id,
+            category=category,
+            title=title,
+            description=description,
+            page_url=page_url,
+            browser_info=request.user_agent.string[:200] if request.user_agent else None
+        )
+        db.session.add(report)
+        db.session.commit()
+        
+        flash('Thank you! Your report has been submitted and our team will review it.', 'success')
+        return redirect(url_for('main.my_bug_reports'))
+    
+    return render_template('report_bug.html')
+
+
+@main_bp.route('/my-bug-reports')
+@login_required
+def my_bug_reports():
+    """View user's submitted bug reports"""
+    from models import BugReport
+    
+    reports = BugReport.query.filter_by(reporter_id=current_user.id)\
+                             .order_by(BugReport.created_at.desc()).all()
+    
+    return render_template('my_bug_reports.html', reports=reports)
+
+
 @main_bp.route('/user/<int:user_id>/follow', methods=['POST'])
 @login_required
 def follow_user(user_id):

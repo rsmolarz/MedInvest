@@ -134,6 +134,8 @@
                             <li><a class="dropdown-item" href="{{ url_for('courses.list_courses') }}"><i class="fas fa-graduation-cap me-2"></i>Courses</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('events.list_events') }}"><i class="fas fa-calendar me-2"></i>Events</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('mentorship.index') }}"><i class="fas fa-users me-2"></i>Mentorship</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.report_bug') }}"><i class="fas fa-bug me-2"></i>Report an Issue</a></li>
                             {% if current_user.is_admin %}
                             <li class="d-lg-none"><hr class="dropdown-divider"></li>
                             <li class="d-lg-none"><a class="dropdown-item text-danger" href="{{ url_for('admin.analytics') }}"><i class="fas fa-shield-alt me-2"></i>Admin Panel</a></li>

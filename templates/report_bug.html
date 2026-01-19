@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Report an Issue - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="fas fa-bug me-2"></i>Report an Issue</h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">
+                        Found a bug or error? Let us know so we can fix it. Your feedback helps us improve MedInvest for everyone.
+                    </p>
+                    
+                    <form method="POST" action="{{ url_for('main.report_bug') }}">
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Category</label>
+                            <select class="form-select" id="category" name="category" required>
+                                <option value="bug">Bug / Error</option>
+                                <option value="display">Display Issue</option>
+                                <option value="performance">Slow / Performance Issue</option>
+                                <option value="feature">Feature Not Working</option>
+                                <option value="suggestion">Suggestion / Improvement</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="title" name="title" 
+                                   placeholder="Brief description of the issue" required maxlength="200">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="description" name="description" rows="5" 
+                                      placeholder="Please describe what happened, what you expected to happen, and any steps to reproduce the issue..." 
+                                      required></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="page_url" class="form-label">Page URL (optional)</label>
+                            <input type="text" class="form-control" id="page_url" name="page_url" 
+                                   placeholder="Which page were you on when this happened?">
+                            <small class="text-muted">This helps us locate the issue faster</small>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{{ url_for('main.my_bug_reports') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-list me-1"></i>My Reports
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-1"></i>Submit Report
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

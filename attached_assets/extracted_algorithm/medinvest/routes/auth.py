@@ -1,4 +1,5 @@
 
+
 """
 Mobile API Configuration Layer for MedInvest
 Handles CORS, JWT authentication, rate limiting, and mobile-specific endpoints

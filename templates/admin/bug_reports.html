@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Bug Reports - Admin{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4><i class="fas fa-bug me-2"></i>Bug Reports</h4>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center {% if status_filter == 'open' %}border-warning{% endif %}">
+            <div class="card-body py-2">
+                <h3 class="text-warning mb-0">{{ stats.open }}</h3>
+                <small>Open</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center {% if status_filter == 'in_progress' %}border-info{% endif %}">
+            <div class="card-body py-2">
+                <h3 class="text-info mb-0">{{ stats.in_progress }}</h3>
+                <small>In Progress</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center {% if status_filter == 'resolved' %}border-success{% endif %}">
+            <div class="card-body py-2">
+                <h3 class="text-success mb-0">{{ stats.resolved }}</h3>
+                <small>Resolved</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center {% if status_filter == 'closed' %}border-secondary{% endif %}">
+            <div class="card-body py-2">
+                <h3 class="text-secondary mb-0">{{ stats.closed }}</h3>
+                <small>Closed</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Filter by Status</span>
+    </div>
+    <div class="card-body py-2">
+        <div class="btn-group">
+            <a href="{{ url_for('admin.bug_reports', status='all') }}" 
+               class="btn btn-sm {% if status_filter == 'all' %}btn-primary{% else %}btn-outline-secondary{% endif %}">All</a>
+            <a href="{{ url_for('admin.bug_reports', status='open') }}" 
+               class="btn btn-sm {% if status_filter == 'open' %}btn-warning{% else %}btn-outline-secondary{% endif %}">Open</a>
+            <a href="{{ url_for('admin.bug_reports', status='in_progress') }}" 
+               class="btn btn-sm {% if status_filter == 'in_progress' %}btn-info{% else %}btn-outline-secondary{% endif %}">In Progress</a>
+            <a href="{{ url_for('admin.bug_reports', status='resolved') }}" 
+               class="btn btn-sm {% if status_filter == 'resolved' %}btn-success{% else %}btn-outline-secondary{% endif %}">Resolved</a>
+            <a href="{{ url_for('admin.bug_reports', status='closed') }}" 
+               class="btn btn-sm {% if status_filter == 'closed' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">Closed</a>
+        </div>
+    </div>
+</div>
+
+{% if reports %}
+<div class="card">
+    <div class="list-group list-group-flush">
+        {% for report in reports %}
+        <div class="list-group-item">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge {% if report.priority == 'critical' %}bg-danger{% elif report.priority == 'high' %}bg-warning text-dark{% elif report.priority == 'medium' %}bg-info{% else %}bg-secondary{% endif %} me-2">
+                            {{ report.priority.title() }}
+                        </span>
+                        <span class="badge {% if report.status == 'open' %}bg-warning text-dark{% elif report.status == 'in_progress' %}bg-info{% elif report.status == 'resolved' %}bg-success{% else %}bg-secondary{% endif %} me-2">
+                            {{ report.status.replace('_', ' ').title() }}
+                        </span>
+                        <span class="badge bg-light text-dark">{{ report.category.replace('_', ' ').title() }}</span>
+                    </div>
+                    <h6 class="mb-1">{{ report.title }}</h6>
+                    <p class="text-muted small mb-2" style="white-space: pre-wrap;">{{ report.description[:300] }}{% if report.description|length > 300 %}...{% endif %}</p>
+                    <small class="text-muted">
+                        <i class="fas fa-user me-1"></i>{{ report.reporter.full_name if report.reporter else 'Unknown' }}
+                        <span class="mx-2">|</span>
+                        <i class="fas fa-clock me-1"></i>{{ report.created_at.strftime('%b %d, %Y %I:%M %p') }}
+                        {% if report.page_url %}
+                        <span class="mx-2">|</span>
+                        <i class="fas fa-link me-1"></i>{{ report.page_url[:50] }}{% if report.page_url|length > 50 %}...{% endif %}
+                        {% endif %}
+                    </small>
+                </div>
+                <div class="col-md-4">
+                    <form action="{{ url_for('admin.update_bug_report', report_id=report.id) }}" method="POST">
+                        <div class="mb-2">
+                            <select name="status" class="form-select form-select-sm">
+                                <option value="">-- Update Status --</option>
+                                <option value="open" {% if report.status == 'open' %}selected{% endif %}>Open</option>
+                                <option value="in_progress" {% if report.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                                <option value="resolved" {% if report.status == 'resolved' %}selected{% endif %}>Resolved</option>
+                                <option value="closed" {% if report.status == 'closed' %}selected{% endif %}>Closed</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <select name="priority" class="form-select form-select-sm">
+                                <option value="">-- Set Priority --</option>
+                                <option value="low" {% if report.priority == 'low' %}selected{% endif %}>Low</option>
+                                <option value="medium" {% if report.priority == 'medium' %}selected{% endif %}>Medium</option>
+                                <option value="high" {% if report.priority == 'high' %}selected{% endif %}>High</option>
+                                <option value="critical" {% if report.priority == 'critical' %}selected{% endif %}>Critical</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <textarea name="admin_notes" class="form-control form-control-sm" rows="2" 
+                                      placeholder="Response to user...">{{ report.admin_notes or '' }}</textarea>
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-primary">Update</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-check-circle text-success mb-3" style="font-size: 3rem;"></i>
+        <h5>No Bug Reports</h5>
+        <p class="text-muted">No {{ status_filter if status_filter != 'all' else '' }} bug reports found.</p>
+    </div>
+</div>
+{% endif %}
+</div>
+{% endblock %}

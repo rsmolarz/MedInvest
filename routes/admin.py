@@ -1149,3 +1149,63 @@ def regenerate_lti_keys(tool_id):
     
     flash('RSA keys regenerated. Update the JWKS in your LTI tool configuration.', 'warning')
     return redirect(url_for('admin.view_lti_tool', tool_id=tool.id))
+
+
+@admin_bp.route('/bug-reports')
+@login_required
+@admin_required
+def bug_reports():
+    """View and manage user-submitted bug reports"""
+    from models import BugReport
+    
+    status_filter = request.args.get('status', 'open')
+    
+    query = BugReport.query
+    if status_filter and status_filter != 'all':
+        query = query.filter_by(status=status_filter)
+    
+    reports = query.order_by(BugReport.created_at.desc()).all()
+    
+    stats = {
+        'open': BugReport.query.filter_by(status='open').count(),
+        'in_progress': BugReport.query.filter_by(status='in_progress').count(),
+        'resolved': BugReport.query.filter_by(status='resolved').count(),
+        'closed': BugReport.query.filter_by(status='closed').count()
+    }
+    
+    return render_template('admin/bug_reports.html', 
+                         reports=reports, 
+                         status_filter=status_filter,
+                         stats=stats)
+
+
+@admin_bp.route('/bug-reports/<int:report_id>/update', methods=['POST'])
+@login_required
+@admin_required
+def update_bug_report(report_id):
+    """Update a bug report status"""
+    from models import BugReport
+    from datetime import datetime
+    
+    report = BugReport.query.get_or_404(report_id)
+    
+    new_status = request.form.get('status')
+    admin_notes = request.form.get('admin_notes', '').strip()
+    priority = request.form.get('priority')
+    
+    if new_status:
+        report.status = new_status
+        if new_status in ('resolved', 'closed'):
+            report.resolved_by_id = current_user.id
+            report.resolved_at = datetime.utcnow()
+    
+    if admin_notes:
+        report.admin_notes = admin_notes
+    
+    if priority:
+        report.priority = priority
+    
+    db.session.commit()
+    flash('Bug report updated', 'success')
+    
+    return redirect(url_for('admin.bug_reports'))

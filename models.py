@@ -1490,6 +1490,29 @@ class ContentReport(db.Model):
 
 # ============================================================================
 # DEAL OUTCOMES
+class BugReport(db.Model):
+    """User-submitted bug/error reports for platform issues"""
+    __tablename__ = 'bug_reports'
+
+    id = db.Column(db.Integer, primary_key=True)
+    reporter_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    category = db.Column(db.String(50), nullable=False)  # bug, error, suggestion, other
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    page_url = db.Column(db.String(500))  # Where the error occurred
+    browser_info = db.Column(db.String(200))
+    screenshot_url = db.Column(db.String(500))
+    status = db.Column(db.String(20), default='open')  # open, in_progress, resolved, closed
+    priority = db.Column(db.String(20), default='medium')  # low, medium, high, critical
+    admin_notes = db.Column(db.Text)
+    resolved_by_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    resolved_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    reporter = db.relationship('User', foreign_keys=[reporter_id], backref='bug_reports')
+    resolved_by = db.relationship('User', foreign_keys=[resolved_by_id])
+
+
 # ============================================================================
 
 class DealOutcome(db.Model):
