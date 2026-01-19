@@ -53,7 +53,7 @@
                         </div>
                     </div>
                     {% if post.title %}<h4>{{ post.title }}</h4>{% endif %}
-                    <p class="lead mb-3">{{ post.content }}</p>
+                    <p class="lead mb-3">{{ render_content(post.content) if render_content else post.content }}</p>
                     
                     {% if post.has_media %}
                     <div class="mb-3">

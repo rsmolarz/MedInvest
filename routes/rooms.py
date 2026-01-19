@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 from app import db
 from models import Room, Post, PostVote, Comment, RoomMembership, PostMention, User
-from utils.content import extract_mentions
+from utils.content import extract_mentions, render_content_with_links
 from routes.notifications import notify_mention
 
 rooms_bp = Blueprint('rooms', __name__, url_prefix='/rooms')
@@ -164,7 +164,8 @@ def view_room(slug):
                          room=room, 
                          posts=posts,
                          user_votes=user_votes,
-                         sort=sort)
+                         sort=sort,
+                         render_content=render_content_with_links)
 
 
 @rooms_bp.route('/<slug>/post', methods=['POST'])
@@ -261,7 +262,8 @@ def view_post(post_id):
                          post=post, 
                          comments=comments,
                          user_vote=user_vote,
-                         likers=likers)
+                         likers=likers,
+                         render_content=render_content_with_links)
 
 
 @rooms_bp.route('/post/<int:post_id>/comment', methods=['POST'])
