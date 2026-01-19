@@ -20,6 +20,14 @@ from facebook_page import share_platform_post, is_facebook_configured
 
 main_bp = Blueprint('main', __name__)
 
+import logging
+
+
+@main_bp.route('/health')
+def health():
+    """Fast health check endpoint for deployment - no database operations"""
+    return 'OK', 200
+
 
 @main_bp.route('/')
 def index():
