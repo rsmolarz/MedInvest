@@ -269,10 +269,12 @@ def create_post():
     if content:
         mentioned_usernames = extract_mentions(content)
         for username in mentioned_usernames:
+            # Match the handle format: FirstnameLastname (no spaces, no apostrophes)
+            username_clean = username.lower().replace("'", "")
             mentioned_user = User.query.filter(
                 db.or_(
-                    db.func.lower(db.func.concat(User.first_name, User.last_name)) == username.lower(),
-                    db.func.lower(User.first_name) == username.lower()
+                    db.func.lower(db.func.replace(db.func.concat(User.first_name, User.last_name), "'", "")) == username_clean,
+                    db.func.lower(db.func.replace(User.first_name, "'", "")) == username_clean
                 )
             ).first()
             if mentioned_user and mentioned_user.id != current_user.id:
@@ -370,10 +372,12 @@ def create_post_ajax():
         # Process mentions - save records and notify
         mentioned_usernames = extract_mentions(content)
         for username in mentioned_usernames:
+            # Match the handle format: FirstnameLastname (no spaces, no apostrophes)
+            username_clean = username.lower().replace("'", "")
             mentioned_user = User.query.filter(
                 db.or_(
-                    db.func.lower(db.func.concat(User.first_name, User.last_name)) == username.lower(),
-                    db.func.lower(User.first_name) == username.lower()
+                    db.func.lower(db.func.replace(db.func.concat(User.first_name, User.last_name), "'", "")) == username_clean,
+                    db.func.lower(db.func.replace(User.first_name, "'", "")) == username_clean
                 )
             ).first()
             if mentioned_user and mentioned_user.id != current_user.id:
@@ -1068,19 +1072,26 @@ def api_search_users():
     users = User.query.filter(
         db.or_(
             User.first_name.ilike(f'{query}%'),
-            User.last_name.ilike(f'{query}%')
+            User.last_name.ilike(f'{query}%'),
+            db.func.concat(User.first_name, User.last_name).ilike(f'{query}%')
         )
     ).limit(8).all()
     
-    return jsonify([{
-        'id': u.id,
-        'name': u.full_name,
-        'username': u.first_name.lower(),
-        'specialty': (u.specialty or '').replace('_', ' ').title(),
-        'avatar': u.first_name[0] + u.last_name[0],
-        'is_verified': u.is_verified,
-        'is_premium': u.is_premium
-    } for u in users])
+    results = []
+    for u in users:
+        # Create a unique mention handle: FirstnameLastname (no spaces)
+        handle = f"{u.first_name}{u.last_name}".replace(' ', '').replace("'", '')
+        results.append({
+            'id': u.id,
+            'name': u.full_name.replace("'", "\\'"),  # Escape for JS
+            'username': handle,
+            'specialty': (u.specialty or '').replace('_', ' ').title(),
+            'avatar': u.first_name[0] + u.last_name[0] if u.last_name else u.first_name[0],
+            'is_verified': u.is_verified,
+            'is_premium': u.is_premium
+        })
+    
+    return jsonify(results)
 
 
 @main_bp.route('/api/hashtags/search')
