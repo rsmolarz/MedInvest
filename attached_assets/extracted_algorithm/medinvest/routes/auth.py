@@ -1,4 +1,93 @@
 
+"""
+Mobile API Configuration Layer for MedInvest
+Handles CORS, JWT authentication, rate limiting, and mobile-specific endpoints
+THIS FILE WAS CREATED - COPY FROM DOCUMENTATION
+See: MOBILE_API_DOCS.md and IMPLEMENTATION_SUMMARY.md for full code
+"""""
+
+import os
+import jwt
+from datetime import datetime, timedelta
+from functools import wraps
+from flask import request, jsonify, current_app
+
+# TODO: Install required packages:
+# pip install flask-cors flask-limiter pyjwt python-dotenv
+
+try:
+                        from flask_cors import CORS, cross_origin
+                        from flask_limiter import Limiter
+                        from flask_limiter.util import get_remote_address
+except ImportError:
+                        print("WARNING: Required packages not installed. Run: pip install flask-cors flask-limiter pyjwt")
+                    
+class MobileAPIConfig:
+                        """Configuration for mobile API endpoints"""""
+                        
+                        JWT_ALGORITHM = 'HS256'
+                        JWT_EXPIRATION_HOURS = 24
+                        MOBILE_RATE_LIMIT = "100 per hour"
+                        MOBILE_AUTH_RATE_LIMIT = "5 per minute"
+                        API_VERSION = "v1"
+                        ALLOWED_ORIGINS = [
+                                                    "https://medmoneyincubator.com",
+                                                    "https://med-invest-rsmolarz.replit.app",
+                                                    "medinvest://",
+                        ]
+
+                    def init_mobile_api(app):
+                                            """Initialize mobile API configurations on Flask app"""""
+                                            try:
+                                                                        CORS(app, 
+                                                                                         resources={
+                                                                                                                              r"/api/*": {
+                                                                                                                                                                       "origins": MobileAPIConfig.ALLOWED_ORIGINS,
+                                                                                                                                                                       "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                                                                                                                                                                       "allow_headers": ["Content-Type", "Authorization", "X-API-Key"],
+                                                                                                                                                                       "expose_headers": ["X-Total-Count", "X-Page", "X-Page-Size"],
+                                                                                                                                                                       "supports_credentials": True,
+                                                                                                                                                                       "max_age": 3600
+                                                                                                                                                  }
+                                                                                                             })
+                                            except Exception as e:
+                                                                        print(f"Warning: Could not initialize CORS: {e}")
+
+                                                                def generate_jwt_token(user_id, expires_hours=None):
+                                                                                        """Generate JWT token for mobile clients"""""
+                                                                                        if expires_
+                                                                                                                              }
+                                                                                         })
+                        ]:
+    """Check if deal hit a milestone and post to Facebook"""""
+
+    funded_percent = (deal.funded_amount / deal.funding_goal) * 100
+                        milestones = [25, 50, 75, 100]
+
+    # Check if milestone was reached
+    previous_percent = ((deal.funded_amount - new_investment) / deal.funding_goal) * 100
+
+    for milestone in milestones:
+                                if previous_percent < milestone <= funded_percent:
+                                                                # Post milestone to Facebook
+                                                                facebook_integration.post_milestone({
+                                                                                                    'deal_id': deal.id,
+                                                                                                    'deal_title': deal.title,
+                                                                                                    'funding_percentage': funded_percent,
+                                                                                                    'funded_amount': deal.funded_amount,
+                                                                                                    'goal_amount': deal.funding_goal
+                                                                })
+                                                                break
+                                                    ```
+
+## Troubleshooting
+
+### Problem: "Facebook credentials not configured"
+
+**Solution:** 
+1. Verify `FACEBOOK_PAGE_ID` and `FACEBOOK_PAGE_ACCESS_TOKEN` are set in Replit Secrets
+2.
+                                                                })
 """""
 Facebook Page Integration for MedInvest
 Posts deals, investment updates, and community news to Facebook page
