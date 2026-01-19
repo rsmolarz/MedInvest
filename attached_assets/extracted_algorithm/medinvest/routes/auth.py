@@ -1,4 +1,257 @@
+
+"""""
+Facebook Page Integration for MedInvest
+Posts deals, investment updates, and community news to Facebook page
 """
+
+import os
+import requests
+import logging
+from datetime import datetime
+from typing import Dict, Optional, List
+
+logger = logging.getLogger(__name__)
+
+class FacebookPageIntegration:
+        """Handle all Facebook page posting operations"""
+        
+        def __init__(self):
+                    self.page_access_token = os.environ.get('FACEBOOK_PAGE_ACCESS_TOKEN')
+                    self.page_id = os.environ.get('FACEBOOK_PAGE_ID')
+                    self.app_id = os.environ.get('FACEBOOK_APP_ID')
+                    self.app_secret = os.environ.get('FACEBOOK_APP_SECRET')
+                    self.base_url = "https://graph.facebook.com/v18.0"
+                    
+                    if not self.page_access_token or not self.page_id:
+                                    logger.warning("Facebook credentials not configured. Facebook integration disabled.")
+                            
+                def post_deal(self, deal: Dict) -> Optional[str]:
+                            """
+                                    Post a new investment deal to Facebook page
+                                            
+                                                    Args:
+                                                                deal: Dictionary containing deal information
+                                                                                {
+                                                                                                    'id': int,
+                                                                                                                        'title': str,
+                                                                                                                                            'description': str,
+                                                                                                                                                                'funding_goal': float,
+                                                                                                                                                                                    'company': str,
+                                                                                                                                                                                                        'image_url': str (optional),
+                                                                                                                                                                                                                            'deal_url': str (optional)
+                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                            Returns:
+                                                                                                                                                                                                                                                                        Facebook post ID if successful, None otherwise
+                                                                                                                                                                                                                                                                                """
+                            if not self.page_access_token:
+                                            logger.error("Facebook page access token not configured")
+                                            return None
+                                        
+                            try:
+                                            # Build message
+                                            message = f"""🏥 New Healthcare Investment Opportunity! 
+                                            
+                                            {deal.get('title', 'Investment Deal')}
+                                            
+                                            Company: {deal.get('company', 'N/A')}
+                                            Funding Goal: ${deal.get('funding_goal', 0):,.0f}
+                                            
+                                            {deal.get('description', '')[:200]}...
+                                            
+                                            Join our community to learn more and invest in healthcare innovation!
+                                            MedInvest - Where Physicians Invest
+                                            
+                                            #Healthcare #Investment #MedInvest #Medical Innovation"""
+                                
+                                payload = {
+                                                    'message': message,
+                                                    'access_token': self.page_access_token
+                                }
+            
+            # Add image if available
+            if deal.get('image_url'):
+                                payload['link'] = deal.get('deal_url', 'https://medmoneyincubator.com')
+                                payload['picture'] = deal.get('image_url')
+                            
+            url = f"{self.base_url}/{self.page_id}/feed"
+            response = requests.post(url, data=payload, timeout=10)
+            
+            if response.status_code == 200:
+                                post_id = response.json().get('id')
+                                logger.info(f"Successfully posted deal to Facebook: {post_id}")
+                                return post_id
+            else:
+                                logger.error(f"Facebook API error: {response.status_code} - {response.text}")
+                                return None
+                                
+except Exception as e:
+            logger.error(f"Error posting deal to Facebook: {str(e)}")
+            return None
+    
+    def post_milestone(self, milestone: Dict) -> Optional[str]:
+                """
+                        Post a deal milestone (e.g., 50% funded) to Facebook
+                                
+                                        Args:
+                                                    milestone: Dictionary with milestone info
+                                                                    {
+                                                                                        'deal_id': int,
+                                                                                                            'deal_title': str,
+                                                                                                                                'funding_percentage': float,
+                                                                                                                                                    'funded_amount': float,
+                                                                                                                                                                        'goal_amount': float
+                                                                                                                                                                                        }
+                                                                                                                                                                                                
+                                                                                                                                                                                                        Returns:
+                                                                                                                                                                                                                    Facebook post ID if successful, None otherwise
+                                                                                                                                                                                                                            """
+                if not self.page_access_token:
+                                logger.error("Facebook page access token not configured")
+                                return None
+                            
+                try:
+                                message = f"""🎉 Deal Milestone Update! 
+                                
+                                {milestone.get('deal_title', 'Investment Deal')} has reached {milestone.get('funding_percentage', 0):.0f}% funding!
+                                
+                                ${milestone.get('funded_amount', 0):,.0f} of ${milestone.get('goal_amount', 0):,.0f} raised
+                                
+                                This shows strong investor confidence in healthcare innovation!
+                                
+                                Join the growing community of healthcare professionals investing in the future.
+                                
+                                #Healthcare #Investment #MedInvest"""
+                    
+                    payload = {
+                                        'message': message,
+                                        'access_token': self.page_access_token
+                    }
+            
+            url = f"{self.base_url}/{self.page_id}/feed"
+            response = requests.post(url, data=payload, timeout=10)
+            
+            if response.status_code == 200:
+                                post_id = response.json().get('id')
+                                logger.info(f"Successfully posted milestone to Facebook: {post_id}")
+                                return post_id
+            else:
+                                logger.error(f"Facebook API error: {response.status_code} - {response.text}")
+                                return None
+                                
+except Exception as e:
+            logger.error(f"Error posting milestone to Facebook: {str(e)}")
+            return None
+    
+    def post_community_update(self, update: Dict) -> Optional[str]:
+                """
+                        Post a community update or announcement
+                                
+                                        Args:
+                                                    update: Dictionary with update info
+                                                                    {
+                                                                                        'title': str,
+                                                                                                            'content': str,
+                                                                                                                                'image_url': str (optional),
+                                                                                                                                                    'link': str (optional)
+                                                                                                                                                                    }
+                                                                                                                                                                            
+                                                                                                                                                                                    Returns:
+                                                                                                                                                                                                Facebook post ID if successful, None otherwise
+                                                                                                                                                                                                        """
+                if not self.page_access_token:
+                                logger.error("Facebook page access token not configured")
+                                return None
+                            
+                try:
+                                message = f"""{update.get('title', 'Community Update')}
+                                
+                                {update.get('content', '')}
+                                
+                                Stay tuned for more healthcare investment insights from the MedInvest community!
+                                
+                                #Healthcare #Investment #MedInvest"""
+                    
+                    payload = {
+                                        'message': message,
+                                        'access_token': self.page_access_token
+                    }
+            
+            if update.get('link'):
+                                payload['link'] = update.get('link')
+                            
+            url = f"{self.base_url}/{self.page_id}/feed"
+            response = requests.post(url, data=payload, timeout=10)
+            
+            if response.status_code == 200:
+                                post_id = response.json().get('id')
+                                logger.info(f"Successfully posted community update to Facebook: {post_id}")
+                                return post_id
+            else:
+                                logger.error(f"Facebook API error: {response.status_code} - {response.text}")
+                                return None
+                                
+except Exception as e:
+            logger.error(f"Error posting community update to Facebook: {str(e)}")
+            return None
+    
+    def get_page_insights(self, metric: str = 'page_fans') -> Optional[Dict]:
+                """
+                        Get Facebook page insights (followers, engagement, etc)
+                                
+                                        Args:
+                                                    metric: Metric to retrieve (page_fans, page_engaged_users, etc)
+                                                            
+                                                                    Returns:
+                                                                                Insights data if successful, None otherwise
+                                                                                        """
+                if not self.page_access_token:
+                                logger.error("Facebook page access token not configured")
+                                return None
+                            
+                try:
+                                url = f"{self.base_url}/{self.page_id}/insights/{metric}"
+                                params = {'access_token': self.page_access_token}
+                                
+                                response = requests.get(url, params=params, timeout=10)
+                                
+                                if response.status_code == 200:
+                                                    return response.json()
+                                else:
+                                                    logger.error(f"Facebook API error: {response.status_code} - {response.text}")
+                                                    return None
+                                                    
+                except Exception as e:
+                                logger.error(f"Error fetching Facebook insights: {str(e)}")
+                                return None
+                        
+            def validate_credentials(self) -> bool:
+                        """
+                                Validate that Facebook credentials are configured and working
+                                        
+                                                Returns:
+                                                            True if credentials are valid, False otherwise
+                                                                    """
+                        if not self.page_access_token or not self.page_id:
+                                        logger.error("Facebook credentials missing")
+                                        return False
+                                    
+                        try:
+                                        url = f"{self.base_url}/{self.page_id}"
+                                        params = {'access_token': self.page_access_token}
+                                        
+                                        response = requests.get(url, params=params, timeout=10)
+                                        
+                                        if response.status_code == 200:
+                                                            page_info = response.json()
+                                                            logger.info(f"Facebook credentials valid. Page: {page_info.get('name')}")
+                                                            return True
+                                        else:
+                                                            logger.error(f"Invalid Facebook credentials. Response: {response.text}")
+                                                            return False
+                                                            
+                        except Exception as e:
+                                        logger.error(f"Error validating Facebook credentials: {str"
 Authentication Routes - Login, Register, Logout
 """
 from flask import Blueprint, render_template, redirect, url_for, request, flash
