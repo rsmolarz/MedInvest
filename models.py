@@ -1661,6 +1661,21 @@ class PostHashtag(db.Model):
     __table_args__ = (db.UniqueConstraint('post_id', 'hashtag_id', name='unique_post_hashtag'),)
 
 
+class PostMention(db.Model):
+    """User mentions (@username) in posts"""
+    __tablename__ = 'post_mentions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'), nullable=False)
+    mentioned_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    post = db.relationship('Post', backref='mentions')
+    mentioned_user = db.relationship('User', backref='post_mentions')
+
+    __table_args__ = (db.UniqueConstraint('post_id', 'mentioned_user_id', name='unique_post_mention'),)
+
+
 # ============================================================================
 # ACHIEVEMENT & GAMIFICATION SYSTEM
 # ============================================================================
