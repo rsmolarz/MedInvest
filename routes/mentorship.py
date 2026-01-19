@@ -14,21 +14,34 @@ mentorship_bp = Blueprint('mentorship', __name__, url_prefix='/mentorship')
 @login_required
 def index():
     """Mentorship dashboard"""
-    # Find potential mentors (verified users with high points)
-    mentors = User.query.filter(
-        User.id != current_user.id,
-        User.is_verified == True,
-        User.points >= 100
-    ).order_by(User.points.desc()).limit(20).all()
+    # Find approved mentors from MentorApplication
+    approved_applications = MentorApplication.query.filter_by(status='approved').all()
+    mentor_ids = [app.user_id for app in approved_applications if app.user_id != current_user.id]
+    
+    mentors = []
+    mentor_specialties = {}
+    if mentor_ids:
+        mentors = User.query.filter(User.id.in_(mentor_ids)).order_by(User.points.desc()).all()
+        # Map mentor specialties from their applications
+        for app in approved_applications:
+            mentor_specialties[app.user_id] = app.specialty_areas
     
     # User's mentorship relationships
     as_mentor = Mentorship.query.filter_by(mentor_id=current_user.id).all()
     as_mentee = Mentorship.query.filter_by(mentee_id=current_user.id).all()
     
+    # Check if current user is an approved mentor
+    is_mentor = MentorApplication.query.filter_by(
+        user_id=current_user.id, 
+        status='approved'
+    ).first() is not None
+    
     return render_template('mentorship/index.html',
                          mentors=mentors,
+                         mentor_specialties=mentor_specialties,
                          as_mentor=as_mentor,
-                         as_mentee=as_mentee)
+                         as_mentee=as_mentee,
+                         is_mentor=is_mentor)
 
 
 @mentorship_bp.route('/request/<int:mentor_id>', methods=['POST'])
