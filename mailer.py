@@ -71,7 +71,9 @@ def _get_sendgrid_credentials():
                             logger.info("SendGrid credentials loaded from Replit connector")
                             return api_key, from_email
             except Exception as e:
-                logger.warning(f"Failed to get SendGrid credentials from Replit: {e}")
+                logger.error(f"Failed to get SendGrid credentials from Replit connector: {e}")
+    else:
+        logger.warning("No REPLIT_CONNECTORS_HOSTNAME set - cannot use Replit connector")
     
     # Fallback to environment variables
     api_key = os.environ.get('SENDGRID_API_KEY')
@@ -81,6 +83,7 @@ def _get_sendgrid_credentials():
         logger.info("Using SendGrid credentials from environment variables")
         return api_key, from_email
     
+    logger.error("No SendGrid credentials available from connector or environment")
     return None, None
 
 
@@ -113,11 +116,17 @@ def _send_sendgrid(to_email: str, subject: str, html_content: str, text_content:
         from sendgrid import SendGridAPIClient
         from sendgrid.helpers.mail import Mail
         
+        logger.info(f"Attempting to send email to {to_email}")
         api_key, from_email = _get_sendgrid_credentials()
         
         if not api_key:
-            logger.warning("SendGrid not configured - check Replit connector or SENDGRID_API_KEY")
+            logger.error("SendGrid not configured - check Replit connector or SENDGRID_API_KEY env var")
+            logger.error(f"REPLIT_CONNECTORS_HOSTNAME: {bool(os.environ.get('REPLIT_CONNECTORS_HOSTNAME'))}")
+            logger.error(f"REPL_IDENTITY: {bool(os.environ.get('REPL_IDENTITY'))}")
+            logger.error(f"WEB_REPL_RENEWAL: {bool(os.environ.get('WEB_REPL_RENEWAL'))}")
             return False
+        
+        logger.info(f"SendGrid credentials loaded, from_email: {from_email}")
         
         message = Mail(
             from_email=from_email,
