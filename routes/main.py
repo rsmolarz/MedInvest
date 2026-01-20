@@ -389,7 +389,7 @@ def create_post_ajax():
                     mention = PostMention(post_id=post.id, mentioned_user_id=mentioned_user.id)
                     db.session.add(mention)
                     if not is_anonymous:
-                        notify_mention(mentioned_user.id, current_user.id, post.id)
+                        notify_mention(mentioned_user.id, current_user, post)
         
         current_user.add_points(5 if post_type == 'text' else 10)
         db.session.commit()
