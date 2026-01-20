@@ -24,15 +24,14 @@ def get_facebook_token():
 
 
 def get_facebook_page_id():
-    """Get fresh Facebook page ID from environment"""
-    import subprocess
+    """Get fresh Facebook page ID - prioritize config file over environment"""
+    import json
+    # Try reading from config file first (bypasses env caching)
     try:
-        result = subprocess.run(
-            ['printenv', 'FACEBOOK_PAGE_ID'],
-            capture_output=True, text=True, timeout=2
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip()
+        with open('facebook_config.json', 'r') as f:
+            config = json.load(f)
+            if config.get('page_id'):
+                return config['page_id']
     except:
         pass
     return os.environ.get('FACEBOOK_PAGE_ID')
