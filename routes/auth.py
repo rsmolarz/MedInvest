@@ -497,7 +497,7 @@ def apple_callback():
                 logging.error(f"Failed to add user to GHL: {e}")
         
         db.session.commit()
-        login_user(user)
+        login_user(user, remember=True)
         record_login_session(user.id, 'Apple')
         
         flash(f'Welcome, {user.first_name}!', 'success')
@@ -654,7 +654,7 @@ def github_callback():
             db.session.add(user)
         
         db.session.commit()
-        login_user(user)
+        login_user(user, remember=True)
         record_login_session(user.id, 'GitHub')
         
         flash(f'Welcome, {user.first_name}!', 'success')
@@ -806,7 +806,7 @@ def facebook_callback():
             db.session.add(user)
         
         db.session.commit()
-        login_user(user)
+        login_user(user, remember=True)
         record_login_session(user.id, 'Facebook')
         
         flash(f'Welcome, {user.first_name}!', 'success')
@@ -1027,7 +1027,7 @@ def register():
             # Add new user to GoHighLevel CRM (runs in background)
             add_contact_to_ghl(user)
             
-            login_user(user)
+            login_user(user, remember=True)
             record_login_session(user.id, 'registration')
             flash('Welcome to MedInvest! Your account has been created.', 'success')
             return redirect(url_for('main.feed'))
@@ -1391,7 +1391,7 @@ def google_callback():
             db.session.add(user)
         
         db.session.commit()
-        login_user(user)
+        login_user(user, remember=True)
         record_login_session(user.id, 'Google')
         
         flash(f'Welcome, {user.first_name}!', 'success')

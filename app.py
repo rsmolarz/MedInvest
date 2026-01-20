@@ -1,5 +1,6 @@
 import os
 import logging
+from datetime import timedelta
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
@@ -17,6 +18,13 @@ db = SQLAlchemy(model_class=Base)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "fallback-secret-for-development-only")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=2, x_host=2, x_for=2)
+
+# Session lifetime settings - keep users logged in for 30 days
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
+app.config['REMEMBER_COOKIE_SECURE'] = True
+app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
 
 # Session cookie settings for OAuth to work properly
 app.config['SESSION_COOKIE_SECURE'] = True  # HTTPS only
