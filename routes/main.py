@@ -286,9 +286,13 @@ def create_post():
     db.session.commit()
     
     # Share to Facebook Page if configured (non-anonymous posts only)
+    logging.info(f"Post created: id={post.id}, is_anonymous={is_anonymous}")
     if not is_anonymous and is_facebook_configured():
         author_name = f"{current_user.first_name} {current_user.last_name}".strip() or "A physician"
+        logging.info(f"Calling share_platform_post for post {post.id}")
         share_platform_post(post, author_name=author_name)
+    else:
+        logging.info(f"Skipping Facebook share: is_anonymous={is_anonymous}")
     
     flash('Post created!', 'success')
     return redirect(request.referrer or url_for('main.feed'))
@@ -390,9 +394,13 @@ def create_post_ajax():
     db.session.commit()
     
     # Share to Facebook Page if configured (non-anonymous posts only)
+    logging.info(f"AJAX Post created: id={post.id}, is_anonymous={is_anonymous}")
     if not is_anonymous and is_facebook_configured():
         author_name = f"{current_user.first_name} {current_user.last_name}".strip() or "A physician"
+        logging.info(f"AJAX: Calling share_platform_post for post {post.id}")
         share_platform_post(post, author_name=author_name)
+    else:
+        logging.info(f"AJAX: Skipping Facebook share: is_anonymous={is_anonymous}")
     
     return jsonify({
         'success': True,
