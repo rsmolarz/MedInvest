@@ -2237,3 +2237,46 @@ class PushSubscription(db.Model):
     __table_args__ = (
         db.UniqueConstraint('user_id', 'endpoint', name='unique_user_endpoint'),
     )
+
+
+class LoginSession(db.Model):
+    """Track user login sessions and activity"""
+    __tablename__ = 'login_sessions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    
+    ip_address = db.Column(db.String(45))
+    user_agent = db.Column(db.Text)
+    device_type = db.Column(db.String(50))
+    browser = db.Column(db.String(100))
+    os = db.Column(db.String(100))
+    location = db.Column(db.String(200))
+    
+    login_method = db.Column(db.String(30))
+    is_successful = db.Column(db.Boolean, default=True)
+    failure_reason = db.Column(db.String(100))
+    
+    is_current = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_active = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('login_sessions', lazy='dynamic'))
+
+
+class AuthorizedApp(db.Model):
+    """Third-party apps authorized to access user accounts"""
+    __tablename__ = 'authorized_apps'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    
+    app_name = db.Column(db.String(100), nullable=False)
+    app_id = db.Column(db.String(100))
+    scopes = db.Column(db.Text)
+    
+    authorized_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_used = db.Column(db.DateTime)
+    is_active = db.Column(db.Boolean, default=True)
+    
+    user = db.relationship('User', backref=db.backref('authorized_apps', lazy='dynamic'))

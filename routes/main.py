@@ -1057,6 +1057,64 @@ def security():
     return render_template('security.html')
 
 
+@main_bp.route('/security/sessions')
+@login_required
+def session_activity():
+    """View login session activity"""
+    from models import LoginSession
+    sessions = LoginSession.query.filter_by(user_id=current_user.id).order_by(LoginSession.created_at.desc()).limit(50).all()
+    return render_template('security/sessions.html', sessions=sessions)
+
+
+@main_bp.route('/security/sso')
+@login_required
+def sso_connections():
+    """View SSO/social login connections"""
+    connections = []
+    if current_user.google_id:
+        connections.append({'provider': 'Google', 'icon': 'fab fa-google', 'connected': True, 'id': current_user.google_id})
+    else:
+        connections.append({'provider': 'Google', 'icon': 'fab fa-google', 'connected': False})
+    
+    if current_user.facebook_id:
+        connections.append({'provider': 'Facebook', 'icon': 'fab fa-facebook', 'connected': True, 'id': current_user.facebook_id})
+    else:
+        connections.append({'provider': 'Facebook', 'icon': 'fab fa-facebook', 'connected': False})
+    
+    if current_user.apple_id:
+        connections.append({'provider': 'Apple', 'icon': 'fab fa-apple', 'connected': True, 'id': current_user.apple_id})
+    else:
+        connections.append({'provider': 'Apple', 'icon': 'fab fa-apple', 'connected': False})
+    
+    if current_user.github_id:
+        connections.append({'provider': 'GitHub', 'icon': 'fab fa-github', 'connected': True, 'id': current_user.github_id})
+    else:
+        connections.append({'provider': 'GitHub', 'icon': 'fab fa-github', 'connected': False})
+    
+    return render_template('security/sso.html', connections=connections)
+
+
+@main_bp.route('/security/apps')
+@login_required
+def authorized_apps():
+    """View authorized third-party applications"""
+    from models import AuthorizedApp
+    apps = AuthorizedApp.query.filter_by(user_id=current_user.id, is_active=True).order_by(AuthorizedApp.authorized_at.desc()).all()
+    return render_template('security/apps.html', apps=apps)
+
+
+@main_bp.route('/security/apps/<int:app_id>/revoke', methods=['POST'])
+@login_required
+def revoke_app(app_id):
+    """Revoke access for an authorized app"""
+    from models import AuthorizedApp
+    app = AuthorizedApp.query.filter_by(id=app_id, user_id=current_user.id).first_or_404()
+    app.is_active = False
+    db.session.commit()
+    flash(f'Access revoked for {app.app_name}', 'success')
+    return redirect(url_for('main.authorized_apps'))
+
+
 @main_bp.route('/security/change-password', methods=['POST'])
 @login_required
 def change_password():

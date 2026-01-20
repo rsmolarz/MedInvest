@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Authorized Applications - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex align-items-center mb-4">
+                <a href="{{ url_for('main.security') }}" class="btn btn-outline-secondary me-3">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <div>
+                    <h3 class="mb-0">Authorized Applications</h3>
+                    <p class="text-muted mb-0">Manage apps that have access to your account</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-th-large me-2"></i>Connected Apps</h5>
+                </div>
+                <div class="card-body">
+                    {% if apps %}
+                    <p class="text-muted mb-4">These applications have been granted access to your MedInvest account.</p>
+                    
+                    {% for app in apps %}
+                    <div class="d-flex justify-content-between align-items-center py-3 {% if not loop.last %}border-bottom{% endif %}">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
+                                <i class="fas fa-cube text-primary"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">{{ app.app_name }}</h6>
+                                <small class="text-muted">
+                                    Authorized {{ app.authorized_at.strftime('%b %d, %Y') }}
+                                    {% if app.last_used %}
+                                    &middot; Last used {{ app.last_used.strftime('%b %d, %Y') }}
+                                    {% endif %}
+                                </small>
+                                {% if app.scopes %}
+                                <div class="mt-1">
+                                    {% for scope in app.scopes.split(',') %}
+                                    <span class="badge bg-light text-dark me-1">{{ scope.strip() }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <form method="POST" action="{{ url_for('main.revoke_app', app_id=app.id) }}" onsubmit="return confirm('Revoke access for {{ app.app_name }}? This app will no longer be able to access your account.');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Revoke Access</button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-th-large fa-3x text-muted mb-3"></i>
+                        <h5>No Authorized Applications</h5>
+                        <p class="text-muted mb-0">
+                            When you connect third-party apps to your MedInvest account, they will appear here.<br>
+                            You can revoke their access at any time.
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h6><i class="fas fa-shield-alt me-2 text-warning"></i>Security Note</h6>
+                    <p class="text-muted mb-0">
+                        Only authorize applications you trust. If you see an app you don't recognize, 
+                        revoke its access immediately and change your password.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

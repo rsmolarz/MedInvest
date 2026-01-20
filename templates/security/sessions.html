@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Session Activity - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="d-flex align-items-center mb-4">
+                <a href="{{ url_for('main.security') }}" class="btn btn-outline-secondary me-3">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <div>
+                    <h3 class="mb-0">Session Activity</h3>
+                    <p class="text-muted mb-0">View your recent login attempts and active sessions</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Login Activity</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if sessions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>IP Address</th>
+                                    <th>Device / Browser</th>
+                                    <th>Location</th>
+                                    <th>Method</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for session in sessions %}
+                                <tr>
+                                    <td>
+                                        <div>{{ session.created_at.strftime('%b %d, %Y') }}</div>
+                                        <small class="text-muted">{{ session.created_at.strftime('%I:%M %p') }}</small>
+                                    </td>
+                                    <td>
+                                        <code>{{ session.ip_address or 'Unknown' }}</code>
+                                    </td>
+                                    <td>
+                                        <div>{{ session.browser or 'Unknown Browser' }}</div>
+                                        <small class="text-muted">{{ session.device_type or session.os or 'Unknown Device' }}</small>
+                                    </td>
+                                    <td>{{ session.location or 'Unknown' }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ session.login_method or 'Password' }}</span>
+                                    </td>
+                                    <td>
+                                        {% if session.is_successful %}
+                                        <span class="badge bg-success"><i class="fas fa-check me-1"></i>Success</span>
+                                        {% else %}
+                                        <span class="badge bg-danger"><i class="fas fa-times me-1"></i>Failed</span>
+                                        {% if session.failure_reason %}
+                                        <small class="d-block text-muted">{{ session.failure_reason }}</small>
+                                        {% endif %}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                        <h5>No Login Activity Yet</h5>
+                        <p class="text-muted">Your login history will appear here as you sign in.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h6><i class="fas fa-shield-alt me-2"></i>Security Tips</h6>
+                    <ul class="mb-0 text-muted">
+                        <li>Review this list regularly to spot any unauthorized access</li>
+                        <li>If you see unfamiliar locations or devices, change your password immediately</li>
+                        <li>Enable Two-Factor Authentication for added security</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

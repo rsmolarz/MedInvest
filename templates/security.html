@@ -89,7 +89,7 @@
                             <h6>Authorized Applications</h6>
                             <p>Manage the apps where you can sign in using your MedInvest account.</p>
                         </div>
-                        <button class="btn btn-outline-secondary" disabled>Manage</button>
+                        <a href="{{ url_for('main.authorized_apps') }}" class="btn btn-outline-secondary">Manage</a>
                     </div>
 
                     <div class="security-item">
@@ -97,7 +97,7 @@
                             <h6>SSO Connections</h6>
                             <p>View your account's Single Sign-On connections.</p>
                         </div>
-                        <button class="btn btn-outline-secondary" disabled>Manage</button>
+                        <a href="{{ url_for('main.sso_connections') }}" class="btn btn-outline-secondary">Manage</a>
                     </div>
 
                     <div class="security-item">
@@ -105,7 +105,7 @@
                             <h6>Session Activity</h6>
                             <p>View your account's recent access attempts. See IP addresses, dates, and login attempts.</p>
                         </div>
-                        <button class="btn btn-outline-secondary" disabled>Manage</button>
+                        <a href="{{ url_for('main.session_activity') }}" class="btn btn-outline-secondary">Manage</a>
                     </div>
 
                     <div class="text-center mt-4">

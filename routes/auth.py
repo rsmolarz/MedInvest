@@ -14,8 +14,51 @@ from urllib.parse import urlencode
 from werkzeug.utils import secure_filename
 import secrets
 from app import db
-from models import User, Referral
+from models import User, Referral, LoginSession
 from mailer import send_email
+
+
+def record_login_session(user_id, login_method='password', is_successful=True, failure_reason=None):
+    """Record a login session for security tracking - failures are logged but don't interrupt auth"""
+    try:
+        try:
+            from user_agents import parse as parse_ua
+            user_agent_str = request.headers.get('User-Agent', '')
+            try:
+                ua = parse_ua(user_agent_str)
+                browser = f"{ua.browser.family} {ua.browser.version_string}"
+                os_info = f"{ua.os.family} {ua.os.version_string}"
+                device_type = 'Mobile' if ua.is_mobile else ('Tablet' if ua.is_tablet else 'Desktop')
+            except:
+                browser = 'Unknown'
+                os_info = 'Unknown'
+                device_type = 'Unknown'
+        except ImportError:
+            user_agent_str = request.headers.get('User-Agent', '')
+            browser = 'Unknown'
+            os_info = 'Unknown'
+            device_type = 'Desktop' if 'Windows' in user_agent_str or 'Mac' in user_agent_str else 'Unknown'
+        
+        ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+        if ip_address and ',' in ip_address:
+            ip_address = ip_address.split(',')[0].strip()
+        
+        session_record = LoginSession(
+            user_id=user_id,
+            ip_address=ip_address,
+            user_agent=request.headers.get('User-Agent', '')[:500],
+            device_type=device_type,
+            browser=browser,
+            os=os_info,
+            login_method=login_method,
+            is_successful=is_successful,
+            failure_reason=failure_reason
+        )
+        db.session.add(session_record)
+        db.session.commit()
+    except Exception as e:
+        logging.error(f"Failed to record login session: {e}")
+        db.session.rollback()
 from routes.notifications import notify_invite_accepted
 from gohighlevel import add_contact_to_ghl
 
@@ -382,12 +425,14 @@ def apple_callback():
         
         if user:
             user.replit_id = f'apple_{apple_id}'
+            user.apple_id = apple_id
         else:
             user = User(
                 email=email,
                 first_name=first_name,
                 last_name=last_name,
                 replit_id=f'apple_{apple_id}',
+                apple_id=apple_id,
                 specialty='',
                 medical_license=f'APPLE-{apple_id[:8]}',
             )
@@ -401,6 +446,7 @@ def apple_callback():
         
         db.session.commit()
         login_user(user)
+        record_login_session(user.id, 'Apple')
         
         flash(f'Welcome, {user.first_name}!', 'success')
         next_url = session.pop('next_url', None)
@@ -512,6 +558,7 @@ def github_callback():
         
         if user:
             user.replit_id = f'github_{gh_id}'
+            user.github_id = str(gh_id)
             if gh_avatar and not user.profile_image_url:
                 user.profile_image_url = gh_avatar
         else:
@@ -520,6 +567,7 @@ def github_callback():
                 first_name=first_name,
                 last_name=last_name,
                 replit_id=f'github_{gh_id}',
+                github_id=str(gh_id),
                 profile_image_url=gh_avatar,
                 specialty='',
                 medical_license=f'GITHUB-{gh_id}',
@@ -529,6 +577,7 @@ def github_callback():
         
         db.session.commit()
         login_user(user)
+        record_login_session(user.id, 'GitHub')
         
         flash(f'Welcome, {user.first_name}!', 'success')
         next_url = session.pop('next_url', None)
@@ -655,6 +704,7 @@ def facebook_callback():
         
         db.session.commit()
         login_user(user)
+        record_login_session(user.id, 'Facebook')
         
         flash(f'Welcome, {user.first_name}!', 'success')
         next_url = session.pop('next_url', None)
@@ -780,6 +830,7 @@ def login():
                 return redirect(url_for('auth.verify_2fa'))
             
             login_user(user, remember=remember)
+            record_login_session(user.id, 'password')
             
             # Update last login and streak
             if user.last_login:
@@ -800,6 +851,8 @@ def login():
             next_page = request.args.get('next')
             return redirect(next_page or url_for('main.feed'))
         
+        if user:
+            record_login_session(user.id, 'password', is_successful=False, failure_reason='Invalid password')
         flash('Invalid email or password', 'error')
     
     return render_template('auth/login.html')
@@ -872,6 +925,7 @@ def register():
             add_contact_to_ghl(user)
             
             login_user(user)
+            record_login_session(user.id, 'registration')
             flash('Welcome to MedInvest! Your account has been created.', 'success')
             return redirect(url_for('main.feed'))
         except Exception as e:
@@ -916,6 +970,7 @@ def verify_2fa():
             session.pop('pending_2fa_user_id', None)
             
             login_user(user, remember=remember)
+            record_login_session(user.id, '2FA')
             
             # Update last login and streak
             if user.last_login:
@@ -1189,6 +1244,7 @@ def google_callback():
         
         if user:
             user.replit_id = f'google_{google_id}'
+            user.google_id = google_id
             if google_info.get('picture') and not user.profile_image_url:
                 user.profile_image_url = google_info.get('picture')
         else:
@@ -1197,6 +1253,7 @@ def google_callback():
                 first_name=google_info.get('given_name', 'User'),
                 last_name=google_info.get('family_name', ''),
                 replit_id=f'google_{google_id}',
+                google_id=google_id,
                 profile_image_url=google_info.get('picture'),
                 specialty='',
                 medical_license=f'GOOGLE-{google_id}',
@@ -1206,6 +1263,7 @@ def google_callback():
         
         db.session.commit()
         login_user(user)
+        record_login_session(user.id, 'Google')
         
         flash(f'Welcome, {user.first_name}!', 'success')
         next_url = session.pop('next_url', None)
