@@ -123,18 +123,22 @@ def render_content_with_links(text):
     # Replace @mentions with links to user profiles
     def mention_replacer(match):
         username = match.group(1)
-        # Try to find the user by handle (FirstnameLastname format)
-        from models import User
-        from app import db
-        username_clean = username.lower().replace("'", "")
-        user = User.query.filter(
-            db.or_(
-                db.func.lower(db.func.replace(db.func.concat(User.first_name, User.last_name), "'", "")) == username_clean,
-                db.func.lower(db.func.replace(User.first_name, "'", "")) == username_clean
-            )
-        ).first()
-        if user:
-            return f'<a href="/profile/{user.id}" class="mention-link">@{username}</a>'
+        try:
+            # Try to find the user by handle (FirstnameLastname format)
+            from models import User
+            from app import db
+            username_clean = username.lower().replace("'", "")
+            user = User.query.filter(
+                db.or_(
+                    db.func.lower(db.func.replace(db.func.concat(User.first_name, User.last_name), "'", "")) == username_clean,
+                    db.func.lower(db.func.replace(User.first_name, "'", "")) == username_clean
+                )
+            ).first()
+            if user:
+                return f'<a href="/profile/{user.id}" class="mention-link">@{username}</a>'
+        except Exception:
+            pass
+        # Default: link to search
         return f'<a href="/search?q={username}" class="mention-link">@{username}</a>'
     
     text = MENTION_PATTERN.sub(mention_replacer, text)
