@@ -440,6 +440,53 @@ def manage_rooms():
     return render_template('admin/rooms.html', rooms=rooms)
 
 
+@admin_bp.route('/posts')
+@login_required
+@admin_required
+def manage_posts():
+    """Post management - view and delete posts"""
+    page = request.args.get('page', 1, type=int)
+    room_id = request.args.get('room_id', type=int)
+    search = request.args.get('search', '').strip()
+    
+    query = Post.query
+    
+    if room_id:
+        query = query.filter(Post.room_id == room_id)
+    
+    if search:
+        query = query.filter(Post.content.ilike(f'%{search}%'))
+    
+    posts = query.order_by(Post.created_at.desc()).paginate(page=page, per_page=20)
+    rooms = Room.query.order_by(Room.name).all()
+    
+    return render_template('admin/posts.html', posts=posts, rooms=rooms, 
+                          current_room_id=room_id, search=search)
+
+
+@admin_bp.route('/posts/<int:post_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_post(post_id):
+    """Delete a post"""
+    from models import PostMedia, PostVote, Comment, Bookmark, PostMention
+    
+    post = Post.query.get_or_404(post_id)
+    
+    # Delete related records
+    PostMedia.query.filter_by(post_id=post_id).delete()
+    PostVote.query.filter_by(post_id=post_id).delete()
+    Comment.query.filter_by(post_id=post_id).delete()
+    Bookmark.query.filter_by(post_id=post_id).delete()
+    PostMention.query.filter_by(post_id=post_id).delete()
+    
+    db.session.delete(post)
+    db.session.commit()
+    
+    flash('Post deleted successfully', 'success')
+    return redirect(request.referrer or url_for('admin.manage_posts'))
+
+
 # ============================================================================
 # ADS ADMIN CRUD ENDPOINTS
 # ============================================================================
