@@ -232,6 +232,13 @@ def google_login_custom():
     session['oauth_state'] = state
     session['oauth_provider'] = 'google'
     
+    # Check if user is already logged in - this is a "connect" attempt
+    if current_user.is_authenticated:
+        session['oauth_connect_mode'] = True
+        session['oauth_connect_user_id'] = current_user.id
+    else:
+        session['oauth_connect_mode'] = False
+    
     redirect_uri = get_oauth_redirect_uri('google')
     session['oauth_redirect_uri'] = redirect_uri
     
@@ -259,6 +266,13 @@ def facebook_login():
     if not facebook_app_id:
         flash('Facebook login is not configured.', 'error')
         return redirect(url_for('auth.login'))
+    
+    # Check if user is already logged in - this is a "connect" attempt
+    if current_user.is_authenticated:
+        session['oauth_connect_mode'] = True
+        session['oauth_connect_user_id'] = current_user.id
+    else:
+        session['oauth_connect_mode'] = False
     
     redirect_uri = get_oauth_redirect_uri('facebook')
     
@@ -293,6 +307,13 @@ def github_login():
         flash('GitHub login is not configured.', 'error')
         return redirect(url_for('auth.login'))
     
+    # Check if user is already logged in - this is a "connect" attempt
+    if current_user.is_authenticated:
+        session['oauth_connect_mode'] = True
+        session['oauth_connect_user_id'] = current_user.id
+    else:
+        session['oauth_connect_mode'] = False
+    
     state = secrets.token_urlsafe(32)
     session['oauth_state'] = state
     session['oauth_provider'] = 'github'
@@ -322,6 +343,13 @@ def apple_login():
     if not APPLE_CLIENT_ID:
         flash('Apple Sign In is not configured.', 'error')
         return redirect(url_for('auth.login'))
+    
+    # Check if user is already logged in - this is a "connect" attempt
+    if current_user.is_authenticated:
+        session['oauth_connect_mode'] = True
+        session['oauth_connect_user_id'] = current_user.id
+    else:
+        session['oauth_connect_mode'] = False
     
     state = secrets.token_urlsafe(32)
     session['oauth_state'] = state
@@ -418,10 +446,34 @@ def apple_callback():
             flash('Apple account email not available.', 'error')
             return redirect(url_for('auth.login'))
         
-        user = User.query.filter_by(email=email).first()
-        
         first_name = apple_user_info.get('name', {}).get('firstName', 'Apple')
         last_name = apple_user_info.get('name', {}).get('lastName', 'User')
+        
+        # Check if this is a "connect" attempt (user was already logged in)
+        connect_mode = session.pop('oauth_connect_mode', False)
+        connect_user_id = session.pop('oauth_connect_user_id', None)
+        
+        if connect_mode and connect_user_id:
+            # Connect mode: link Apple to the current user's account
+            user = User.query.get(connect_user_id)
+            if user:
+                # Check if this Apple account is already linked to another user
+                existing_apple_user = User.query.filter_by(apple_id=apple_id).first()
+                if existing_apple_user and existing_apple_user.id != user.id:
+                    flash('This Apple account is already linked to another user.', 'error')
+                    return redirect(url_for('main.sso_connections'))
+                
+                user.apple_id = apple_id
+                user.replit_id = f'apple_{apple_id}'
+                db.session.commit()
+                flash('Apple account connected successfully!', 'success')
+                return redirect(url_for('main.sso_connections'))
+            else:
+                flash('Session expired. Please try again.', 'error')
+                return redirect(url_for('main.sso_connections'))
+        
+        # Normal login mode
+        user = User.query.filter_by(email=email).first()
         
         if user:
             user.replit_id = f'apple_{apple_id}'
@@ -550,11 +602,37 @@ def github_callback():
             flash('GitHub account email not available. Please ensure your GitHub account has a verified email.', 'error')
             return redirect(url_for('auth.login'))
         
-        user = User.query.filter_by(email=email).first()
-        
         name_parts = gh_name.split(' ', 1)
         first_name = name_parts[0] if name_parts else 'User'
         last_name = name_parts[1] if len(name_parts) > 1 else ''
+        
+        # Check if this is a "connect" attempt (user was already logged in)
+        connect_mode = session.pop('oauth_connect_mode', False)
+        connect_user_id = session.pop('oauth_connect_user_id', None)
+        
+        if connect_mode and connect_user_id:
+            # Connect mode: link GitHub to the current user's account
+            user = User.query.get(connect_user_id)
+            if user:
+                # Check if this GitHub account is already linked to another user
+                existing_gh_user = User.query.filter_by(github_id=str(gh_id)).first()
+                if existing_gh_user and existing_gh_user.id != user.id:
+                    flash('This GitHub account is already linked to another user.', 'error')
+                    return redirect(url_for('main.sso_connections'))
+                
+                user.github_id = str(gh_id)
+                user.replit_id = f'github_{gh_id}'
+                if gh_avatar and not user.profile_image_url:
+                    user.profile_image_url = gh_avatar
+                db.session.commit()
+                flash('GitHub account connected successfully!', 'success')
+                return redirect(url_for('main.sso_connections'))
+            else:
+                flash('Session expired. Please try again.', 'error')
+                return redirect(url_for('main.sso_connections'))
+        
+        # Normal login mode
+        user = User.query.filter_by(email=email).first()
         
         if user:
             user.replit_id = f'github_{gh_id}'
@@ -663,8 +741,37 @@ def facebook_callback():
         email = fb_info.get('email')
         fb_id = fb_info.get('id')
         
+        picture_url = None
+        if fb_info.get('picture') and fb_info['picture'].get('data'):
+            picture_url = fb_info['picture']['data'].get('url')
+        
+        # Check if this is a "connect" attempt (user was already logged in)
+        connect_mode = session.pop('oauth_connect_mode', False)
+        connect_user_id = session.pop('oauth_connect_user_id', None)
+        
+        if connect_mode and connect_user_id:
+            # Connect mode: link Facebook to the current user's account
+            user = User.query.get(connect_user_id)
+            if user:
+                # Check if this Facebook account is already linked to another user
+                existing_fb_user = User.query.filter_by(facebook_id=fb_id).first()
+                if existing_fb_user and existing_fb_user.id != user.id:
+                    flash('This Facebook account is already linked to another user.', 'error')
+                    return redirect(url_for('main.sso_connections'))
+                
+                user.facebook_id = fb_id
+                user.replit_id = f'facebook_{fb_id}'
+                if picture_url and not user.profile_image_url:
+                    user.profile_image_url = picture_url
+                db.session.commit()
+                flash('Facebook account connected successfully!', 'success')
+                return redirect(url_for('main.sso_connections'))
+            else:
+                flash('Session expired. Please try again.', 'error')
+                return redirect(url_for('main.sso_connections'))
+        
+        # Normal login mode
         # If no email permission, generate a placeholder email
-        # Users can update their email later in profile settings
         if not email:
             email = f"facebook_{fb_id}@placeholder.medinvest.com"
             logging.info(f"No email from Facebook for user {fb_id}, using placeholder")
@@ -673,10 +780,6 @@ def facebook_callback():
         user = User.query.filter_by(replit_id=f'facebook_{fb_id}').first()
         if not user:
             user = User.query.filter_by(email=email).first()
-        
-        picture_url = None
-        if fb_info.get('picture') and fb_info['picture'].get('data'):
-            picture_url = fb_info['picture']['data'].get('url')
         
         if user:
             user.replit_id = f'facebook_{fb_id}'
@@ -1240,6 +1343,32 @@ def google_callback():
             flash('Google account email not available.', 'error')
             return redirect(url_for('auth.login'))
         
+        # Check if this is a "connect" attempt (user was already logged in)
+        connect_mode = session.pop('oauth_connect_mode', False)
+        connect_user_id = session.pop('oauth_connect_user_id', None)
+        
+        if connect_mode and connect_user_id:
+            # Connect mode: link Google to the current user's account
+            user = User.query.get(connect_user_id)
+            if user:
+                # Check if this Google account is already linked to another user
+                existing_google_user = User.query.filter_by(google_id=google_id).first()
+                if existing_google_user and existing_google_user.id != user.id:
+                    flash('This Google account is already linked to another user.', 'error')
+                    return redirect(url_for('main.sso_connections'))
+                
+                user.google_id = google_id
+                user.replit_id = f'google_{google_id}'
+                if google_info.get('picture') and not user.profile_image_url:
+                    user.profile_image_url = google_info.get('picture')
+                db.session.commit()
+                flash('Google account connected successfully!', 'success')
+                return redirect(url_for('main.sso_connections'))
+            else:
+                flash('Session expired. Please try again.', 'error')
+                return redirect(url_for('main.sso_connections'))
+        
+        # Normal login mode
         user = User.query.filter_by(email=email).first()
         
         if user:
