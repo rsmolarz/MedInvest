@@ -25,6 +25,16 @@ def get_facebook_token():
 
 def get_facebook_page_id():
     """Get fresh Facebook page ID from environment"""
+    import subprocess
+    try:
+        result = subprocess.run(
+            ['printenv', 'FACEBOOK_PAGE_ID'],
+            capture_output=True, text=True, timeout=2
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except:
+        pass
     return os.environ.get('FACEBOOK_PAGE_ID')
 
 
