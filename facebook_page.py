@@ -50,7 +50,11 @@ PLATFORM_URL = get_platform_url()
 
 def is_facebook_configured():
     """Check if Facebook page integration is configured"""
-    return bool(get_facebook_token() and get_facebook_page_id())
+    token = get_facebook_token()
+    page_id = get_facebook_page_id()
+    configured = bool(token and page_id)
+    logging.info(f"Facebook configured check: token={'yes' if token else 'no'}, page_id={page_id}, configured={configured}")
+    return configured
 
 
 def post_to_facebook(message, link=None, image_url=None):
@@ -149,7 +153,9 @@ def share_platform_post(post, author_name=None):
         post: Post model object
         author_name: Display name of the author (None if anonymous)
     """
+    logging.info(f"share_platform_post called for post {post.id}, author: {author_name}")
     if not is_facebook_configured():
+        logging.info("Facebook not configured, skipping share")
         return {'success': False, 'error': 'Facebook not configured'}
     
     content = post.content[:400] + '...' if len(post.content) > 400 else post.content
