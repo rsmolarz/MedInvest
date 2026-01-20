@@ -4,9 +4,14 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="fab fa-facebook me-2"></i>Facebook Sync</h2>
-    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
-        <i class="fas fa-arrow-left me-1"></i>Back to Admin
-    </a>
+    <div>
+        <a href="{{ url_for('admin.facebook_sync_status') }}?refresh={{ now }}" class="btn btn-outline-primary me-2">
+            <i class="fas fa-sync-alt me-1"></i>Refresh Status
+        </a>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Admin
+        </a>
+    </div>
 </div>
 
 <div class="row">
@@ -61,6 +66,10 @@
                         <td><span class="text-danger">{{ status.error }}</span></td>
                     </tr>
                     {% endif %}
+                    <tr>
+                        <td><strong>Last Checked:</strong></td>
+                        <td><small class="text-muted">{{ status.last_checked }}</small></td>
+                    </tr>
                 </table>
             </div>
         </div>
