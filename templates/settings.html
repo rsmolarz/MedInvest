@@ -70,6 +70,94 @@
                         <a href="{{ url_for('main.security') }}" class="btn btn-outline-secondary">Manage</a>
                     </div>
 
+                    <div class="settings-item">
+                        <h6><i class="fas fa-link me-2"></i>Connected Accounts</h6>
+                        <p>Link social accounts for easier sign-in and account recovery. You can use any connected account to log in.</p>
+                        
+                        <div class="connected-accounts mt-3">
+                            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                <div class="d-flex align-items-center">
+                                    <i class="fab fa-google fa-lg me-3 text-danger"></i>
+                                    <div>
+                                        <strong>Google</strong>
+                                        {% if current_user.google_id %}
+                                        <span class="badge bg-success ms-2">Connected</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% if current_user.google_id %}
+                                <form method="POST" action="{{ url_for('main.disconnect_social', provider='google') }}" onsubmit="return confirm('Disconnect Google account?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Disconnect</button>
+                                </form>
+                                {% else %}
+                                <a href="{{ url_for('auth.google_login') }}" class="btn btn-sm btn-outline-primary">Connect</a>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                <div class="d-flex align-items-center">
+                                    <i class="fab fa-facebook fa-lg me-3 text-primary"></i>
+                                    <div>
+                                        <strong>Facebook</strong>
+                                        {% if current_user.facebook_id %}
+                                        <span class="badge bg-success ms-2">Connected</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% if current_user.facebook_id %}
+                                <form method="POST" action="{{ url_for('main.disconnect_social', provider='facebook') }}" onsubmit="return confirm('Disconnect Facebook account?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Disconnect</button>
+                                </form>
+                                {% else %}
+                                <a href="{{ url_for('auth.facebook_login') }}" class="btn btn-sm btn-outline-primary">Connect</a>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                <div class="d-flex align-items-center">
+                                    <i class="fab fa-apple fa-lg me-3"></i>
+                                    <div>
+                                        <strong>Apple</strong>
+                                        {% if current_user.apple_id %}
+                                        <span class="badge bg-success ms-2">Connected</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% if current_user.apple_id %}
+                                <form method="POST" action="{{ url_for('main.disconnect_social', provider='apple') }}" onsubmit="return confirm('Disconnect Apple account?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Disconnect</button>
+                                </form>
+                                {% else %}
+                                <a href="{{ url_for('auth.apple_login') }}" class="btn btn-sm btn-outline-primary">Connect</a>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center py-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="fab fa-github fa-lg me-3"></i>
+                                    <div>
+                                        <strong>GitHub</strong>
+                                        {% if current_user.github_id %}
+                                        <span class="badge bg-success ms-2">Connected</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% if current_user.github_id %}
+                                <form method="POST" action="{{ url_for('main.disconnect_social', provider='github') }}" onsubmit="return confirm('Disconnect GitHub account?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Disconnect</button>
+                                </form>
+                                {% else %}
+                                <a href="{{ url_for('auth.github_login') }}" class="btn btn-sm btn-outline-primary">Connect</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <small class="text-muted d-block mt-3">
+                            <i class="fas fa-info-circle me-1"></i>
+                            You must keep at least one sign-in method (email/password or one social account).
+                        </small>
+                    </div>
+
                     {% elif tab == 'communication' %}
                     <h4><i class="fas fa-envelope me-2"></i>Communication Preferences</h4>
                     

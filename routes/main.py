@@ -1011,6 +1011,45 @@ def update_settings():
     return redirect(url_for('main.settings', tab=setting_type))
 
 
+@main_bp.route('/settings/disconnect/<provider>', methods=['POST'])
+@login_required
+def disconnect_social(provider):
+    """Disconnect a social account"""
+    valid_providers = ['google', 'facebook', 'apple', 'github']
+    
+    if provider not in valid_providers:
+        flash('Invalid provider', 'error')
+        return redirect(url_for('main.settings', tab='account'))
+    
+    # Check if user has password or another connected account
+    has_password = bool(current_user.password_hash)
+    connected_count = sum([
+        bool(current_user.google_id),
+        bool(current_user.facebook_id),
+        bool(current_user.apple_id),
+        bool(current_user.github_id)
+    ])
+    
+    # Must keep at least one sign-in method
+    if not has_password and connected_count <= 1:
+        flash('You must keep at least one sign-in method. Set a password first or connect another account.', 'error')
+        return redirect(url_for('main.settings', tab='account'))
+    
+    # Disconnect the account
+    if provider == 'google':
+        current_user.google_id = None
+    elif provider == 'facebook':
+        current_user.facebook_id = None
+    elif provider == 'apple':
+        current_user.apple_id = None
+    elif provider == 'github':
+        current_user.github_id = None
+    
+    db.session.commit()
+    flash(f'{provider.title()} account disconnected successfully', 'success')
+    return redirect(url_for('main.settings', tab='account'))
+
+
 @main_bp.route('/security')
 @login_required
 def security():
