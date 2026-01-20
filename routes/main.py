@@ -302,111 +302,116 @@ def create_post():
 @login_required
 def create_post_ajax():
     """Create post via AJAX (for better UX with media)"""
-    data = request.get_json()
-    
-    content = data.get('content', '').strip()
-    room_id = data.get('room_id')
-    is_anonymous = data.get('is_anonymous', False)
-    media_files = data.get('media_files', [])
-    
-    if not content and not media_files:
-        return jsonify({'error': 'Post must have content or media'}), 400
-    
-    # Determine post type
-    if len(media_files) == 0:
-        post_type = 'text'
-    elif len(media_files) == 1:
-        post_type = media_files[0].get('file_type', 'image')
-    else:
-        post_type = 'gallery'
-    
-    # Anonymous name
-    anonymous_name = None
-    if is_anonymous:
-        if current_user.specialty:
-            specialty_map = {
-                'cardiology': 'Cardiologist',
-                'anesthesiology': 'Anesthesiologist',
-                'radiology': 'Radiologist',
-                'surgery': 'Surgeon',
-                'internal_medicine': 'Internist',
-                'emergency_medicine': 'EM Physician',
-                'pediatrics': 'Pediatrician',
-                'psychiatry': 'Psychiatrist',
-                'dermatology': 'Dermatologist',
-                'orthopedics': 'Orthopedist',
-                'neurology': 'Neurologist',
-                'family_medicine': 'Family Physician',
-            }
-            anonymous_name = f"Anonymous {specialty_map.get(current_user.specialty, 'Physician')}"
-        else:
-            anonymous_name = "Anonymous Physician"
-    
-    post = Post(
-        author_id=current_user.id,
-        room_id=room_id,
-        content=content or '',
-        post_type=post_type,
-        is_anonymous=is_anonymous,
-        anonymous_name=anonymous_name,
-        media_count=len(media_files)
-    )
-    
-    db.session.add(post)
-    db.session.flush()
-    
-    # Add media
-    for i, media in enumerate(media_files):
-        post_media = PostMedia(
-            post_id=post.id,
-            media_type=media.get('file_type', 'image'),
-            file_path=media.get('file_path', ''),
-            filename=media.get('filename', ''),
-            file_size=media.get('file_size', 0),
-            order_index=i
-        )
-        db.session.add(post_media)
-    
-    # Process hashtags
-    if content:
-        hashtags = process_hashtags(content, db)
-        for hashtag in hashtags:
-            link_hashtag(post.id, hashtag, db)
+    try:
+        data = request.get_json()
         
-        # Process mentions - save records and notify
-        mentioned_usernames = extract_mentions(content)
-        for username in mentioned_usernames:
-            # Match the handle format: FirstnameLastname (no spaces, no apostrophes)
-            username_clean = username.lower().replace("'", "")
-            mentioned_user = User.query.filter(
-                db.or_(
-                    db.func.lower(db.func.replace(db.func.concat(User.first_name, User.last_name), "'", "")) == username_clean,
-                    db.func.lower(db.func.replace(User.first_name, "'", "")) == username_clean
-                )
-            ).first()
-            if mentioned_user and mentioned_user.id != current_user.id:
-                mention = PostMention(post_id=post.id, mentioned_user_id=mentioned_user.id)
-                db.session.add(mention)
-                if not is_anonymous:
-                    notify_mention(mentioned_user.id, current_user.id, post.id)
-    
-    current_user.add_points(5 if post_type == 'text' else 10)
-    db.session.commit()
-    
-    # Share to Facebook Page if configured (non-anonymous posts only)
-    logging.info(f"AJAX Post created: id={post.id}, is_anonymous={is_anonymous}")
-    if not is_anonymous and is_facebook_configured():
-        author_name = f"{current_user.first_name} {current_user.last_name}".strip() or "A physician"
-        logging.info(f"AJAX: Calling share_platform_post for post {post.id}")
-        share_platform_post(post, author_name=author_name)
-    else:
-        logging.info(f"AJAX: Skipping Facebook share: is_anonymous={is_anonymous}")
-    
-    return jsonify({
-        'success': True,
-        'post_id': post.id,
-        'message': 'Post created!'
-    })
+        content = data.get('content', '').strip()
+        room_id = data.get('room_id')
+        is_anonymous = data.get('is_anonymous', False)
+        media_files = data.get('media_files', [])
+        
+        if not content and not media_files:
+            return jsonify({'error': 'Post must have content or media'}), 400
+        
+        # Determine post type
+        if len(media_files) == 0:
+            post_type = 'text'
+        elif len(media_files) == 1:
+            post_type = media_files[0].get('file_type', 'image')
+        else:
+            post_type = 'gallery'
+        
+        # Anonymous name
+        anonymous_name = None
+        if is_anonymous:
+            if current_user.specialty:
+                specialty_map = {
+                    'cardiology': 'Cardiologist',
+                    'anesthesiology': 'Anesthesiologist',
+                    'radiology': 'Radiologist',
+                    'surgery': 'Surgeon',
+                    'internal_medicine': 'Internist',
+                    'emergency_medicine': 'EM Physician',
+                    'pediatrics': 'Pediatrician',
+                    'psychiatry': 'Psychiatrist',
+                    'dermatology': 'Dermatologist',
+                    'orthopedics': 'Orthopedist',
+                    'neurology': 'Neurologist',
+                    'family_medicine': 'Family Physician',
+                }
+                anonymous_name = f"Anonymous {specialty_map.get(current_user.specialty, 'Physician')}"
+            else:
+                anonymous_name = "Anonymous Physician"
+        
+        post = Post(
+            author_id=current_user.id,
+            room_id=room_id,
+            content=content or '',
+            post_type=post_type,
+            is_anonymous=is_anonymous,
+            anonymous_name=anonymous_name,
+            media_count=len(media_files)
+        )
+        
+        db.session.add(post)
+        db.session.flush()
+        
+        # Add media
+        for i, media in enumerate(media_files):
+            post_media = PostMedia(
+                post_id=post.id,
+                media_type=media.get('file_type', 'image'),
+                file_path=media.get('file_path', ''),
+                filename=media.get('filename', ''),
+                file_size=media.get('file_size', 0),
+                order_index=i
+            )
+            db.session.add(post_media)
+        
+        # Process hashtags
+        if content:
+            hashtags = process_hashtags(content, db)
+            for hashtag in hashtags:
+                link_hashtag(post.id, hashtag, db)
+            
+            # Process mentions - save records and notify
+            mentioned_usernames = extract_mentions(content)
+            for username in mentioned_usernames:
+                # Match the handle format: FirstnameLastname (no spaces, no apostrophes)
+                username_clean = username.lower().replace("'", "")
+                mentioned_user = User.query.filter(
+                    db.or_(
+                        db.func.lower(db.func.replace(db.func.concat(User.first_name, User.last_name), "'", "")) == username_clean,
+                        db.func.lower(db.func.replace(User.first_name, "'", "")) == username_clean
+                    )
+                ).first()
+                if mentioned_user and mentioned_user.id != current_user.id:
+                    mention = PostMention(post_id=post.id, mentioned_user_id=mentioned_user.id)
+                    db.session.add(mention)
+                    if not is_anonymous:
+                        notify_mention(mentioned_user.id, current_user.id, post.id)
+        
+        current_user.add_points(5 if post_type == 'text' else 10)
+        db.session.commit()
+        
+        # Share to Facebook Page if configured (non-anonymous posts only)
+        logging.info(f"AJAX Post created: id={post.id}, is_anonymous={is_anonymous}")
+        if not is_anonymous and is_facebook_configured():
+            author_name = f"{current_user.first_name} {current_user.last_name}".strip() or "A physician"
+            logging.info(f"AJAX: Calling share_platform_post for post {post.id}")
+            share_platform_post(post, author_name=author_name)
+        else:
+            logging.info(f"AJAX: Skipping Facebook share: is_anonymous={is_anonymous}")
+        
+        return jsonify({
+            'success': True,
+            'post_id': post.id,
+            'message': 'Post created!'
+        })
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error creating post: {str(e)}", exc_info=True)
+        return jsonify({'error': f'Failed to create post: {str(e)}'}), 500
 
 
 @main_bp.route('/post/<int:post_id>/vote', methods=['POST'])
