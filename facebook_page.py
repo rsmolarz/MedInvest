@@ -9,15 +9,14 @@ from urllib.parse import urljoin
 
 
 def get_facebook_token():
-    """Get fresh Facebook token from environment"""
-    import subprocess
+    """Get fresh Facebook token - prioritize config file over environment"""
+    import json
+    # Try reading from config file first (bypasses env caching)
     try:
-        result = subprocess.run(
-            ['printenv', 'FACEBOOK_PAGE_ACCESS_TOKEN'],
-            capture_output=True, text=True, timeout=2
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip()
+        with open('facebook_config.json', 'r') as f:
+            config = json.load(f)
+            if config.get('access_token'):
+                return config['access_token']
     except:
         pass
     return os.environ.get('FACEBOOK_PAGE_ACCESS_TOKEN')
