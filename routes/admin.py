@@ -82,23 +82,11 @@ def facebook_sync_status():
     """Facebook sync status and testing page - always fetches fresh token"""
     import requests
     import time
-    import subprocess
+    from facebook_page import get_facebook_token, get_facebook_page_id
     
-    # Force fresh read of environment variables using subprocess
-    def get_fresh_env(var_name):
-        try:
-            result = subprocess.run(
-                ['printenv', var_name],
-                capture_output=True, text=True, timeout=2
-            )
-            if result.returncode == 0 and result.stdout.strip():
-                return result.stdout.strip()
-        except:
-            pass
-        return os.environ.get(var_name)
-    
-    page_id = get_fresh_env('FACEBOOK_PAGE_ID')
-    token = get_fresh_env('FACEBOOK_PAGE_ACCESS_TOKEN')
+    # Use the same token source as facebook_page.py (config file first, then env)
+    page_id = get_facebook_page_id()
+    token = get_facebook_token()
     
     status = {
         'configured': bool(page_id and token),
