@@ -90,7 +90,7 @@
                                     <button type="submit" class="btn btn-sm btn-outline-danger">Disconnect</button>
                                 </form>
                                 {% else %}
-                                <a href="{{ url_for('auth.google_login') }}" class="btn btn-sm btn-outline-primary">Connect</a>
+                                <a href="/auth/google-login" class="btn btn-sm btn-outline-primary">Connect</a>
                                 {% endif %}
                             </div>
                             
@@ -109,7 +109,7 @@
                                     <button type="submit" class="btn btn-sm btn-outline-danger">Disconnect</button>
                                 </form>
                                 {% else %}
-                                <a href="{{ url_for('auth.facebook_login') }}" class="btn btn-sm btn-outline-primary">Connect</a>
+                                <a href="/auth/facebook-login" class="btn btn-sm btn-outline-primary">Connect</a>
                                 {% endif %}
                             </div>
                             
@@ -128,7 +128,7 @@
                                     <button type="submit" class="btn btn-sm btn-outline-danger">Disconnect</button>
                                 </form>
                                 {% else %}
-                                <a href="{{ url_for('auth.apple_login') }}" class="btn btn-sm btn-outline-primary">Connect</a>
+                                <a href="/auth/apple-login" class="btn btn-sm btn-outline-primary">Connect</a>
                                 {% endif %}
                             </div>
                             
@@ -147,7 +147,7 @@
                                     <button type="submit" class="btn btn-sm btn-outline-danger">Disconnect</button>
                                 </form>
                                 {% else %}
-                                <a href="{{ url_for('auth.github_login') }}" class="btn btn-sm btn-outline-primary">Connect</a>
+                                <a href="/auth/github-login" class="btn btn-sm btn-outline-primary">Connect</a>
                                 {% endif %}
                             </div>
                         </div>
