@@ -167,7 +167,7 @@ def share_platform_post(post, author_name=None):
     
     message = f"💼 New from {author_display} on MedInvest:\n\n{content}"
     
-    post_link = f"{PLATFORM_URL}/rooms/post/{post.id}"
+    post_link = f"{get_platform_url()}/rooms/post/{post.id}"
     
     message += f"\n\n👉 Join the conversation: {post_link}"
     message += "\n\n#MedInvest #PhysicianInvesting #MedicalProfessionals"
@@ -192,7 +192,7 @@ def share_article(article, include_excerpt=True):
         excerpt = article.excerpt[:300] + '...' if len(article.excerpt) > 300 else article.excerpt
         message += f"\n\n{excerpt}"
     
-    article_link = f"{PLATFORM_URL}/opmed/article/{article.slug}"
+    article_link = f"{get_platform_url()}/opmed/article/{article.slug}"
     
     message += f"\n\n📖 Read the full article: {article_link}"
     message += "\n\n#OpMedInvest #PhysicianFinance #InvestmentEducation"
@@ -222,7 +222,7 @@ def share_deal(deal):
     if deal.target_raise:
         message += f"\n💰 Target: ${deal.target_raise:,.0f}"
     
-    deal_link = f"{PLATFORM_URL}/deals/{deal.id}"
+    deal_link = f"{get_platform_url()}/deals/{deal.id}"
     
     message += f"\n\n🔗 View details (MedInvest members only): {deal_link}"
     message += "\n\n#InvestmentDeals #PhysicianInvesting #RealEstate"
@@ -249,7 +249,7 @@ def share_event(event):
         desc = event.description[:200] + '...' if len(event.description) > 200 else event.description
         message += f"\n\n{desc}"
     
-    event_link = f"{PLATFORM_URL}/events/{event.id}"
+    event_link = f"{get_platform_url()}/events/{event.id}"
     
     message += f"\n\n🎟️ Register now: {event_link}"
     message += "\n\n#MedInvestEvents #PhysicianEducation"
@@ -280,7 +280,7 @@ def share_ama(ama):
         desc = ama.description[:200] + '...' if len(ama.description) > 200 else ama.description
         message += f"\n\n{desc}"
     
-    ama_link = f"{PLATFORM_URL}/ama/{ama.id}"
+    ama_link = f"{get_platform_url()}/ama/{ama.id}"
     
     message += f"\n\n🎯 Register & submit questions: {ama_link}"
     message += "\n\n#ExpertAMA #PhysicianFinance #AskTheExpert"
