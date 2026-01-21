@@ -235,9 +235,8 @@ def create_room_post(slug):
 
 
 @rooms_bp.route('/post/<int:post_id>')
-@login_required
 def view_post(post_id):
-    """View a single post with comments"""
+    """View a single post with comments - publicly accessible"""
     post = Post.query.get_or_404(post_id)
     post.view_count += 1
     db.session.commit()
@@ -255,7 +254,7 @@ def view_post(post_id):
     likers = []
     upvotes = PostVote.query.filter_by(post_id=post_id, vote_type=1).all()
     for vote in upvotes:
-        if vote.user and vote.user.id != current_user.id:
+        if current_user.is_authenticated and vote.user and vote.user.id != current_user.id:
             likers.append(vote.user)
     
     return render_template('rooms/post.html', 
