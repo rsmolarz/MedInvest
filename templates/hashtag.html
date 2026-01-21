@@ -54,7 +54,7 @@
                     </div>
                     
                     <!-- Post Content with clickable mentions/hashtags -->
-                    <div class="card-text mb-2">{{ render_content(post.content) }}</div>
+                    <div class="card-text mb-2">{{ render_content(post.content)|safe }}</div>
                     
                     <!-- Post Media -->
                     {% if post.has_media %}

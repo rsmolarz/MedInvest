@@ -327,7 +327,7 @@
                     
                     <!-- Post Content -->
                     {% if post.content %}
-                    <div class="card-text mb-2" style="white-space: pre-wrap;">{{ render_content(post.content) }}</div>
+                    <div class="card-text mb-2" style="white-space: pre-wrap;">{{ render_content(post.content)|safe }}</div>
                     {% endif %}
                     
                     <!-- Post Media -->

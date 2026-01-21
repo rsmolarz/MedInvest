@@ -120,7 +120,7 @@
                             <small class="text-muted ms-2">{{ post.created_at.strftime('%b %d') }}</small>
                         </div>
                     </div>
-                    <p class="mb-2">{{ render_content(post.content[:200]) }}{% if post.content|length > 200 %}...{% endif %}</p>
+                    <p class="mb-2">{{ render_content(post.content[:200])|safe }}{% if post.content|length > 200 %}...{% endif %}</p>
                     <a href="{{ url_for('rooms.view_post', post_id=post.id) }}" class="btn btn-outline-primary btn-sm">View Post</a>
                 </div>
             </div>

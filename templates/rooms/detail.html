@@ -39,7 +39,7 @@
                         <strong>{{ post.display_author }}</strong>
                         <small class="text-muted">{{ post.created_at|localtime('shortdate') }}</small>
                     </div>
-                    <p>{{ render_content(post.content) if render_content else post.content }}</p>
+                    <p>{{ (render_content(post.content)|safe) if render_content else post.content }}</p>
                     <div class="d-flex gap-3">
                         <span class="text-muted"><i class="fas fa-arrow-up"></i> {{ post.upvotes }}</span>
                         <a href="{{ url_for('rooms.view_post', post_id=post.id) }}" class="text-muted">
