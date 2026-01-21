@@ -1059,6 +1059,8 @@ def disconnect_social(provider):
 @login_required
 def security():
     """Security center page"""
+    # Refresh user from database to get current 2FA status
+    db.session.refresh(current_user)
     return render_template('security.html')
 
 
