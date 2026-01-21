@@ -248,11 +248,15 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Campaign</label>
-                        <select name="campaign_id" class="form-select" required>
+                        <select name="campaign_id" id="creativeFormCampaignSelect" class="form-select" required>
+                            <option value="">-- Select Campaign --</option>
                             {% for camp in campaigns %}
-                            <option value="{{ camp.id }}">{{ camp.name }}</option>
+                            <option value="{{ camp.id }}">{{ camp.name }} ({{ camp.advertiser.name if camp.advertiser else 'N/A' }})</option>
                             {% endfor %}
                         </select>
+                        {% if not campaigns %}
+                        <small class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>No campaigns available. Please create a campaign first in the Campaigns tab.</small>
+                        {% endif %}
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Placement</label>
