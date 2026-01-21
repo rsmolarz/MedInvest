@@ -384,20 +384,47 @@ document.getElementById('advertiserForm').addEventListener('submit', async (e) =
 document.getElementById('campaignForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
-    const data = {
-        advertiser_id: parseInt(form.advertiser_id.value),
-        name: form.name.value,
-        daily_budget: parseFloat(form.daily_budget.value),
-        start_at: form.start_at.value || null,
-        end_at: form.end_at.value || null
-    };
-    const resp = await fetch('/admin/ads/campaigns', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-    });
-    if (resp.ok) location.reload();
-    else alert('Error creating campaign');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creating...';
+    
+    try {
+        const advertiserSelect = form.querySelector('select[name="advertiser_id"]');
+        if (!advertiserSelect || !advertiserSelect.value) {
+            alert('Please select an advertiser first');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Add Campaign';
+            return;
+        }
+        
+        const data = {
+            advertiser_id: parseInt(advertiserSelect.value),
+            name: form.name.value,
+            daily_budget: parseFloat(form.daily_budget.value) || 0,
+            start_at: form.start_at.value || null,
+            end_at: form.end_at.value || null
+        };
+        
+        const resp = await fetch('/admin/ads/campaigns', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        
+        if (resp.ok) {
+            location.reload();
+        } else {
+            const errorText = await resp.text();
+            console.error('Campaign creation failed:', errorText);
+            alert('Error creating campaign: ' + (resp.statusText || 'Unknown error'));
+        }
+    } catch (err) {
+        console.error('Campaign creation error:', err);
+        alert('Error: ' + err.message);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Add Campaign';
+    }
 });
 
 document.getElementById('creativeForm').addEventListener('submit', async (e) => {
