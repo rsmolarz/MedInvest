@@ -193,3 +193,7 @@ def localtime_filter(dt, format='short'):
     utc_str = dt.strftime('%Y-%m-%dT%H:%M:%S')
     fallback = dt.strftime('%b %d at %I:%M %p')
     return Markup(f'<span data-utc="{utc_str}" data-format="{format}">{fallback}</span>')
+
+# Register render_content_with_links as a global template function
+from utils.content import render_content_with_links
+app.jinja_env.globals['render_content'] = render_content_with_links
