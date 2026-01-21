@@ -343,6 +343,11 @@ function setupDropZone(dropZoneId, fileInputId, previewId, previewElId, isVideo 
     const dropZone = document.getElementById(dropZoneId);
     const fileInput = document.getElementById(fileInputId);
     
+    if (!dropZone || !fileInput) {
+        console.warn('Drop zone elements not found:', dropZoneId, fileInputId);
+        return;
+    }
+    
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         dropZone.addEventListener(eventName, (e) => {
             e.preventDefault();
@@ -372,6 +377,12 @@ function setupDropZone(dropZoneId, fileInputId, previewId, previewElId, isVideo 
         }
     });
     
+    dropZone.addEventListener('click', (e) => {
+        if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT') {
+            fileInput.click();
+        }
+    });
+    
     fileInput.addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
@@ -391,8 +402,10 @@ function setupDropZone(dropZoneId, fileInputId, previewId, previewElId, isVideo 
     });
 }
 
-setupDropZone('imageDropZone', 'imageFileInput', 'imagePreview', 'imagePreviewImg', false);
-setupDropZone('videoDropZone', 'videoFileInput', 'videoPreview', 'videoPreviewEl', true);
+document.addEventListener('DOMContentLoaded', function() {
+    setupDropZone('imageDropZone', 'imageFileInput', 'imagePreview', 'imagePreviewImg', false);
+    setupDropZone('videoDropZone', 'videoFileInput', 'videoPreview', 'videoPreviewEl', true);
+});
 
 function clearImagePreview() {
     document.getElementById('imageFileInput').value = '';
