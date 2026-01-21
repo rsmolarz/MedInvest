@@ -457,7 +457,7 @@ def manage_posts():
 @admin_required
 def delete_post(post_id):
     """Delete a post"""
-    from models import PostMedia, PostVote, Comment, Bookmark, PostMention, PostHashtag, Mention, ContentReport, BugReport
+    from models import PostMedia, PostVote, Comment, Bookmark, PostMention, PostHashtag, Mention
     
     post = Post.query.get_or_404(post_id)
     
@@ -470,8 +470,6 @@ def delete_post(post_id):
         PostMention.query.filter_by(post_id=post_id).delete()
         PostHashtag.query.filter_by(post_id=post_id).delete()
         Mention.query.filter_by(post_id=post_id).delete()
-        ContentReport.query.filter_by(post_id=post_id).delete()
-        BugReport.query.filter_by(post_id=post_id).delete()
         
         db.session.delete(post)
         db.session.commit()
