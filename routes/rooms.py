@@ -5,7 +5,7 @@ import re
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 from app import db
-from models import Room, Post, PostVote, Comment, RoomMembership, PostMention, User
+from models import Room, Post, PostVote, Comment, RoomMembership, PostMention, User, PostMedia, Bookmark, PostHashtag, Mention
 from utils.content import extract_mentions, render_content_with_links
 from routes.notifications import notify_mention
 
@@ -263,6 +263,35 @@ def view_post(post_id):
                          user_vote=user_vote,
                          likers=likers,
                          render_content=render_content_with_links)
+
+
+@rooms_bp.route('/post/<int:post_id>/delete', methods=['POST'])
+@login_required
+def delete_post(post_id):
+    """Delete a post - only owner or admin can delete"""
+    post = Post.query.get_or_404(post_id)
+    
+    if post.author_id != current_user.id and not current_user.is_admin:
+        flash('You do not have permission to delete this post.', 'error')
+        return redirect(url_for('rooms.view_post', post_id=post_id))
+    
+    try:
+        PostMedia.query.filter_by(post_id=post_id).delete()
+        PostVote.query.filter_by(post_id=post_id).delete()
+        Comment.query.filter_by(post_id=post_id).delete()
+        Bookmark.query.filter_by(post_id=post_id).delete()
+        PostMention.query.filter_by(post_id=post_id).delete()
+        PostHashtag.query.filter_by(post_id=post_id).delete()
+        Mention.query.filter_by(post_id=post_id).delete()
+        
+        db.session.delete(post)
+        db.session.commit()
+        flash('Post deleted successfully.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Error deleting post. Please try again.', 'error')
+    
+    return redirect(url_for('main.feed'))
 
 
 @rooms_bp.route('/post/<int:post_id>/comment', methods=['POST'])
