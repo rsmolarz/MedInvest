@@ -281,11 +281,11 @@
                             <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
                             <p class="mb-1 text-muted">Drag & drop image here</p>
                             <small class="text-muted">or</small>
-                            <button type="button" class="btn btn-sm btn-outline-primary mt-2 d-block mx-auto" onclick="document.getElementById('imageFileInput').click()">
+                            <button type="button" class="btn btn-sm btn-outline-primary mt-2 d-block mx-auto" onclick="openImageFileDialog(); return false;">
                                 <i class="fas fa-folder-open me-1"></i>Choose File
                             </button>
-                            <input type="file" name="image_file" id="imageFileInput" class="d-none" accept="image/png,image/jpeg,image/gif,image/webp">
                         </div>
+                        <input type="file" name="image_file" id="imageFileInput" style="display:none;" accept="image/png,image/jpeg,image/gif,image/webp">
                         <div id="imagePreview" class="mt-2" style="display:none;">
                             <img id="imagePreviewImg" src="" alt="Preview" style="max-width:200px;max-height:150px;border-radius:8px;">
                             <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="clearImagePreview()">
@@ -301,11 +301,11 @@
                             <i class="fas fa-video fa-2x text-muted mb-2"></i>
                             <p class="mb-1 text-muted">Drag & drop video here</p>
                             <small class="text-muted">or</small>
-                            <button type="button" class="btn btn-sm btn-outline-primary mt-2 d-block mx-auto" onclick="document.getElementById('videoFileInput').click()">
+                            <button type="button" class="btn btn-sm btn-outline-primary mt-2 d-block mx-auto" onclick="openVideoFileDialog(); return false;">
                                 <i class="fas fa-folder-open me-1"></i>Choose File
                             </button>
-                            <input type="file" name="video_file" id="videoFileInput" class="d-none" accept="video/mp4,video/mov,video/webm">
                         </div>
+                        <input type="file" name="video_file" id="videoFileInput" style="display:none;" accept="video/mp4,video/mov,video/webm">
                         <div id="videoPreview" class="mt-2" style="display:none;">
                             <video id="videoPreviewEl" src="" style="max-width:200px;max-height:150px;border-radius:8px;" controls muted></video>
                             <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="clearVideoPreview()">
@@ -339,7 +339,11 @@
 let uploadedImageUrl = '';
 let uploadedVideoUrl = '';
 
+const setupComplete = {};
+
 function setupDropZone(dropZoneId, fileInputId, previewId, previewElId, isVideo = false) {
+    if (setupComplete[dropZoneId]) return;
+    
     const dropZone = document.getElementById(dropZoneId);
     const fileInput = document.getElementById(fileInputId);
     
@@ -348,63 +352,65 @@ function setupDropZone(dropZoneId, fileInputId, previewId, previewElId, isVideo 
         return;
     }
     
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        dropZone.addEventListener(eventName, (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-        });
-    });
+    setupComplete[dropZoneId] = true;
     
-    ['dragenter', 'dragover'].forEach(eventName => {
-        dropZone.addEventListener(eventName, () => {
-            dropZone.style.borderColor = '#0d6efd';
-            dropZone.style.backgroundColor = 'rgba(13, 110, 253, 0.1)';
-        });
-    });
-    
-    ['dragleave', 'drop'].forEach(eventName => {
-        dropZone.addEventListener(eventName, () => {
-            dropZone.style.borderColor = '#6c757d';
-            dropZone.style.backgroundColor = 'transparent';
-        });
-    });
-    
-    dropZone.addEventListener('drop', (e) => {
+    dropZone.ondragenter = (e) => { e.preventDefault(); e.stopPropagation(); dropZone.style.borderColor = '#0d6efd'; dropZone.style.backgroundColor = 'rgba(13, 110, 253, 0.1)'; };
+    dropZone.ondragover = (e) => { e.preventDefault(); e.stopPropagation(); };
+    dropZone.ondragleave = (e) => { e.preventDefault(); e.stopPropagation(); dropZone.style.borderColor = '#6c757d'; dropZone.style.backgroundColor = 'transparent'; };
+    dropZone.ondrop = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.style.borderColor = '#6c757d';
+        dropZone.style.backgroundColor = 'transparent';
         const files = e.dataTransfer.files;
         if (files.length > 0) {
             fileInput.files = files;
-            fileInput.dispatchEvent(new Event('change'));
+            handleFileSelect(fileInput, dropZone, previewId, previewElId, isVideo);
         }
-    });
+    };
     
-    dropZone.addEventListener('click', (e) => {
-        if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT') {
-            fileInput.click();
+    fileInput.onchange = function() {
+        handleFileSelect(fileInput, dropZone, previewId, previewElId, isVideo);
+    };
+}
+
+function handleFileSelect(fileInput, dropZone, previewId, previewElId, isVideo) {
+    const file = fileInput.files[0];
+    if (file) {
+        if (isVideo) {
+            const url = URL.createObjectURL(file);
+            document.getElementById(previewElId).src = url;
+        } else {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById(previewElId).src = e.target.result;
+            };
+            reader.readAsDataURL(file);
         }
-    });
-    
-    fileInput.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            if (isVideo) {
-                const url = URL.createObjectURL(file);
-                document.getElementById(previewElId).src = url;
-            } else {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById(previewElId).src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-            document.getElementById(previewId).style.display = 'block';
-            dropZone.style.display = 'none';
-        }
-    });
+        document.getElementById(previewId).style.display = 'block';
+        dropZone.style.display = 'none';
+    }
+}
+
+function openImageFileDialog() {
+    document.getElementById('imageFileInput').click();
+}
+
+function openVideoFileDialog() {
+    document.getElementById('videoFileInput').click();
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     setupDropZone('imageDropZone', 'imageFileInput', 'imagePreview', 'imagePreviewImg', false);
     setupDropZone('videoDropZone', 'videoFileInput', 'videoPreview', 'videoPreviewEl', true);
+    
+    const creativeModal = document.getElementById('addCreativeModal');
+    if (creativeModal) {
+        creativeModal.addEventListener('shown.bs.modal', function() {
+            setupDropZone('imageDropZone', 'imageFileInput', 'imagePreview', 'imagePreviewImg', false);
+            setupDropZone('videoDropZone', 'videoFileInput', 'videoPreview', 'videoPreviewEl', true);
+        });
+    }
 });
 
 function clearImagePreview() {
