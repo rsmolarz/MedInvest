@@ -520,6 +520,36 @@ def ads_admin_advertisers():
     } for a in advertisers])
 
 
+@admin_bp.route('/ads/campaign/create', methods=['POST'])
+@login_required
+@admin_required
+def create_campaign():
+    """Create a campaign via form submission."""
+    try:
+        advertiser_id = request.form.get('advertiser_id')
+        name = request.form.get('name', '')
+        daily_budget = request.form.get('daily_budget', 0)
+        start_at = request.form.get('start_at')
+        end_at = request.form.get('end_at')
+        
+        campaign = AdCampaign(
+            advertiser_id=int(advertiser_id) if advertiser_id else None,
+            name=name,
+            start_at=datetime.fromisoformat(start_at) if start_at else datetime.utcnow(),
+            end_at=datetime.fromisoformat(end_at) if end_at else datetime.utcnow() + timedelta(days=30),
+            daily_budget=float(daily_budget) if daily_budget else 0,
+            targeting_json=json.dumps({})
+        )
+        db.session.add(campaign)
+        db.session.commit()
+        flash('Campaign created successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error creating campaign: {str(e)}', 'error')
+    
+    return redirect(url_for('admin.ads_dashboard'))
+
+
 @admin_bp.route('/ads/campaigns', methods=['GET', 'POST'])
 @login_required
 @admin_required
