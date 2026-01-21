@@ -366,10 +366,11 @@ async function uploadFile(file) {
 document.getElementById('advertiserForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
+    const isInternalCheckbox = form.querySelector('input[name="is_internal"]');
     const data = {
         name: form.name.value,
         category: form.category.value,
-        is_internal: form.is_internal.checked
+        is_internal: isInternalCheckbox ? isInternalCheckbox.checked : false
     };
     const resp = await fetch('/admin/ads/advertisers', {
         method: 'POST',
