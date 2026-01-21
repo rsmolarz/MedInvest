@@ -392,13 +392,13 @@ function handleFileSelect(fileInput, dropZone, previewId, previewElId, isVideo) 
     }
 }
 
-function openImageFileDialog() {
+window.openImageFileDialog = function() {
     document.getElementById('imageFileInput').click();
-}
+};
 
-function openVideoFileDialog() {
+window.openVideoFileDialog = function() {
     document.getElementById('videoFileInput').click();
-}
+};
 
 document.addEventListener('DOMContentLoaded', function() {
     setupDropZone('imageDropZone', 'imageFileInput', 'imagePreview', 'imagePreviewImg', false);
