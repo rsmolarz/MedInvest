@@ -1851,6 +1851,7 @@ class AdCreative(db.Model):
     headline = db.Column(db.String(140), nullable=False)
     body = db.Column(db.Text, default='')
     image_url = db.Column(db.String(1024))
+    video_url = db.Column(db.String(1024))
     cta_text = db.Column(db.String(64), default='Learn more')
     landing_url = db.Column(db.String(2048), nullable=False)
     disclaimer_text = db.Column(db.Text, default='')

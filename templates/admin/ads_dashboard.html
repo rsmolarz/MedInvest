@@ -272,8 +272,28 @@
                         <textarea name="body" class="form-control" rows="2"></textarea>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Image URL</label>
-                        <input type="url" name="image_url" class="form-control">
+                        <label class="form-label">Image</label>
+                        <input type="file" name="image_file" id="imageFileInput" class="form-control" accept="image/png,image/jpeg,image/gif,image/webp">
+                        <div id="imagePreview" class="mt-2" style="display:none;">
+                            <img id="imagePreviewImg" src="" alt="Preview" style="max-width:200px;max-height:150px;border-radius:8px;">
+                            <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="clearImagePreview()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">Or enter URL:</small>
+                        <input type="url" name="image_url" class="form-control mt-1" placeholder="https://...">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Video (optional)</label>
+                        <input type="file" name="video_file" id="videoFileInput" class="form-control" accept="video/mp4,video/mov,video/webm">
+                        <div id="videoPreview" class="mt-2" style="display:none;">
+                            <video id="videoPreviewEl" src="" style="max-width:200px;max-height:150px;border-radius:8px;" controls muted></video>
+                            <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="clearVideoPreview()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">Or enter URL:</small>
+                        <input type="url" name="video_url" class="form-control mt-1" placeholder="https://...">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Landing URL</label>
@@ -296,12 +316,60 @@
 
 {% block scripts %}
 <script>
+let uploadedImageUrl = '';
+let uploadedVideoUrl = '';
+
+document.getElementById('imageFileInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('imagePreviewImg').src = e.target.result;
+            document.getElementById('imagePreview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+document.getElementById('videoFileInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const url = URL.createObjectURL(file);
+        document.getElementById('videoPreviewEl').src = url;
+        document.getElementById('videoPreview').style.display = 'block';
+    }
+});
+
+function clearImagePreview() {
+    document.getElementById('imageFileInput').value = '';
+    document.getElementById('imagePreview').style.display = 'none';
+    uploadedImageUrl = '';
+}
+
+function clearVideoPreview() {
+    document.getElementById('videoFileInput').value = '';
+    document.getElementById('videoPreview').style.display = 'none';
+    uploadedVideoUrl = '';
+}
+
+async function uploadFile(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const resp = await fetch('/media/upload', {
+        method: 'POST',
+        body: formData
+    });
+    if (!resp.ok) throw new Error('Upload failed');
+    return await resp.json();
+}
+
 document.getElementById('advertiserForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
     const data = {
         name: form.name.value,
-        category: form.category.value
+        category: form.category.value,
+        is_internal: form.is_internal.checked
     };
     const resp = await fetch('/admin/ads/advertisers', {
         method: 'POST',
@@ -334,22 +402,50 @@ document.getElementById('campaignForm').addEventListener('submit', async (e) => 
 document.getElementById('creativeForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
-    const data = {
-        campaign_id: parseInt(form.campaign_id.value),
-        format: form.format.value,
-        headline: form.headline.value,
-        body: form.body.value,
-        image_url: form.image_url.value,
-        landing_url: form.landing_url.value,
-        cta_text: form.cta_text.value
-    };
-    const resp = await fetch('/admin/ads/creatives', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-    });
-    if (resp.ok) location.reload();
-    else alert('Error creating creative');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Uploading...';
+    
+    try {
+        let imageUrl = form.image_url.value;
+        let videoUrl = form.video_url.value;
+        
+        const imageFile = form.image_file.files[0];
+        if (imageFile) {
+            const result = await uploadFile(imageFile);
+            imageUrl = result.file_path;
+        }
+        
+        const videoFile = form.video_file.files[0];
+        if (videoFile) {
+            const result = await uploadFile(videoFile);
+            videoUrl = result.file_path;
+        }
+        
+        const data = {
+            campaign_id: parseInt(form.campaign_id.value),
+            format: form.format.value,
+            headline: form.headline.value,
+            body: form.body.value,
+            image_url: imageUrl,
+            video_url: videoUrl,
+            landing_url: form.landing_url.value,
+            cta_text: form.cta_text.value
+        };
+        
+        const resp = await fetch('/admin/ads/creatives', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        if (resp.ok) location.reload();
+        else alert('Error creating creative');
+    } catch (err) {
+        alert('Error uploading media: ' + err.message);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Add Creative';
+    }
 });
 </script>
 {% endblock %}

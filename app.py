@@ -185,6 +185,15 @@ with app.app_context():
         db.session.rollback()
         logging.debug(f"Schema migration skipped (likely already applied): {e}")
     
+    # Migration 10: Add video_url column to ad_creatives
+    try:
+        db.session.execute(text("ALTER TABLE ad_creatives ADD COLUMN video_url VARCHAR(1024)"))
+        db.session.commit()
+        logging.info("Applied schema migration: ad_creatives.video_url added")
+    except Exception as e:
+        db.session.rollback()
+        logging.debug(f"Schema migration skipped (likely already applied): {e}")
+    
     # Auto-create "Medicine and Money Show" as internal advertiser
     try:
         from models import AdAdvertiser
