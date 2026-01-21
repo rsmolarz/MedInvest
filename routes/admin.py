@@ -457,19 +457,29 @@ def manage_posts():
 @admin_required
 def delete_post(post_id):
     """Delete a post"""
-    from models import PostMedia, PostVote, Comment, Bookmark, PostMention
+    from models import PostMedia, PostVote, Comment, Bookmark, PostMention, PostHashtag, Mention, FacebookSyncedPost, ContentReport, BugReport
     
     post = Post.query.get_or_404(post_id)
     
-    # Delete related records
-    PostMedia.query.filter_by(post_id=post_id).delete()
-    PostVote.query.filter_by(post_id=post_id).delete()
-    Comment.query.filter_by(post_id=post_id).delete()
-    Bookmark.query.filter_by(post_id=post_id).delete()
-    PostMention.query.filter_by(post_id=post_id).delete()
-    
-    db.session.delete(post)
-    db.session.commit()
+    try:
+        # Delete related records - order matters due to foreign key constraints
+        PostMedia.query.filter_by(post_id=post_id).delete()
+        PostVote.query.filter_by(post_id=post_id).delete()
+        Comment.query.filter_by(post_id=post_id).delete()
+        Bookmark.query.filter_by(post_id=post_id).delete()
+        PostMention.query.filter_by(post_id=post_id).delete()
+        PostHashtag.query.filter_by(post_id=post_id).delete()
+        Mention.query.filter_by(post_id=post_id).delete()
+        FacebookSyncedPost.query.filter_by(post_id=post_id).delete()
+        ContentReport.query.filter_by(post_id=post_id).delete()
+        BugReport.query.filter_by(post_id=post_id).delete()
+        
+        db.session.delete(post)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting post: {str(e)}', 'danger')
+        return redirect(request.referrer or url_for('admin.manage_posts'))
     
     flash('Post deleted successfully', 'success')
     return redirect(request.referrer or url_for('admin.manage_posts'))
