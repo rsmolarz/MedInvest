@@ -167,7 +167,7 @@ def share_platform_post(post, author_name=None):
     
     message = f"💼 New from {author_display} on MedInvest:\n\n{content}"
     
-    post_link = f"{PLATFORM_URL}/post/{post.id}"
+    post_link = f"{PLATFORM_URL}/rooms/post/{post.id}"
     
     message += f"\n\n👉 Join the conversation: {post_link}"
     message += "\n\n#MedInvest #PhysicianInvesting #MedicalProfessionals"
