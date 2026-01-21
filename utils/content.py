@@ -135,18 +135,18 @@ def render_content_with_links(text):
                 )
             ).first()
             if user:
-                return f'<a href="/profile/{user.id}" class="mention-link">@{username}</a>'
+                return f'<a href="/profile/{user.id}" class="mention-link" style="color: #3b82f6; background-color: rgba(59, 130, 246, 0.15); padding: 2px 6px; border-radius: 12px; font-weight: 600; text-decoration: none;">@{username}</a>'
         except Exception:
             pass
         # Default: link to search
-        return f'<a href="/search?q={username}" class="mention-link">@{username}</a>'
+        return f'<a href="/search?q={username}" class="mention-link" style="color: #3b82f6; background-color: rgba(59, 130, 246, 0.15); padding: 2px 6px; border-radius: 12px; font-weight: 600; text-decoration: none;">@{username}</a>'
     
     text = MENTION_PATTERN.sub(mention_replacer, text)
     
     # Replace #hashtags with links
     def hashtag_replacer(match):
         tag = match.group(1)
-        return f'<a href="/hashtag/{tag.lower()}" class="hashtag-link">#{tag}</a>'
+        return f'<a href="/hashtag/{tag.lower()}" class="hashtag-link" style="color: #8b5cf6; font-weight: 600; text-decoration: none;">#{tag}</a>'
     
     text = HASHTAG_PATTERN.sub(hashtag_replacer, text)
     
