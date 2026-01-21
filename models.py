@@ -1818,6 +1818,7 @@ class AdAdvertiser(db.Model):
     name = db.Column(db.String(255), unique=True, nullable=False, index=True)
     category = db.Column(db.String(64), default='other')  # pharma, finance, recruiter, software, other
     compliance_status = db.Column(db.String(64), default='active')  # active, paused, restricted
+    is_internal = db.Column(db.Boolean, default=False)  # Internal/platform advertisers don't pay
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     campaigns = db.relationship('AdCampaign', back_populates='advertiser', lazy='dynamic')

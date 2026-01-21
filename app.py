@@ -176,6 +176,37 @@ with app.app_context():
             db.session.rollback()
             logging.debug(f"Schema migration skipped (likely already applied): {e}")
     
+    # Migration 9: Add is_internal column to ad_advertisers
+    try:
+        db.session.execute(text("ALTER TABLE ad_advertisers ADD COLUMN is_internal BOOLEAN DEFAULT FALSE"))
+        db.session.commit()
+        logging.info("Applied schema migration: ad_advertisers.is_internal added")
+    except Exception as e:
+        db.session.rollback()
+        logging.debug(f"Schema migration skipped (likely already applied): {e}")
+    
+    # Auto-create "Medicine and Money Show" as internal advertiser
+    try:
+        from models import AdAdvertiser
+        existing = AdAdvertiser.query.filter_by(name='Medicine and Money Show').first()
+        if not existing:
+            advertiser = AdAdvertiser(
+                name='Medicine and Money Show',
+                category='finance',
+                compliance_status='active',
+                is_internal=True
+            )
+            db.session.add(advertiser)
+            db.session.commit()
+            logging.info("Created internal advertiser: Medicine and Money Show")
+        elif not existing.is_internal:
+            existing.is_internal = True
+            db.session.commit()
+            logging.info("Updated Medicine and Money Show to internal advertiser")
+    except Exception as e:
+        db.session.rollback()
+        logging.debug(f"Internal advertiser creation skipped: {e}")
+    
     # Auto-sync Ghost CMS articles on startup if database is empty
     try:
         from routes.opmed import auto_sync_ghost_articles
