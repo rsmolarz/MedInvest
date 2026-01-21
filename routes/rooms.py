@@ -5,7 +5,7 @@ import re
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 from app import db
-from models import Room, Post, PostVote, Comment, RoomMembership, PostMention, User, PostMedia, Bookmark, PostHashtag, Mention
+from models import Room, Post, PostVote, Comment, RoomMembership, PostMention, User, PostMedia, Bookmark, PostHashtag, Mention, ContentReport, BugReport
 from utils.content import extract_mentions, render_content_with_links
 from routes.notifications import notify_mention
 
@@ -283,13 +283,15 @@ def delete_post(post_id):
         PostMention.query.filter_by(post_id=post_id).delete()
         PostHashtag.query.filter_by(post_id=post_id).delete()
         Mention.query.filter_by(post_id=post_id).delete()
+        ContentReport.query.filter_by(post_id=post_id).delete()
+        BugReport.query.filter_by(post_id=post_id).delete()
         
         db.session.delete(post)
         db.session.commit()
         flash('Post deleted successfully.', 'success')
     except Exception as e:
         db.session.rollback()
-        flash('Error deleting post. Please try again.', 'error')
+        flash(f'Error deleting post: {str(e)}', 'error')
     
     return redirect(url_for('main.feed'))
 
