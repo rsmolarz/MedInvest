@@ -273,26 +273,42 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Image</label>
-                        <input type="file" name="image_file" id="imageFileInput" class="form-control" accept="image/png,image/jpeg,image/gif,image/webp">
+                        <div id="imageDropZone" class="drop-zone" style="border:2px dashed #6c757d;border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;">
+                            <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                            <p class="mb-1 text-muted">Drag & drop image here</p>
+                            <small class="text-muted">or</small>
+                            <button type="button" class="btn btn-sm btn-outline-primary mt-2 d-block mx-auto" onclick="document.getElementById('imageFileInput').click()">
+                                <i class="fas fa-folder-open me-1"></i>Choose File
+                            </button>
+                            <input type="file" name="image_file" id="imageFileInput" class="d-none" accept="image/png,image/jpeg,image/gif,image/webp">
+                        </div>
                         <div id="imagePreview" class="mt-2" style="display:none;">
                             <img id="imagePreviewImg" src="" alt="Preview" style="max-width:200px;max-height:150px;border-radius:8px;">
                             <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="clearImagePreview()">
-                                <i class="fas fa-times"></i>
+                                <i class="fas fa-times"></i> Remove
                             </button>
                         </div>
-                        <small class="text-muted">Or enter URL:</small>
+                        <small class="text-muted mt-2 d-block">Or enter URL:</small>
                         <input type="url" name="image_url" class="form-control mt-1" placeholder="https://...">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Video (optional)</label>
-                        <input type="file" name="video_file" id="videoFileInput" class="form-control" accept="video/mp4,video/mov,video/webm">
+                        <div id="videoDropZone" class="drop-zone" style="border:2px dashed #6c757d;border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;">
+                            <i class="fas fa-video fa-2x text-muted mb-2"></i>
+                            <p class="mb-1 text-muted">Drag & drop video here</p>
+                            <small class="text-muted">or</small>
+                            <button type="button" class="btn btn-sm btn-outline-primary mt-2 d-block mx-auto" onclick="document.getElementById('videoFileInput').click()">
+                                <i class="fas fa-folder-open me-1"></i>Choose File
+                            </button>
+                            <input type="file" name="video_file" id="videoFileInput" class="d-none" accept="video/mp4,video/mov,video/webm">
+                        </div>
                         <div id="videoPreview" class="mt-2" style="display:none;">
                             <video id="videoPreviewEl" src="" style="max-width:200px;max-height:150px;border-radius:8px;" controls muted></video>
                             <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="clearVideoPreview()">
-                                <i class="fas fa-times"></i>
+                                <i class="fas fa-times"></i> Remove
                             </button>
                         </div>
-                        <small class="text-muted">Or enter URL:</small>
+                        <small class="text-muted mt-2 d-block">Or enter URL:</small>
                         <input type="url" name="video_url" class="form-control mt-1" placeholder="https://...">
                     </div>
                     <div class="mb-3">
@@ -319,36 +335,72 @@
 let uploadedImageUrl = '';
 let uploadedVideoUrl = '';
 
-document.getElementById('imageFileInput').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            document.getElementById('imagePreviewImg').src = e.target.result;
-            document.getElementById('imagePreview').style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-    }
-});
+function setupDropZone(dropZoneId, fileInputId, previewId, previewElId, isVideo = false) {
+    const dropZone = document.getElementById(dropZoneId);
+    const fileInput = document.getElementById(fileInputId);
+    
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+    });
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            dropZone.style.borderColor = '#0d6efd';
+            dropZone.style.backgroundColor = 'rgba(13, 110, 253, 0.1)';
+        });
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            dropZone.style.borderColor = '#6c757d';
+            dropZone.style.backgroundColor = 'transparent';
+        });
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            fileInput.dispatchEvent(new Event('change'));
+        }
+    });
+    
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            if (isVideo) {
+                const url = URL.createObjectURL(file);
+                document.getElementById(previewElId).src = url;
+            } else {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById(previewElId).src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+            document.getElementById(previewId).style.display = 'block';
+            dropZone.style.display = 'none';
+        }
+    });
+}
 
-document.getElementById('videoFileInput').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-        const url = URL.createObjectURL(file);
-        document.getElementById('videoPreviewEl').src = url;
-        document.getElementById('videoPreview').style.display = 'block';
-    }
-});
+setupDropZone('imageDropZone', 'imageFileInput', 'imagePreview', 'imagePreviewImg', false);
+setupDropZone('videoDropZone', 'videoFileInput', 'videoPreview', 'videoPreviewEl', true);
 
 function clearImagePreview() {
     document.getElementById('imageFileInput').value = '';
     document.getElementById('imagePreview').style.display = 'none';
+    document.getElementById('imageDropZone').style.display = 'block';
     uploadedImageUrl = '';
 }
 
 function clearVideoPreview() {
     document.getElementById('videoFileInput').value = '';
     document.getElementById('videoPreview').style.display = 'none';
+    document.getElementById('videoDropZone').style.display = 'block';
     uploadedVideoUrl = '';
 }
 
