@@ -499,7 +499,8 @@ def ads_admin_advertisers():
         advertiser = AdAdvertiser(
             name=data.get('name', ''),
             category=data.get('category', 'other'),
-            compliance_status=data.get('compliance_status', 'active')
+            compliance_status=data.get('compliance_status', 'active'),
+            is_internal=data.get('is_internal', False)
         )
         db.session.add(advertiser)
         db.session.commit()
@@ -507,7 +508,8 @@ def ads_admin_advertisers():
             "id": advertiser.id,
             "name": advertiser.name,
             "category": advertiser.category,
-            "compliance_status": advertiser.compliance_status
+            "compliance_status": advertiser.compliance_status,
+            "is_internal": advertiser.is_internal
         }), 201
     
     advertisers = AdAdvertiser.query.order_by(AdAdvertiser.id.desc()).limit(200).all()

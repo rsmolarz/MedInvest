@@ -80,6 +80,7 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <strong>{{ adv.name }}</strong>
+                                {% if adv.is_internal %}<span class="badge bg-info ms-1">Internal</span>{% endif %}
                                 <br><small class="text-muted">{{ adv.category }}</small>
                             </div>
                             <span class="badge bg-{% if adv.compliance_status == 'active' %}success{% elif adv.compliance_status == 'paused' %}warning{% else %}danger{% endif %}">
@@ -174,6 +175,12 @@
                             <option value="recruiter">Recruiter</option>
                             <option value="other">Other</option>
                         </select>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input type="checkbox" class="form-check-input" name="is_internal" id="isInternalCheck">
+                        <label class="form-check-label" for="isInternalCheck">
+                            Internal (Platform-owned, no payment required)
+                        </label>
                     </div>
                 </div>
                 <div class="modal-footer">
