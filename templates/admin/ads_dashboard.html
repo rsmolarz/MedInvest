@@ -436,23 +436,21 @@ endblock %} {% block content %}
                                 text-align: center;
                                 cursor: pointer;
                                 transition: all 0.2s;
+                                position: relative;
                             "
                         >
-                            <i
-                                class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"
-                                style="pointer-events: none;"
-                            ></i>
-                            <p class="mb-1 text-muted" style="pointer-events: none;">
+                            <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                            <p class="mb-1 text-muted">
                                 Drag & drop image here or click to browse
                             </p>
+                            <input
+                                type="file"
+                                name="image_file"
+                                id="imageFileInput"
+                                accept="image/png,image/jpeg,image/gif,image/webp"
+                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;"
+                            />
                         </div>
-                        <input
-                            type="file"
-                            name="image_file"
-                            id="imageFileInput"
-                            style="display: none;"
-                            accept="image/png,image/jpeg,image/gif,image/webp"
-                        />
                         <div
                             id="imagePreview"
                             class="mt-2"
@@ -498,20 +496,21 @@ endblock %} {% block content %}
                                 text-align: center;
                                 cursor: pointer;
                                 transition: all 0.2s;
+                                position: relative;
                             "
                         >
-                            <i class="fas fa-video fa-2x text-muted mb-2" style="pointer-events: none;"></i>
-                            <p class="mb-1 text-muted" style="pointer-events: none;">
+                            <i class="fas fa-video fa-2x text-muted mb-2"></i>
+                            <p class="mb-1 text-muted">
                                 Drag & drop video here or click to browse
                             </p>
+                            <input
+                                type="file"
+                                name="video_file"
+                                id="videoFileInput"
+                                accept="video/mp4,video/mov,video/webm"
+                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;"
+                            />
                         </div>
-                        <input
-                            type="file"
-                            name="video_file"
-                            id="videoFileInput"
-                            style="display: none;"
-                            accept="video/mp4,video/mov,video/webm"
-                        />
                         <div
                             id="videoPreview"
                             class="mt-2"
@@ -716,26 +715,6 @@ endblock %} {% block content %}
                     true,
                 );
                 
-                // Re-attach click listeners after modal is shown
-                const imageDropZone = document.getElementById('imageDropZone');
-                const videoDropZone = document.getElementById('videoDropZone');
-                const imageFileInput = document.getElementById('imageFileInput');
-                const videoFileInput = document.getElementById('videoFileInput');
-                
-                if (imageDropZone && imageFileInput) {
-                    imageDropZone.onclick = function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        imageFileInput.click();
-                    };
-                }
-                if (videoDropZone && videoFileInput) {
-                    videoDropZone.onclick = function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        videoFileInput.click();
-                    };
-                }
             });
         }
     });
