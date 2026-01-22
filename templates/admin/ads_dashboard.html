@@ -358,6 +358,31 @@ endblock %} {% block content %}
     </div>
 </div>
 
+<script>
+    function showImagePreview(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById("imagePreviewImg").src = e.target.result;
+                document.getElementById("imagePreview").style.display = "block";
+                document.getElementById("imageDropZone").style.display = "none";
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function showVideoPreview(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const url = URL.createObjectURL(file);
+            document.getElementById("videoPreviewEl").src = url;
+            document.getElementById("videoPreview").style.display = "block";
+            document.getElementById("videoDropZone").style.display = "none";
+        }
+    }
+</script>
+
 <div class="modal fade" id="addCreativeModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -720,29 +745,6 @@ endblock %} {% block content %}
             });
         }
     });
-
-    function showImagePreview(input) {
-        if (input.files && input.files[0]) {
-            const file = input.files[0];
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById("imagePreviewImg").src = e.target.result;
-                document.getElementById("imagePreview").style.display = "block";
-                document.getElementById("imageDropZone").style.display = "none";
-            };
-            reader.readAsDataURL(file);
-        }
-    }
-
-    function showVideoPreview(input) {
-        if (input.files && input.files[0]) {
-            const file = input.files[0];
-            const url = URL.createObjectURL(file);
-            document.getElementById("videoPreviewEl").src = url;
-            document.getElementById("videoPreview").style.display = "block";
-            document.getElementById("videoDropZone").style.display = "none";
-        }
-    }
 
     function clearImagePreview() {
         document.getElementById("imageFileInput").value = "";
