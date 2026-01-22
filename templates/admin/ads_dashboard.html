@@ -457,10 +457,8 @@ endblock %} {% block content %}
                             id="imageFileInput"
                             accept="image/png,image/jpeg,image/gif,image/webp"
                             class="d-none"
-                            onchange="showImagePreview(this)"
                         />
-                        <label
-                            for="imageFileInput"
+                        <div
                             id="imageDropZone"
                             class="drop-zone d-block"
                             style="
@@ -476,7 +474,7 @@ endblock %} {% block content %}
                             <p class="mb-1 text-muted">
                                 Drag & drop image here or click to browse
                             </p>
-                        </label>
+                        </div>
                         <div
                             id="imagePreview"
                             class="mt-2"
@@ -518,10 +516,8 @@ endblock %} {% block content %}
                             id="videoFileInput"
                             accept="video/mp4,video/mov,video/webm"
                             class="d-none"
-                            onchange="showVideoPreview(this)"
                         />
-                        <label
-                            for="videoFileInput"
+                        <div
                             id="videoDropZone"
                             class="drop-zone d-block"
                             style="
@@ -537,7 +533,7 @@ endblock %} {% block content %}
                             <p class="mb-1 text-muted">
                                 Drag & drop video here or click to browse
                             </p>
-                        </label>
+                        </div>
                         <div
                             id="videoPreview"
                             class="mt-2"
@@ -636,6 +632,12 @@ endblock %} {% block content %}
         }
 
         setupComplete[dropZoneId] = true;
+
+        dropZone.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            fileInput.click();
+        };
 
         dropZone.ondragenter = (e) => {
             e.preventDefault();
