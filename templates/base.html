@@ -66,6 +66,11 @@
         .navbar-toggler { padding: 0.25rem 0.5rem; }
         .navbar-toggler:focus { box-shadow: none; }
         
+        /* Full-width layout for desktop */
+        @media (min-width: 992px) {
+            .container { max-width: 100%; padding-left: 2rem; padding-right: 2rem; }
+        }
+        
         /* Mentions and Hashtags - global styles */
         .mention-link { color: #3b82f6 !important; text-decoration: none; font-weight: 600; background: rgba(59, 130, 246, 0.15); padding: 2px 6px; border-radius: 12px; }
         .mention-link:hover { text-decoration: underline; background: rgba(59, 130, 246, 0.25); }
@@ -100,7 +105,7 @@
     </script>
     
     <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top">
-        <div class="container">
+        <div class="container-fluid px-4">
             <a class="navbar-brand text-primary" href="{{ url_for('main.index') }}">
                 <i class="fas fa-chart-line me-2"></i>MedInvest
             </a>
@@ -283,7 +288,7 @@
 
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-    <div class="container mt-3">
+    <div class="container-fluid px-4 mt-3">
         {% for category, message in messages %}
         <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show">
             {{ message }}
@@ -297,7 +302,7 @@
     <main>{% block content %}{% endblock %}</main>
 
     <footer class="bg-white border-top mt-5 py-4">
-        <div class="container">
+        <div class="container-fluid px-4">
             <div class="row align-items-center">
                 <div class="col-md-4">
                     <p class="text-muted small mb-0">© 2026 MedInvest. All rights reserved.</p>
