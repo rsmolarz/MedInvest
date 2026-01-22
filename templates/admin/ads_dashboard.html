@@ -448,7 +448,8 @@ endblock %} {% block content %}
                                 name="image_file"
                                 id="imageFileInput"
                                 accept="image/png,image/jpeg,image/gif,image/webp"
-                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;"
+                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10;"
+                                onchange="console.log('Image file selected:', this.files[0]?.name)"
                             />
                         </div>
                         <div
@@ -508,7 +509,8 @@ endblock %} {% block content %}
                                 name="video_file"
                                 id="videoFileInput"
                                 accept="video/mp4,video/mov,video/webm"
-                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;"
+                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10;"
+                                onchange="console.log('Video file selected:', this.files[0]?.name)"
                             />
                         </div>
                         <div
