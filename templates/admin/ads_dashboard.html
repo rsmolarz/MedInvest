@@ -851,10 +851,16 @@ endblock %} {% block content %}
             }
         });
 
-    document
-        .getElementById("creativeForm")
-        .addEventListener("submit", async (e) => {
+    document.addEventListener("DOMContentLoaded", function() {
+        const creativeFormEl = document.getElementById("creativeForm");
+        if (!creativeFormEl) {
+            console.error("creativeForm not found!");
+            return;
+        }
+        console.log("creativeForm event listener attached");
+        creativeFormEl.addEventListener("submit", async (e) => {
             e.preventDefault();
+            console.log("creativeForm submit triggered");
             const form = e.target;
             const submitBtn = form.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
@@ -913,5 +919,6 @@ endblock %} {% block content %}
                 submitBtn.innerHTML = "Add Creative";
             }
         });
+    });
 </script>
 {% endblock %}
