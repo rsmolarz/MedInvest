@@ -68,7 +68,13 @@
         
         /* Full-width layout for desktop */
         @media (min-width: 992px) {
-            .container { max-width: 100%; padding-left: 2rem; padding-right: 2rem; }
+            .container { max-width: 100% !important; padding-left: 2rem !important; padding-right: 2rem !important; }
+        }
+        @media (min-width: 1200px) {
+            .container { max-width: 100% !important; }
+        }
+        @media (min-width: 1400px) {
+            .container { max-width: 100% !important; }
         }
         
         /* Mentions and Hashtags - global styles */
