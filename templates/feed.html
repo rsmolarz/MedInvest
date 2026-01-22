@@ -556,36 +556,7 @@
                 </div>
             </div>
 
-            <!-- Platform Sponsor / Medicine and Money Show Ad -->
-            {% if sidebar_ads and sidebar_ads.medicine_money_show %}
-            {% set ad = sidebar_ads.medicine_money_show %}
-            {% if ad.landing_url %}
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body text-center p-3">
-                    <small class="text-muted d-block mb-2">Sponsored</small>
-                    {% if ad.image_url %}
-                    <a href="{{ ad.landing_url }}" target="_blank" rel="noopener sponsored" class="d-block">
-                        <img src="{{ ad.image_url }}" 
-                             alt="{{ ad.headline }}" 
-                             class="img-fluid rounded mb-2" 
-                             style="max-height: 150px; object-fit: contain;">
-                    </a>
-                    {% endif %}
-                    {% if ad.video_url %}
-                    <video src="{{ ad.video_url }}" controls class="img-fluid rounded mb-2" style="max-height: 150px;"></video>
-                    {% endif %}
-                    <h6 class="mb-1">{{ ad.headline }}</h6>
-                    {% if ad.body %}
-                    <p class="small text-muted mb-2">{{ ad.body[:100] }}{% if ad.body|length > 100 %}...{% endif %}</p>
-                    {% endif %}
-                    <a href="{{ ad.landing_url }}" target="_blank" rel="noopener sponsored" class="btn btn-primary btn-sm">
-                        {{ ad.cta_text or 'Learn More' }}
-                    </a>
-                </div>
-            </div>
-            {% endif %}
-            {% else %}
-            <!-- Fallback static sponsor -->
+            <!-- Medicine and Money Show - Permanent Sponsor -->
             <div class="card border-0 shadow-sm mb-3">
                 <div class="card-body text-center p-3">
                     <small class="text-muted d-block mb-2">Proudly Sponsored By</small>
@@ -600,12 +571,11 @@
                     </a>
                 </div>
             </div>
-            {% endif %}
 
-            <!-- General Sidebar Ad -->
+            <!-- Dynamic Sidebar Ads -->
             {% if sidebar_ads and sidebar_ads.sidebar and sidebar_ads.sidebar.landing_url %}
             {% set sidebar_ad = sidebar_ads.sidebar %}
-            <div class="card border-0 shadow-sm">
+            <div class="card border-0 shadow-sm mb-3">
                 <div class="card-body p-3">
                     <small class="text-muted d-block mb-2">Sponsored</small>
                     {% if sidebar_ad.image_url %}
