@@ -36,8 +36,9 @@ def list_amas():
         settings = SiteSettings.query.first()
         if settings and settings.youtube_live_enabled and settings.youtube_channel_id:
             youtube_live = get_channel_live_stream(settings.youtube_channel_id)
-    except Exception:
-        pass
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f'Failed to check YouTube live status: {e}')
     
     # Live AMAs
     live = ExpertAMA.query.filter(

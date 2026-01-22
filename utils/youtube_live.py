@@ -15,11 +15,25 @@ _settings_expires = None
 
 
 def get_youtube_access_token():
-    """Get access token from Replit YouTube connection"""
+    """Get access token from Replit YouTube connection
+    
+    The Replit connector automatically handles token refresh.
+    We cache the token until near expiry, then fetch fresh from connector.
+    """
     global _connection_settings, _settings_expires
     
-    if _connection_settings and _settings_expires and datetime.utcnow() < _settings_expires:
-        return _connection_settings.get('settings', {}).get('access_token')
+    now = datetime.utcnow()
+    
+    if _connection_settings and _settings_expires:
+        buffer_time = timedelta(minutes=5)
+        if now < (_settings_expires - buffer_time):
+            token = _connection_settings.get('settings', {}).get('access_token')
+            if token:
+                return token
+        else:
+            logger.info('YouTube access token near expiry, refreshing from connector')
+            _connection_settings = None
+            _settings_expires = None
     
     hostname = os.environ.get('REPLIT_CONNECTORS_HOSTNAME')
     repl_identity = os.environ.get('REPL_IDENTITY')
