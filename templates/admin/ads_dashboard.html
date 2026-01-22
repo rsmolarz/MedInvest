@@ -432,6 +432,7 @@ endblock %} {% block content %}
                             id="imageFileInput"
                             accept="image/png,image/jpeg,image/gif,image/webp"
                             class="d-none"
+                            onchange="showImagePreview(this)"
                         />
                         <label
                             for="imageFileInput"
@@ -492,6 +493,7 @@ endblock %} {% block content %}
                             id="videoFileInput"
                             accept="video/mp4,video/mov,video/webm"
                             class="d-none"
+                            onchange="showVideoPreview(this)"
                         />
                         <label
                             for="videoFileInput"
@@ -718,6 +720,29 @@ endblock %} {% block content %}
             });
         }
     });
+
+    function showImagePreview(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById("imagePreviewImg").src = e.target.result;
+                document.getElementById("imagePreview").style.display = "block";
+                document.getElementById("imageDropZone").style.display = "none";
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function showVideoPreview(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const url = URL.createObjectURL(file);
+            document.getElementById("videoPreviewEl").src = url;
+            document.getElementById("videoPreview").style.display = "block";
+            document.getElementById("videoDropZone").style.display = "none";
+        }
+    }
 
     function clearImagePreview() {
         document.getElementById("imageFileInput").value = "";
