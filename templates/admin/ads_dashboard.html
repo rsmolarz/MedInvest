@@ -394,7 +394,7 @@ endblock %} {% block content %}
                     data-bs-dismiss="modal"
                 ></button>
             </div>
-            <form id="creativeForm">
+            <form action="{{ url_for('admin.create_creative_form') }}" method="POST" enctype="multipart/form-data">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Campaign</label>

@@ -30,6 +30,57 @@ def allowed_file(filename, file_type='image'):
     return False
 
 
+def upload_single_file(file):
+    """
+    Upload a single file (image or video) and return result dict.
+    Can be called from other blueprints.
+    """
+    if not file or file.filename == '':
+        return {'success': False, 'error': 'No file provided'}
+    
+    ext = get_file_extension(file.filename)
+    if ext in ALLOWED_IMAGE_EXTENSIONS:
+        file_type = 'image'
+        max_size = MAX_IMAGE_SIZE
+        subdir = 'images'
+    elif ext in ALLOWED_VIDEO_EXTENSIONS:
+        file_type = 'video'
+        max_size = MAX_VIDEO_SIZE
+        subdir = 'videos'
+    else:
+        return {'success': False, 'error': 'File type not allowed'}
+    
+    file.seek(0, 2)
+    file_size = file.tell()
+    file.seek(0)
+    
+    if file_size > max_size:
+        return {'success': False, 'error': f'File too large. Max size: {max_size // (1024*1024)}MB'}
+    
+    unique_filename = generate_unique_filename(file.filename)
+    url_path = f"/media/uploads/{subdir}/{unique_filename}"
+    object_path = f"uploads/{subdir}/{unique_filename}"
+    
+    file_bytes = file.read()
+    file.seek(0)
+    
+    if OBJECT_STORAGE_AVAILABLE:
+        upload_file(file_bytes, object_path)
+    
+    base_path = ensure_upload_dirs()
+    file_path = os.path.join(base_path, subdir, unique_filename)
+    file.save(file_path)
+    
+    return {
+        'success': True,
+        'file_path': url_path,
+        'file_type': file_type,
+        'filename': unique_filename,
+        'original_name': secure_filename(file.filename),
+        'file_size': file_size
+    }
+
+
 def get_file_extension(filename):
     return filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
 

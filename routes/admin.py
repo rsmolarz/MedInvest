@@ -716,6 +716,62 @@ def ads_admin_creatives():
     } for c in creatives])
 
 
+@admin_bp.route('/ads/creative/create', methods=['POST'])
+@login_required
+@admin_required
+def create_creative_form():
+    """Create creative via form POST"""
+    from routes.media import upload_single_file
+    
+    campaign_id = request.form.get('campaign_id')
+    if not campaign_id:
+        flash('Please select a campaign', 'error')
+        return redirect(url_for('admin.ads_dashboard'))
+    
+    image_url = request.form.get('image_url', '')
+    video_url = request.form.get('video_url', '')
+    
+    image_file = request.files.get('image_file')
+    if image_file and image_file.filename:
+        try:
+            result = upload_single_file(image_file)
+            if result.get('success'):
+                image_url = result.get('file_path', '')
+        except Exception as e:
+            logging.error(f"Error uploading image: {e}")
+    
+    video_file = request.files.get('video_file')
+    if video_file and video_file.filename:
+        try:
+            result = upload_single_file(video_file)
+            if result.get('success'):
+                video_url = result.get('file_path', '')
+        except Exception as e:
+            logging.error(f"Error uploading video: {e}")
+    
+    try:
+        creative = AdCreative(
+            campaign_id=int(campaign_id),
+            format=request.form.get('format', 'feed'),
+            headline=request.form.get('headline', ''),
+            body=request.form.get('body', ''),
+            image_url=image_url or None,
+            video_url=video_url or None,
+            cta_text=request.form.get('cta_text', 'Learn more'),
+            landing_url=request.form.get('landing_url', ''),
+            is_active=True
+        )
+        db.session.add(creative)
+        db.session.commit()
+        flash('Creative created successfully!', 'success')
+    except Exception as e:
+        logging.error(f"Error creating creative: {e}")
+        db.session.rollback()
+        flash(f'Error creating creative: {str(e)}', 'error')
+    
+    return redirect(url_for('admin.ads_dashboard'))
+
+
 @admin_bp.route('/ads/dashboard')
 @login_required
 @admin_required
