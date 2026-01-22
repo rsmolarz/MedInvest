@@ -429,7 +429,6 @@ endblock %} {% block content %}
                         <div
                             id="imageDropZone"
                             class="drop-zone"
-                            onclick="document.getElementById('imageFileInput').click();"
                             style="
                                 border: 2px dashed #6c757d;
                                 border-radius: 8px;
@@ -441,8 +440,9 @@ endblock %} {% block content %}
                         >
                             <i
                                 class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"
+                                style="pointer-events: none;"
                             ></i>
-                            <p class="mb-1 text-muted">
+                            <p class="mb-1 text-muted" style="pointer-events: none;">
                                 Drag & drop image here or click to browse
                             </p>
                         </div>
@@ -450,7 +450,7 @@ endblock %} {% block content %}
                             type="file"
                             name="image_file"
                             id="imageFileInput"
-                            style="position: absolute; left: -9999px"
+                            style="display: none;"
                             accept="image/png,image/jpeg,image/gif,image/webp"
                         />
                         <div
@@ -491,7 +491,6 @@ endblock %} {% block content %}
                         <div
                             id="videoDropZone"
                             class="drop-zone"
-                            onclick="document.getElementById('videoFileInput').click();"
                             style="
                                 border: 2px dashed #6c757d;
                                 border-radius: 8px;
@@ -501,8 +500,8 @@ endblock %} {% block content %}
                                 transition: all 0.2s;
                             "
                         >
-                            <i class="fas fa-video fa-2x text-muted mb-2"></i>
-                            <p class="mb-1 text-muted">
+                            <i class="fas fa-video fa-2x text-muted mb-2" style="pointer-events: none;"></i>
+                            <p class="mb-1 text-muted" style="pointer-events: none;">
                                 Drag & drop video here or click to browse
                             </p>
                         </div>
@@ -510,7 +509,7 @@ endblock %} {% block content %}
                             type="file"
                             name="video_file"
                             id="videoFileInput"
-                            style="position: absolute; left: -9999px"
+                            style="display: none;"
                             accept="video/mp4,video/mov,video/webm"
                         />
                         <div
@@ -698,16 +697,6 @@ endblock %} {% block content %}
             true,
         );
         
-        // Explicit event listeners to bypass modal event propagation
-        document.getElementById('imageDropZone')?.addEventListener('click', function(e) {
-            e.stopPropagation();
-            document.getElementById('imageFileInput')?.click();
-        });
-        document.getElementById('videoDropZone')?.addEventListener('click', function(e) {
-            e.stopPropagation();
-            document.getElementById('videoFileInput')?.click();
-        });
-
         const creativeModal = document.getElementById("addCreativeModal");
         if (creativeModal) {
             creativeModal.addEventListener("shown.bs.modal", function () {
@@ -726,6 +715,27 @@ endblock %} {% block content %}
                     "videoPreviewEl",
                     true,
                 );
+                
+                // Re-attach click listeners after modal is shown
+                const imageDropZone = document.getElementById('imageDropZone');
+                const videoDropZone = document.getElementById('videoDropZone');
+                const imageFileInput = document.getElementById('imageFileInput');
+                const videoFileInput = document.getElementById('videoFileInput');
+                
+                if (imageDropZone && imageFileInput) {
+                    imageDropZone.onclick = function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        imageFileInput.click();
+                    };
+                }
+                if (videoDropZone && videoFileInput) {
+                    videoDropZone.onclick = function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        videoFileInput.click();
+                    };
+                }
             });
         }
     });
