@@ -888,13 +888,24 @@ endblock %} {% block content %}
                     cta_text: form.cta_text.value,
                 };
 
+                if (!data.campaign_id || isNaN(data.campaign_id)) {
+                    alert("Please select a campaign first");
+                    return;
+                }
+                console.log("Submitting creative data:", data);
                 const resp = await fetch("/admin/ads/creatives", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(data),
                 });
-                if (resp.ok) location.reload();
-                else alert("Error creating creative");
+                if (resp.ok) {
+                    console.log("Creative created successfully");
+                    location.reload();
+                } else {
+                    const errorText = await resp.text();
+                    console.error("Error response:", resp.status, errorText);
+                    alert("Error creating creative: " + errorText);
+                }
             } catch (err) {
                 alert("Error uploading media: " + err.message);
             } finally {

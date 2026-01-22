@@ -665,27 +665,39 @@ def ads_admin_creatives():
     """Admin: List or create creatives."""
     if request.method == 'POST':
         data = request.get_json() or {}
-        creative = AdCreative(
-            campaign_id=data.get('campaign_id'),
-            format=data.get('format', 'feed'),
-            headline=data.get('headline', ''),
-            body=data.get('body', ''),
-            image_url=data.get('image_url'),
-            video_url=data.get('video_url'),
-            cta_text=data.get('cta_text', 'Learn more'),
-            landing_url=data.get('landing_url', ''),
-            disclaimer_text=data.get('disclaimer_text', ''),
-            is_active=True
-        )
-        db.session.add(creative)
-        db.session.commit()
-        return jsonify({
-            "id": creative.id,
-            "campaign_id": creative.campaign_id,
-            "format": creative.format,
-            "headline": creative.headline,
-            "is_active": creative.is_active
-        }), 201
+        logging.debug(f"Creating creative with data: {data}")
+        
+        campaign_id = data.get('campaign_id')
+        if not campaign_id:
+            return jsonify({"error": "Campaign ID is required"}), 400
+        
+        try:
+            creative = AdCreative(
+                campaign_id=campaign_id,
+                format=data.get('format', 'feed'),
+                headline=data.get('headline', ''),
+                body=data.get('body', ''),
+                image_url=data.get('image_url') or None,
+                video_url=data.get('video_url') or None,
+                cta_text=data.get('cta_text', 'Learn more'),
+                landing_url=data.get('landing_url', ''),
+                disclaimer_text=data.get('disclaimer_text', ''),
+                is_active=True
+            )
+            db.session.add(creative)
+            db.session.commit()
+            logging.info(f"Created creative ID {creative.id}")
+            return jsonify({
+                "id": creative.id,
+                "campaign_id": creative.campaign_id,
+                "format": creative.format,
+                "headline": creative.headline,
+                "is_active": creative.is_active
+            }), 201
+        except Exception as e:
+            logging.error(f"Error creating creative: {e}")
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 500
     
     creatives = AdCreative.query.order_by(AdCreative.id.desc()).limit(200).all()
     return jsonify([{
