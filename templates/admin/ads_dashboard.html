@@ -277,15 +277,11 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Image</label>
-                        <div id="imageDropZone" class="drop-zone" style="border:2px dashed #6c757d;border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;">
+                        <div id="imageDropZone" class="drop-zone" onclick="document.getElementById('imageFileInput').click();" style="border:2px dashed #6c757d;border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;">
                             <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
-                            <p class="mb-1 text-muted">Drag & drop image here</p>
-                            <small class="text-muted">or</small>
-                            <label class="btn btn-sm btn-outline-primary mt-2 d-block mx-auto mb-0" for="imageFileInput" style="cursor:pointer;">
-                                <i class="fas fa-folder-open me-1"></i>Choose File
-                            </label>
+                            <p class="mb-1 text-muted">Drag & drop image here or click to browse</p>
                         </div>
-                        <input type="file" name="image_file" id="imageFileInput" style="display:none;" accept="image/png,image/jpeg,image/gif,image/webp">
+                        <input type="file" name="image_file" id="imageFileInput" style="position:absolute;left:-9999px;" accept="image/png,image/jpeg,image/gif,image/webp">
                         <div id="imagePreview" class="mt-2" style="display:none;">
                             <img id="imagePreviewImg" src="" alt="Preview" style="max-width:200px;max-height:150px;border-radius:8px;">
                             <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="clearImagePreview()">
@@ -297,15 +293,11 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Video (optional)</label>
-                        <div id="videoDropZone" class="drop-zone" style="border:2px dashed #6c757d;border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;">
+                        <div id="videoDropZone" class="drop-zone" onclick="document.getElementById('videoFileInput').click();" style="border:2px dashed #6c757d;border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;">
                             <i class="fas fa-video fa-2x text-muted mb-2"></i>
-                            <p class="mb-1 text-muted">Drag & drop video here</p>
-                            <small class="text-muted">or</small>
-                            <label class="btn btn-sm btn-outline-primary mt-2 d-block mx-auto mb-0" for="videoFileInput" style="cursor:pointer;">
-                                <i class="fas fa-folder-open me-1"></i>Choose File
-                            </label>
+                            <p class="mb-1 text-muted">Drag & drop video here or click to browse</p>
                         </div>
-                        <input type="file" name="video_file" id="videoFileInput" style="display:none;" accept="video/mp4,video/mov,video/webm">
+                        <input type="file" name="video_file" id="videoFileInput" style="position:absolute;left:-9999px;" accept="video/mp4,video/mov,video/webm">
                         <div id="videoPreview" class="mt-2" style="display:none;">
                             <video id="videoPreviewEl" src="" style="max-width:200px;max-height:150px;border-radius:8px;" controls muted></video>
                             <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="clearVideoPreview()">
