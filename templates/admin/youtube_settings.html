@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}YouTube Live Settings - Admin - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fab fa-youtube me-2 text-danger"></i>YouTube Live Settings</h2>
+            <p class="text-muted mb-0">Configure YouTube Live integration for Spotlight sessions</p>
+        </div>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Admin
+        </a>
+    </div>
+
+    {% if not youtube_connected %}
+    <div class="alert alert-warning">
+        <h5><i class="fas fa-exclamation-triangle me-2"></i>YouTube Not Connected</h5>
+        <p class="mb-0">YouTube integration is not connected. Please connect your YouTube account in the Replit integrations panel to enable live streaming features.</p>
+    </div>
+    {% else %}
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle me-2"></i>YouTube integration is connected and ready
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Channel Settings</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label class="form-label">YouTube Channel ID</label>
+                            <input type="text" name="youtube_channel_id" class="form-control" 
+                                   value="{{ settings.youtube_channel_id or '' }}"
+                                   placeholder="UCxxxxxxxxxxxxxxxxx"
+                                   {% if not youtube_connected %}disabled{% endif %}>
+                            <small class="text-muted">
+                                Find your channel ID in YouTube Studio > Settings > Channel > Advanced settings, or from your channel URL
+                            </small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input type="checkbox" class="form-check-input" name="youtube_live_enabled" id="youtubeEnabled"
+                                       {% if settings.youtube_live_enabled %}checked{% endif %}
+                                       {% if not youtube_connected %}disabled{% endif %}>
+                                <label class="form-check-label" for="youtubeEnabled">
+                                    Enable YouTube Live in Spotlight
+                                </label>
+                            </div>
+                            <small class="text-muted">When enabled, live streams from your channel will automatically appear in the Spotlight section</small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary" {% if not youtube_connected %}disabled{% endif %}>
+                            <i class="fas fa-save me-1"></i>Save Settings
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            {% if channel_info %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-tv me-2"></i>Connected Channel</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        {% if channel_info.thumbnail %}
+                        <img src="{{ channel_info.thumbnail }}" alt="{{ channel_info.title }}" class="rounded-circle me-3" style="width:60px;height:60px;">
+                        {% endif %}
+                        <div>
+                            <h5 class="mb-1">{{ channel_info.title }}</h5>
+                            <p class="text-muted mb-0">{{ channel_info.subscriber_count|int }} subscribers • {{ channel_info.video_count|int }} videos</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card {% if live_stream %}border-danger{% endif %}">
+                <div class="card-header {% if live_stream %}bg-danger text-white{% endif %}">
+                    <h5 class="mb-0">
+                        {% if live_stream %}
+                        <i class="fas fa-circle blink me-2"></i>Live Now!
+                        {% else %}
+                        <i class="fas fa-broadcast-tower me-2"></i>Live Status
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if live_stream %}
+                    <h6>{{ live_stream.title }}</h6>
+                    <p class="text-muted small">{{ live_stream.viewer_count }} watching</p>
+                    <a href="https://youtube.com/watch?v={{ live_stream.video_id }}" target="_blank" class="btn btn-danger btn-sm w-100">
+                        <i class="fab fa-youtube me-1"></i>Open in YouTube
+                    </a>
+                    <div class="mt-3">
+                        <div class="ratio ratio-16x9">
+                            <iframe src="{{ live_stream.embed_url }}" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-2">No active live stream detected</p>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="checkLive()">
+                        <i class="fas fa-sync me-1"></i>Check Now
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>How It Works</h6>
+                </div>
+                <div class="card-body small">
+                    <ol class="mb-0 ps-3">
+                        <li class="mb-2">Enter your YouTube Channel ID above</li>
+                        <li class="mb-2">Enable the live stream feature</li>
+                        <li class="mb-2">When you go live on YouTube, it will automatically appear in the Spotlight section</li>
+                        <li>Users can watch directly within MedInvest</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.blink { animation: blink-animation 1s steps(5, start) infinite; }
+@keyframes blink-animation { to { visibility: hidden; } }
+</style>
+
+<script>
+function checkLive() {
+    fetch('{{ url_for("admin.youtube_check_live") }}')
+        .then(r => r.json())
+        .then(data => {
+            if (data.live) {
+                location.reload();
+            } else {
+                alert('No live stream detected on your channel');
+            }
+        });
+}
+</script>
+{% endblock %}

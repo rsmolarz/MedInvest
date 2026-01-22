@@ -28,6 +28,17 @@ def list_amas():
     """List all AMAs - upcoming, live, and past"""
     now = datetime.utcnow()
     
+    # Check for YouTube live stream
+    youtube_live = None
+    try:
+        from utils.youtube_live import get_channel_live_stream
+        from models import SiteSettings
+        settings = SiteSettings.query.first()
+        if settings and settings.youtube_live_enabled and settings.youtube_channel_id:
+            youtube_live = get_channel_live_stream(settings.youtube_channel_id)
+    except Exception:
+        pass
+    
     # Live AMAs
     live = ExpertAMA.query.filter(
         ExpertAMA.status == 'live'
@@ -54,7 +65,8 @@ def list_amas():
                          live=live,
                          upcoming=upcoming,
                          past=past,
-                         user_registrations=user_registrations)
+                         user_registrations=user_registrations,
+                         youtube_live=youtube_live)
 
 
 @ama_bp.route('/<int:ama_id>')

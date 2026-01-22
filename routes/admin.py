@@ -8,7 +8,8 @@ from functools import wraps
 from app import db
 from models import (User, Post, Room, ExpertAMA, AMAStatus, InvestmentDeal, 
                    DealStatus, Course, Event, SubscriptionTier, AdAdvertiser, 
-                   AdCampaign, AdCreative, AdImpression, AdClick, MentorApplication, LTITool)
+                   AdCampaign, AdCreative, AdImpression, AdClick, MentorApplication, LTITool,
+                   SiteSettings)
 import json
 import hmac
 import hashlib
@@ -187,6 +188,76 @@ def facebook_sync_validate():
         
     except Exception as e:
         return jsonify({'error': str(e)})
+
+
+# ============================================================================
+# YOUTUBE LIVE SETTINGS
+# ============================================================================
+
+@admin_bp.route('/youtube-settings', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def youtube_settings():
+    """Configure YouTube Live integration for Spotlight"""
+    from utils.youtube_live import is_youtube_connected, get_channel_info, get_channel_live_stream
+    
+    settings = SiteSettings.query.first()
+    if not settings:
+        settings = SiteSettings()
+        db.session.add(settings)
+        db.session.commit()
+    
+    youtube_connected = is_youtube_connected()
+    channel_info = None
+    live_stream = None
+    
+    if request.method == 'POST':
+        channel_id = request.form.get('youtube_channel_id', '').strip()
+        enabled = request.form.get('youtube_live_enabled') == 'on'
+        
+        if channel_id and youtube_connected:
+            channel_info = get_channel_info(channel_id)
+            if channel_info:
+                settings.youtube_channel_id = channel_id
+                settings.youtube_channel_name = channel_info.get('title', '')
+            else:
+                flash('Could not verify that channel ID. Please check it and try again.', 'warning')
+        elif not channel_id:
+            settings.youtube_channel_id = None
+            settings.youtube_channel_name = None
+        
+        settings.youtube_live_enabled = enabled
+        settings.updated_by_id = current_user.id
+        db.session.commit()
+        flash('YouTube settings updated successfully', 'success')
+        return redirect(url_for('admin.youtube_settings'))
+    
+    if settings.youtube_channel_id and youtube_connected:
+        channel_info = get_channel_info(settings.youtube_channel_id)
+        live_stream = get_channel_live_stream(settings.youtube_channel_id)
+    
+    return render_template('admin/youtube_settings.html',
+                          settings=settings,
+                          youtube_connected=youtube_connected,
+                          channel_info=channel_info,
+                          live_stream=live_stream)
+
+
+@admin_bp.route('/youtube-settings/check-live')
+@login_required
+@admin_required
+def youtube_check_live():
+    """Check if YouTube channel is currently live"""
+    from utils.youtube_live import get_channel_live_stream
+    
+    settings = SiteSettings.query.first()
+    if not settings or not settings.youtube_channel_id:
+        return jsonify({'live': False, 'error': 'No channel configured'})
+    
+    live_stream = get_channel_live_stream(settings.youtube_channel_id)
+    if live_stream:
+        return jsonify({'live': True, 'stream': live_stream})
+    return jsonify({'live': False})
 
 
 @admin_bp.route('/users')

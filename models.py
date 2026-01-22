@@ -2282,3 +2282,19 @@ class AuthorizedApp(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     
     user = db.relationship('User', backref=db.backref('authorized_apps', lazy='dynamic'))
+
+
+class SiteSettings(db.Model):
+    """Site-wide configuration settings"""
+    __tablename__ = 'site_settings'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    youtube_channel_id = db.Column(db.String(50))
+    youtube_channel_name = db.Column(db.String(200))
+    youtube_live_enabled = db.Column(db.Boolean, default=True)
+    
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_by_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    
+    updated_by = db.relationship('User')
