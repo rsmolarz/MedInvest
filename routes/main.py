@@ -15,6 +15,7 @@ from utils.content import (
 )
 from utils.algorithm import generate_feed, get_user_interests, get_people_you_may_know
 from utils.news_aggregator import get_medical_investment_news, get_bloomberg_headlines
+from utils.ads import get_sidebar_ads
 from routes.notifications import create_notification, notify_mention
 from facebook_page import share_platform_post, is_facebook_configured
 
@@ -161,6 +162,12 @@ def _feed_internal():
     except:
         bloomberg_headlines = []
     
+    # Get sidebar ads
+    try:
+        sidebar_ads = get_sidebar_ads(user_id=current_user.id if current_user.is_authenticated else None)
+    except:
+        sidebar_ads = {}
+    
     # Create mixed feed items (posts + news)
     mixed_feed = []
     news_positions = [2, 7, 14]  # Insert news after these post positions
@@ -193,6 +200,7 @@ def _feed_internal():
                          articles=articles,
                          mixed_feed=mixed_feed,
                          bloomberg_headlines=bloomberg_headlines,
+                         sidebar_ads=sidebar_ads,
                          render_content=render_content_with_links)
 
 

@@ -54,6 +54,31 @@
                 </div>
             </div>
         </div>
+        {% if loop.index == 3 and deal_ad and deal_ad.landing_url %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-info">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-bullhorn me-1"></i>Sponsored</span>
+                </div>
+                <div class="card-body text-center">
+                    {% if deal_ad.image_url %}
+                    <a href="{{ deal_ad.landing_url }}" target="_blank" rel="noopener sponsored">
+                        <img src="{{ deal_ad.image_url }}" alt="{{ deal_ad.headline }}" class="img-fluid rounded mb-3" style="max-height: 120px; object-fit: contain;">
+                    </a>
+                    {% endif %}
+                    <h5 class="card-title">{{ deal_ad.headline }}</h5>
+                    {% if deal_ad.body %}
+                    <p class="small text-muted">{{ deal_ad.body[:80] }}{% if deal_ad.body|length > 80 %}...{% endif %}</p>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-white text-center">
+                    <a href="{{ deal_ad.landing_url }}" target="_blank" rel="noopener sponsored" class="btn btn-info btn-sm w-100">
+                        {{ deal_ad.cta_text or 'Learn More' }}
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
         {% else %}
         <div class="col-12"><p class="text-muted text-center">No deals available at this time</p></div>
         {% endfor %}

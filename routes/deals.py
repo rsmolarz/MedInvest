@@ -7,6 +7,7 @@ from functools import wraps
 from app import db
 from models import InvestmentDeal, DealInterest, DealStatus
 from facebook_page import share_deal, is_facebook_configured
+from utils.ads import get_deal_inline_ad
 
 
 def admin_required(f):
@@ -52,11 +53,18 @@ def list_deals():
         ('practice', 'Practice Opportunity'),
     ]
     
+    # Get inline ad for deals page
+    try:
+        deal_ad = get_deal_inline_ad(user_id=current_user.id if current_user.is_authenticated else None)
+    except:
+        deal_ad = None
+    
     return render_template('deals/list.html',
                          deals=deals,
                          user_interests=user_interests,
                          deal_types=deal_types,
-                         selected_type=deal_type)
+                         selected_type=deal_type,
+                         deal_ad=deal_ad)
 
 
 @deals_bp.route('/<int:deal_id>')
