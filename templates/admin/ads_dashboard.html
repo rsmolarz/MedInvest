@@ -1,11 +1,12 @@
-{% extends "base.html" %}
-{% block title %}Ad Admin Dashboard - MedInvest{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}Ad Admin Dashboard - MedInvest{%
+endblock %} {% block content %}
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="fas fa-ad me-2"></i>Advertising Dashboard</h2>
-        <a href="{{ url_for('main.profile') }}" class="btn btn-outline-secondary">
+        <a
+            href="{{ url_for('main.profile') }}"
+            class="btn btn-outline-secondary"
+        >
             <i class="fas fa-arrow-left me-1"></i>Back to Profile
         </a>
     </div>
@@ -68,28 +69,49 @@
     <div class="row">
         <div class="col-lg-4 mb-4">
             <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-building me-2"></i>Advertisers</h5>
-                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addAdvertiserModal">
+                <div
+                    class="card-header d-flex justify-content-between align-items-center"
+                >
+                    <h5 class="mb-0">
+                        <i class="fas fa-building me-2"></i>Advertisers
+                    </h5>
+                    <button
+                        class="btn btn-sm btn-primary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#addAdvertiserModal"
+                    >
                         <i class="fas fa-plus"></i>
                     </button>
                 </div>
-                <div class="list-group list-group-flush" style="max-height:400px;overflow-y:auto;">
+                <div
+                    class="list-group list-group-flush"
+                    style="max-height: 400px; overflow-y: auto"
+                >
                     {% for adv in advertisers %}
                     <div class="list-group-item">
-                        <div class="d-flex justify-content-between align-items-center">
+                        <div
+                            class="d-flex justify-content-between align-items-center"
+                        >
                             <div>
                                 <strong>{{ adv.name }}</strong>
-                                {% if adv.is_internal %}<span class="badge bg-info ms-1">Internal</span>{% endif %}
-                                <br><small class="text-muted">{{ adv.category }}</small>
+                                {% if adv.is_internal %}<span
+                                    class="badge bg-info ms-1"
+                                    >Internal</span
+                                >{% endif %} <br /><small class="text-muted"
+                                    >{{ adv.category }}</small
+                                >
                             </div>
-                            <span class="badge bg-{% if adv.compliance_status == 'active' %}success{% elif adv.compliance_status == 'paused' %}warning{% else %}danger{% endif %}">
+                            <span
+                                class="badge bg-{% if adv.compliance_status == 'active' %}success{% elif adv.compliance_status == 'paused' %}warning{% else %}danger{% endif %}"
+                            >
                                 {{ adv.compliance_status }}
                             </span>
                         </div>
                     </div>
                     {% else %}
-                    <div class="list-group-item text-muted">No advertisers yet</div>
+                    <div class="list-group-item text-muted">
+                        No advertisers yet
+                    </div>
                     {% endfor %}
                 </div>
             </div>
@@ -97,27 +119,47 @@
 
         <div class="col-lg-4 mb-4">
             <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-bullseye me-2"></i>Campaigns</h5>
-                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addCampaignModal">
+                <div
+                    class="card-header d-flex justify-content-between align-items-center"
+                >
+                    <h5 class="mb-0">
+                        <i class="fas fa-bullseye me-2"></i>Campaigns
+                    </h5>
+                    <button
+                        class="btn btn-sm btn-primary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#addCampaignModal"
+                    >
                         <i class="fas fa-plus"></i>
                     </button>
                 </div>
-                <div class="list-group list-group-flush" style="max-height:400px;overflow-y:auto;">
+                <div
+                    class="list-group list-group-flush"
+                    style="max-height: 400px; overflow-y: auto"
+                >
                     {% for camp in campaigns %}
                     <div class="list-group-item">
-                        <div class="d-flex justify-content-between align-items-center">
+                        <div
+                            class="d-flex justify-content-between align-items-center"
+                        >
                             <div>
                                 <strong>{{ camp.name }}</strong>
-                                <br><small class="text-muted">${{ camp.daily_budget }}/day</small>
+                                <br /><small class="text-muted"
+                                    >${{ camp.daily_budget }}/day</small
+                                >
                             </div>
                             <small class="text-muted">
-                                {{ camp.start_at.strftime('%m/%d') if camp.start_at else 'N/A' }} - {{ camp.end_at.strftime('%m/%d') if camp.end_at else 'N/A' }}
+                                {{ camp.start_at.strftime('%m/%d') if
+                                camp.start_at else 'N/A' }} - {{
+                                camp.end_at.strftime('%m/%d') if camp.end_at
+                                else 'N/A' }}
                             </small>
                         </div>
                     </div>
                     {% else %}
-                    <div class="list-group-item text-muted">No campaigns yet</div>
+                    <div class="list-group-item text-muted">
+                        No campaigns yet
+                    </div>
                     {% endfor %}
                 </div>
             </div>
@@ -125,27 +167,50 @@
 
         <div class="col-lg-4 mb-4">
             <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-image me-2"></i>Creatives</h5>
-                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addCreativeModal">
+                <div
+                    class="card-header d-flex justify-content-between align-items-center"
+                >
+                    <h5 class="mb-0">
+                        <i class="fas fa-image me-2"></i>Creatives
+                    </h5>
+                    <button
+                        class="btn btn-sm btn-primary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#addCreativeModal"
+                    >
                         <i class="fas fa-plus"></i>
                     </button>
                 </div>
-                <div class="list-group list-group-flush" style="max-height:400px;overflow-y:auto;">
+                <div
+                    class="list-group list-group-flush"
+                    style="max-height: 400px; overflow-y: auto"
+                >
                     {% for cr in creatives %}
                     <div class="list-group-item">
-                        <div class="d-flex justify-content-between align-items-center">
+                        <div
+                            class="d-flex justify-content-between align-items-center"
+                        >
                             <div>
-                                <strong>{{ cr.headline[:30] }}{% if cr.headline|length > 30 %}...{% endif %}</strong>
-                                <br><small class="text-muted">{{ cr.format }}</small>
+                                <strong
+                                    >{{ cr.headline[:30] }}{% if
+                                    cr.headline|length > 30 %}...{% endif
+                                    %}</strong
+                                >
+                                <br /><small class="text-muted"
+                                    >{{ cr.format }}</small
+                                >
                             </div>
-                            <span class="badge bg-{% if cr.is_active %}success{% else %}secondary{% endif %}">
+                            <span
+                                class="badge bg-{% if cr.is_active %}success{% else %}secondary{% endif %}"
+                            >
                                 {{ 'Active' if cr.is_active else 'Inactive' }}
                             </span>
                         </div>
                     </div>
                     {% else %}
-                    <div class="list-group-item text-muted">No creatives yet</div>
+                    <div class="list-group-item text-muted">
+                        No creatives yet
+                    </div>
                     {% endfor %}
                 </div>
             </div>
@@ -158,13 +223,22 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Add Advertiser</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                ></button>
             </div>
             <form id="advertiserForm">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Company Name</label>
-                        <input type="text" name="name" class="form-control" required>
+                        <input
+                            type="text"
+                            name="name"
+                            class="form-control"
+                            required
+                        />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Category</label>
@@ -177,15 +251,28 @@
                         </select>
                     </div>
                     <div class="form-check mb-3">
-                        <input type="checkbox" class="form-check-input" name="is_internal" id="isInternalCheck">
+                        <input
+                            type="checkbox"
+                            class="form-check-input"
+                            name="is_internal"
+                            id="isInternalCheck"
+                        />
                         <label class="form-check-label" for="isInternalCheck">
                             Internal (Platform-owned, no payment required)
                         </label>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add Advertiser</button>
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal"
+                    >
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        Add Advertiser
+                    </button>
                 </div>
             </form>
         </div>
@@ -197,13 +284,21 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Add Campaign</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                ></button>
             </div>
             <form method="POST" action="{{ url_for('admin.create_campaign') }}">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Advertiser</label>
-                        <select name="advertiser_id" class="form-select" required>
+                        <select
+                            name="advertiser_id"
+                            class="form-select"
+                            required
+                        >
                             {% for adv in advertisers %}
                             <option value="{{ adv.id }}">{{ adv.name }}</option>
                             {% endfor %}
@@ -211,26 +306,52 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Campaign Name</label>
-                        <input type="text" name="name" class="form-control" required>
+                        <input
+                            type="text"
+                            name="name"
+                            class="form-control"
+                            required
+                        />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Daily Budget ($)</label>
-                        <input type="number" name="daily_budget" class="form-control" value="100">
+                        <input
+                            type="number"
+                            name="daily_budget"
+                            class="form-control"
+                            value="100"
+                        />
                     </div>
                     <div class="row">
                         <div class="col-6 mb-3">
                             <label class="form-label">Start Date</label>
-                            <input type="date" name="start_at" class="form-control">
+                            <input
+                                type="date"
+                                name="start_at"
+                                class="form-control"
+                            />
                         </div>
                         <div class="col-6 mb-3">
                             <label class="form-label">End Date</label>
-                            <input type="date" name="end_at" class="form-control">
+                            <input
+                                type="date"
+                                name="end_at"
+                                class="form-control"
+                            />
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add Campaign</button>
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal"
+                    >
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        Add Campaign
+                    </button>
                 </div>
             </form>
         </div>
@@ -242,298 +363,518 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Add Creative</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                ></button>
             </div>
             <form id="creativeForm">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Campaign</label>
-                        <select name="campaign_id" id="creativeFormCampaignSelect" class="form-select" required>
+                        <select
+                            name="campaign_id"
+                            id="creativeFormCampaignSelect"
+                            class="form-select"
+                            required
+                        >
                             <option value="">-- Select Campaign --</option>
                             {% for camp in campaigns %}
-                            <option value="{{ camp.id }}">{{ camp.name }} ({{ camp.advertiser.name if camp.advertiser else 'N/A' }})</option>
+                            <option value="{{ camp.id }}">
+                                {{ camp.name }} ({{ camp.advertiser.name if
+                                camp.advertiser else 'N/A' }})
+                            </option>
                             {% endfor %}
                         </select>
                         {% if not campaigns %}
-                        <small class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>No campaigns available. Please create a campaign first in the Campaigns tab.</small>
+                        <small class="text-warning"
+                            ><i class="fas fa-exclamation-triangle me-1"></i>No
+                            campaigns available. Please create a campaign first
+                            in the Campaigns tab.</small
+                        >
                         {% endif %}
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Placement</label>
                         <select name="format" class="form-select">
                             <option value="feed">Feed Ad (In-Feed)</option>
-                            <option value="medicine_money_show">The Medicine & Money Show (Sidebar)</option>
+                            <option value="medicine_money_show">
+                                The Medicine & Money Show (Sidebar)
+                            </option>
                             <option value="sidebar">Sidebar (General)</option>
                             <option value="deal_inline">Deal Inline</option>
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Headline</label>
-                        <input type="text" name="headline" class="form-control" maxlength="140" required>
+                        <input
+                            type="text"
+                            name="headline"
+                            class="form-control"
+                            maxlength="140"
+                            required
+                        />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Body Text</label>
-                        <textarea name="body" class="form-control" rows="2"></textarea>
+                        <textarea
+                            name="body"
+                            class="form-control"
+                            rows="2"
+                        ></textarea>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Image</label>
-                        <div id="imageDropZone" class="drop-zone" onclick="document.getElementById('imageFileInput').click();" style="border:2px dashed #6c757d;border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;">
-                            <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
-                            <p class="mb-1 text-muted">Drag & drop image here or click to browse</p>
+                        <div
+                            id="imageDropZone"
+                            class="drop-zone"
+                            onclick="document.getElementById('imageFileInput').click();"
+                            style="
+                                border: 2px dashed #6c757d;
+                                border-radius: 8px;
+                                padding: 20px;
+                                text-align: center;
+                                cursor: pointer;
+                                transition: all 0.2s;
+                            "
+                        >
+                            <i
+                                class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"
+                            ></i>
+                            <p class="mb-1 text-muted">
+                                Drag & drop image here or click to browse
+                            </p>
                         </div>
-                        <input type="file" name="image_file" id="imageFileInput" style="position:absolute;left:-9999px;" accept="image/png,image/jpeg,image/gif,image/webp">
-                        <div id="imagePreview" class="mt-2" style="display:none;">
-                            <img id="imagePreviewImg" src="" alt="Preview" style="max-width:200px;max-height:150px;border-radius:8px;">
-                            <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="clearImagePreview()">
+                        <input
+                            type="file"
+                            name="image_file"
+                            id="imageFileInput"
+                            style="position: absolute; left: -9999px"
+                            accept="image/png,image/jpeg,image/gif,image/webp"
+                        />
+                        <div
+                            id="imagePreview"
+                            class="mt-2"
+                            style="display: none"
+                        >
+                            <img
+                                id="imagePreviewImg"
+                                src=""
+                                alt="Preview"
+                                style="
+                                    max-width: 200px;
+                                    max-height: 150px;
+                                    border-radius: 8px;
+                                "
+                            />
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-danger ms-2"
+                                onclick="clearImagePreview()"
+                            >
                                 <i class="fas fa-times"></i> Remove
                             </button>
                         </div>
-                        <small class="text-muted mt-2 d-block">Or enter URL:</small>
-                        <input type="url" name="image_url" class="form-control mt-1" placeholder="https://...">
+                        <small class="text-muted mt-2 d-block"
+                            >Or enter URL:</small
+                        >
+                        <input
+                            type="url"
+                            name="image_url"
+                            class="form-control mt-1"
+                            placeholder="https://..."
+                        />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Video (optional)</label>
-                        <div id="videoDropZone" class="drop-zone" onclick="document.getElementById('videoFileInput').click();" style="border:2px dashed #6c757d;border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;">
+                        <div
+                            id="videoDropZone"
+                            class="drop-zone"
+                            onclick="document.getElementById('videoFileInput').click();"
+                            style="
+                                border: 2px dashed #6c757d;
+                                border-radius: 8px;
+                                padding: 20px;
+                                text-align: center;
+                                cursor: pointer;
+                                transition: all 0.2s;
+                            "
+                        >
                             <i class="fas fa-video fa-2x text-muted mb-2"></i>
-                            <p class="mb-1 text-muted">Drag & drop video here or click to browse</p>
+                            <p class="mb-1 text-muted">
+                                Drag & drop video here or click to browse
+                            </p>
                         </div>
-                        <input type="file" name="video_file" id="videoFileInput" style="position:absolute;left:-9999px;" accept="video/mp4,video/mov,video/webm">
-                        <div id="videoPreview" class="mt-2" style="display:none;">
-                            <video id="videoPreviewEl" src="" style="max-width:200px;max-height:150px;border-radius:8px;" controls muted></video>
-                            <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="clearVideoPreview()">
+                        <input
+                            type="file"
+                            name="video_file"
+                            id="videoFileInput"
+                            style="position: absolute; left: -9999px"
+                            accept="video/mp4,video/mov,video/webm"
+                        />
+                        <div
+                            id="videoPreview"
+                            class="mt-2"
+                            style="display: none"
+                        >
+                            <video
+                                id="videoPreviewEl"
+                                src=""
+                                style="
+                                    max-width: 200px;
+                                    max-height: 150px;
+                                    border-radius: 8px;
+                                "
+                                controls
+                                muted
+                            ></video>
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-danger ms-2"
+                                onclick="clearVideoPreview()"
+                            >
                                 <i class="fas fa-times"></i> Remove
                             </button>
                         </div>
-                        <small class="text-muted mt-2 d-block">Or enter URL:</small>
-                        <input type="url" name="video_url" class="form-control mt-1" placeholder="https://...">
+                        <small class="text-muted mt-2 d-block"
+                            >Or enter URL:</small
+                        >
+                        <input
+                            type="url"
+                            name="video_url"
+                            class="form-control mt-1"
+                            placeholder="https://..."
+                        />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Landing URL</label>
-                        <input type="url" name="landing_url" class="form-control" required>
+                        <input
+                            type="url"
+                            name="landing_url"
+                            class="form-control"
+                            required
+                        />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">CTA Button Text</label>
-                        <input type="text" name="cta_text" class="form-control" value="Learn More">
+                        <input
+                            type="text"
+                            name="cta_text"
+                            class="form-control"
+                            value="Learn More"
+                        />
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add Creative</button>
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal"
+                    >
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        Add Creative
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
+{% endblock %} {% block scripts %}
 <script>
-let uploadedImageUrl = '';
-let uploadedVideoUrl = '';
+    let uploadedImageUrl = "";
+    let uploadedVideoUrl = "";
 
-const setupComplete = {};
+    const setupComplete = {};
 
-function setupDropZone(dropZoneId, fileInputId, previewId, previewElId, isVideo = false) {
-    if (setupComplete[dropZoneId]) return;
-    
-    const dropZone = document.getElementById(dropZoneId);
-    const fileInput = document.getElementById(fileInputId);
-    
-    if (!dropZone || !fileInput) {
-        console.warn('Drop zone elements not found:', dropZoneId, fileInputId);
-        return;
-    }
-    
-    setupComplete[dropZoneId] = true;
-    
-    dropZone.ondragenter = (e) => { e.preventDefault(); e.stopPropagation(); dropZone.style.borderColor = '#0d6efd'; dropZone.style.backgroundColor = 'rgba(13, 110, 253, 0.1)'; };
-    dropZone.ondragover = (e) => { e.preventDefault(); e.stopPropagation(); };
-    dropZone.ondragleave = (e) => { e.preventDefault(); e.stopPropagation(); dropZone.style.borderColor = '#6c757d'; dropZone.style.backgroundColor = 'transparent'; };
-    dropZone.ondrop = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropZone.style.borderColor = '#6c757d';
-        dropZone.style.backgroundColor = 'transparent';
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            fileInput.files = files;
-            handleFileSelect(fileInput, dropZone, previewId, previewElId, isVideo);
-        }
-    };
-    
-    fileInput.onchange = function() {
-        handleFileSelect(fileInput, dropZone, previewId, previewElId, isVideo);
-    };
-}
+    function setupDropZone(
+        dropZoneId,
+        fileInputId,
+        previewId,
+        previewElId,
+        isVideo = false,
+    ) {
+        if (setupComplete[dropZoneId]) return;
 
-function handleFileSelect(fileInput, dropZone, previewId, previewElId, isVideo) {
-    const file = fileInput.files[0];
-    if (file) {
-        if (isVideo) {
-            const url = URL.createObjectURL(file);
-            document.getElementById(previewElId).src = url;
-        } else {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById(previewElId).src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-        document.getElementById(previewId).style.display = 'block';
-        dropZone.style.display = 'none';
-    }
-}
+        const dropZone = document.getElementById(dropZoneId);
+        const fileInput = document.getElementById(fileInputId);
 
-document.addEventListener('DOMContentLoaded', function() {
-    setupDropZone('imageDropZone', 'imageFileInput', 'imagePreview', 'imagePreviewImg', false);
-    setupDropZone('videoDropZone', 'videoFileInput', 'videoPreview', 'videoPreviewEl', true);
-    
-    const creativeModal = document.getElementById('addCreativeModal');
-    if (creativeModal) {
-        creativeModal.addEventListener('shown.bs.modal', function() {
-            setupDropZone('imageDropZone', 'imageFileInput', 'imagePreview', 'imagePreviewImg', false);
-            setupDropZone('videoDropZone', 'videoFileInput', 'videoPreview', 'videoPreviewEl', true);
-        });
-    }
-});
-
-function clearImagePreview() {
-    document.getElementById('imageFileInput').value = '';
-    document.getElementById('imagePreview').style.display = 'none';
-    document.getElementById('imageDropZone').style.display = 'block';
-    uploadedImageUrl = '';
-}
-
-function clearVideoPreview() {
-    document.getElementById('videoFileInput').value = '';
-    document.getElementById('videoPreview').style.display = 'none';
-    document.getElementById('videoDropZone').style.display = 'block';
-    uploadedVideoUrl = '';
-}
-
-async function uploadFile(file) {
-    const formData = new FormData();
-    formData.append('file', file);
-    const resp = await fetch('/media/upload', {
-        method: 'POST',
-        body: formData
-    });
-    if (!resp.ok) throw new Error('Upload failed');
-    return await resp.json();
-}
-
-document.getElementById('advertiserForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const isInternalCheckbox = form.querySelector('input[name="is_internal"]');
-    const data = {
-        name: form.name.value,
-        category: form.category.value,
-        is_internal: isInternalCheckbox ? isInternalCheckbox.checked : false
-    };
-    const resp = await fetch('/admin/ads/advertisers', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-    });
-    if (resp.ok) location.reload();
-    else alert('Error creating advertiser');
-});
-
-document.getElementById('campaignForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const submitBtn = form.querySelector('button[type="submit"]');
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creating...';
-    
-    try {
-        const advertiserSelect = form.querySelector('select[name="advertiser_id"]');
-        if (!advertiserSelect || !advertiserSelect.value) {
-            alert('Please select an advertiser first');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Add Campaign';
+        if (!dropZone || !fileInput) {
+            console.warn(
+                "Drop zone elements not found:",
+                dropZoneId,
+                fileInputId,
+            );
             return;
         }
-        
-        const campaignNameInput = document.getElementById('campaignNameInput');
-        const data = {
-            advertiser_id: parseInt(advertiserSelect.value),
-            name: campaignNameInput.value,
-            daily_budget: parseFloat(form.daily_budget.value) || 0,
-            start_at: form.start_at.value || null,
-            end_at: form.end_at.value || null
-        };
-        
-        const resp = await fetch('/admin/ads/campaigns', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
-        });
-        
-        if (resp.ok) {
-            location.reload();
-        } else {
-            const errorText = await resp.text();
-            console.error('Campaign creation failed:', errorText);
-            alert('Error creating campaign: ' + (resp.statusText || 'Unknown error'));
-        }
-    } catch (err) {
-        console.error('Campaign creation error:', err);
-        alert('Error: ' + err.message);
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Add Campaign';
-    }
-});
 
-document.getElementById('creativeForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const submitBtn = form.querySelector('button[type="submit"]');
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Uploading...';
-    
-    try {
-        let imageUrl = form.image_url.value;
-        let videoUrl = form.video_url.value;
-        
-        const imageFile = form.image_file.files[0];
-        if (imageFile) {
-            const result = await uploadFile(imageFile);
-            imageUrl = result.file_path;
-        }
-        
-        const videoFile = form.video_file.files[0];
-        if (videoFile) {
-            const result = await uploadFile(videoFile);
-            videoUrl = result.file_path;
-        }
-        
-        const data = {
-            campaign_id: parseInt(form.campaign_id.value),
-            format: form.format.value,
-            headline: form.headline.value,
-            body: form.body.value,
-            image_url: imageUrl,
-            video_url: videoUrl,
-            landing_url: form.landing_url.value,
-            cta_text: form.cta_text.value
+        setupComplete[dropZoneId] = true;
+
+        dropZone.ondragenter = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.style.borderColor = "#0d6efd";
+            dropZone.style.backgroundColor = "rgba(13, 110, 253, 0.1)";
         };
-        
-        const resp = await fetch('/admin/ads/creatives', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
-        });
-        if (resp.ok) location.reload();
-        else alert('Error creating creative');
-    } catch (err) {
-        alert('Error uploading media: ' + err.message);
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Add Creative';
+        dropZone.ondragover = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        };
+        dropZone.ondragleave = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.style.borderColor = "#6c757d";
+            dropZone.style.backgroundColor = "transparent";
+        };
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.style.borderColor = "#6c757d";
+            dropZone.style.backgroundColor = "transparent";
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect(
+                    fileInput,
+                    dropZone,
+                    previewId,
+                    previewElId,
+                    isVideo,
+                );
+            }
+        };
+
+        fileInput.onchange = function () {
+            handleFileSelect(
+                fileInput,
+                dropZone,
+                previewId,
+                previewElId,
+                isVideo,
+            );
+        };
     }
-});
+
+    function handleFileSelect(
+        fileInput,
+        dropZone,
+        previewId,
+        previewElId,
+        isVideo,
+    ) {
+        const file = fileInput.files[0];
+        if (file) {
+            if (isVideo) {
+                const url = URL.createObjectURL(file);
+                document.getElementById(previewElId).src = url;
+            } else {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    document.getElementById(previewElId).src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+            document.getElementById(previewId).style.display = "block";
+            dropZone.style.display = "none";
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        setupDropZone(
+            "imageDropZone",
+            "imageFileInput",
+            "imagePreview",
+            "imagePreviewImg",
+            "",
+            false,
+        );
+        setupDropZone(
+            "videoDropZone",
+            "videoFileInput",
+            "videoPreview",
+            "videoPreviewEl",
+            true,
+        );
+
+        const creativeModal = document.getElementById("addCreativeModal");
+        if (creativeModal) {
+            creativeModal.addEventListener("shown.bs.modal", function () {
+                setupDropZone(
+                    "imageDropZone",
+                    "imageFileInput",
+                    "imagePreview",
+                    "imagePreviewImg",
+                    "",
+                    false,
+                );
+                setupDropZone(
+                    "videoDropZone",
+                    "videoFileInput",
+                    "videoPreview",
+                    "videoPreviewEl",
+                    true,
+                );
+            });
+        }
+    });
+
+    function clearImagePreview() {
+        document.getElementById("imageFileInput").value = "";
+        document.getElementById("imagePreview").style.display = "none";
+        document.getElementById("imageDropZone").style.display = "block";
+        uploadedImageUrl = "";
+    }
+
+    function clearVideoPreview() {
+        document.getElementById("videoFileInput").value = "";
+        document.getElementById("videoPreview").style.display = "none";
+        document.getElementById("videoDropZone").style.display = "block";
+        uploadedVideoUrl = "";
+    }
+
+    async function uploadFile(file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const resp = await fetch("/media/upload", {
+            method: "POST",
+            body: formData,
+        });
+        if (!resp.ok) throw new Error("Upload failed");
+        return await resp.json();
+    }
+
+    document
+        .getElementById("advertiserForm")
+        .addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const isInternalCheckbox = form.querySelector(
+                'input[name="is_internal"]',
+            );
+            const data = {
+                name: form.name.value,
+                category: form.category.value,
+                is_internal: isInternalCheckbox
+                    ? isInternalCheckbox.checked
+                    : false,
+            };
+            const resp = await fetch("/admin/ads/advertisers", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            });
+            if (resp.ok) location.reload();
+            else alert("Error creating advertiser");
+        });
+
+    document
+        .getElementById("campaignForm")
+        .addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML =
+                '<i class="fas fa-spinner fa-spin me-1"></i>Creating...';
+
+            try {
+                const advertiserSelect = form.querySelector(
+                    'select[name="advertiser_id"]',
+                );
+                if (!advertiserSelect || !advertiserSelect.value) {
+                    alert("Please select an advertiser first");
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = "Add Campaign";
+                    return;
+                }
+
+                const campaignNameInput =
+                    document.getElementById("campaignNameInput");
+                const data = {
+                    advertiser_id: parseInt(advertiserSelect.value),
+                    name: campaignNameInput.value,
+                    daily_budget: parseFloat(form.daily_budget.value) || 0,
+                    start_at: form.start_at.value || null,
+                    end_at: form.end_at.value || null,
+                };
+
+                const resp = await fetch("/admin/ads/campaigns", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data),
+                });
+
+                if (resp.ok) {
+                    location.reload();
+                } else {
+                    const errorText = await resp.text();
+                    console.error("Campaign creation failed:", errorText);
+                    alert(
+                        "Error creating campaign: " +
+                            (resp.statusText || "Unknown error"),
+                    );
+                }
+            } catch (err) {
+                console.error("Campaign creation error:", err);
+                alert("Error: " + err.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = "Add Campaign";
+            }
+        });
+
+    document
+        .getElementById("creativeForm")
+        .addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML =
+                '<i class="fas fa-spinner fa-spin me-1"></i>Uploading...';
+
+            try {
+                let imageUrl = form.image_url.value;
+                let videoUrl = form.video_url.value;
+
+                const imageFile = form.image_file.files[0];
+                if (imageFile) {
+                    const result = await uploadFile(imageFile);
+                    imageUrl = result.file_path;
+                }
+
+                const videoFile = form.video_file.files[0];
+                if (videoFile) {
+                    const result = await uploadFile(videoFile);
+                    videoUrl = result.file_path;
+                }
+
+                const data = {
+                    campaign_id: parseInt(form.campaign_id.value),
+                    format: form.format.value,
+                    headline: form.headline.value,
+                    body: form.body.value,
+                    image_url: imageUrl,
+                    video_url: videoUrl,
+                    landing_url: form.landing_url.value,
+                    cta_text: form.cta_text.value,
+                };
+
+                const resp = await fetch("/admin/ads/creatives", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data),
+                });
+                if (resp.ok) location.reload();
+                else alert("Error creating creative");
+            } catch (err) {
+                alert("Error uploading media: " + err.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = "Add Creative";
+            }
+        });
 </script>
 {% endblock %}
