@@ -572,6 +572,30 @@
                 </div>
             </div>
 
+            <!-- Medicine and Money Show Book Ad -->
+            {% if sidebar_ads and sidebar_ads.medicine_money_show and sidebar_ads.medicine_money_show.landing_url %}
+            {% set book_ad = sidebar_ads.medicine_money_show %}
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body text-center p-3">
+                    {% if book_ad.image_url %}
+                    <a href="{{ book_ad.landing_url }}" target="_blank" rel="noopener sponsored" class="d-block">
+                        <img src="{{ book_ad.image_url }}" 
+                             alt="{{ book_ad.headline }}" 
+                             class="img-fluid rounded mb-2" 
+                             style="max-height: 150px; object-fit: contain;">
+                    </a>
+                    {% endif %}
+                    <h6 class="mb-1">{{ book_ad.headline }}</h6>
+                    {% if book_ad.body %}
+                    <p class="small text-muted mb-2">{{ book_ad.body[:100] }}{% if book_ad.body|length > 100 %}...{% endif %}</p>
+                    {% endif %}
+                    <a href="{{ book_ad.landing_url }}" target="_blank" rel="noopener sponsored" class="btn btn-primary btn-sm">
+                        {{ book_ad.cta_text or 'Learn More' }}
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Dynamic Sidebar Ads -->
             {% if sidebar_ads and sidebar_ads.sidebar and sidebar_ads.sidebar.landing_url %}
             {% set sidebar_ad = sidebar_ads.sidebar %}
