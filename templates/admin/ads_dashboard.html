@@ -697,6 +697,16 @@ endblock %} {% block content %}
             "videoPreviewEl",
             true,
         );
+        
+        // Explicit event listeners to bypass modal event propagation
+        document.getElementById('imageDropZone')?.addEventListener('click', function(e) {
+            e.stopPropagation();
+            document.getElementById('imageFileInput')?.click();
+        });
+        document.getElementById('videoDropZone')?.addEventListener('click', function(e) {
+            e.stopPropagation();
+            document.getElementById('videoFileInput')?.click();
+        });
 
         const creativeModal = document.getElementById("addCreativeModal");
         if (creativeModal) {
