@@ -39,7 +39,7 @@ def add_contact_to_ghl(user):
                 'lastName': user.last_name,
                 'email': user.email,
                 'source': 'MedInvest Registration',
-                'tags': ['medinvest', 'new-signup']
+                'tags': ['medinvest', 'new-signup', 'medmoneyincubator']
             }
             
             if user.specialty:
