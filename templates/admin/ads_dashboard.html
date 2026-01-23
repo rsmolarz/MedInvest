@@ -440,6 +440,18 @@ endblock %} {% block content %}
     function clickVideoInput() {
         document.getElementById("videoFileInput").click();
     }
+
+    function clearImagePreview() {
+        document.getElementById("imageFileInput").value = "";
+        document.getElementById("imagePreview").style.display = "none";
+        document.getElementById("imageDropZone").style.display = "block";
+    }
+
+    function clearVideoPreview() {
+        document.getElementById("videoFileInput").value = "";
+        document.getElementById("videoPreview").style.display = "none";
+        document.getElementById("videoDropZone").style.display = "block";
+    }
 </script>
 
 <div class="modal fade" id="addCreativeModal" tabindex="-1">
@@ -678,20 +690,6 @@ endblock %} {% block content %}
 <script>
     let uploadedImageUrl = "";
     let uploadedVideoUrl = "";
-
-    function clearImagePreview() {
-        document.getElementById("imageFileInput").value = "";
-        document.getElementById("imagePreview").style.display = "none";
-        document.getElementById("imageDropZone").style.display = "block";
-        uploadedImageUrl = "";
-    }
-
-    function clearVideoPreview() {
-        document.getElementById("videoFileInput").value = "";
-        document.getElementById("videoPreview").style.display = "none";
-        document.getElementById("videoDropZone").style.display = "block";
-        uploadedVideoUrl = "";
-    }
 
     async function uploadFile(file) {
         const formData = new FormData();
