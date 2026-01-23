@@ -14,7 +14,7 @@ from urllib.parse import urlencode
 from werkzeug.utils import secure_filename
 import secrets
 from app import db
-from models import User, Referral, LoginSession
+from models import User, Referral, LoginSession, VerificationQueueEntry
 from mailer import send_email
 
 
@@ -1512,11 +1512,32 @@ def verify_email_code():
     current_user.professional_email_code = None
     current_user.professional_email_code_expires = None
     
-    # Update overall verification status if both steps complete
-    if current_user.license_verified:
+    # Count verified methods
+    verified_count = sum([
+        current_user.professional_email_verified,
+        current_user.npi_verified or False,
+        current_user.license_verified or False
+    ])
+    
+    # Update overall verification status
+    if verified_count >= 2:
         current_user.is_verified = True
         current_user.verification_status = 'verified'
         current_user.verified_at = datetime.utcnow()
+    else:
+        # Add to verification queue for admin review if not already there
+        current_user.verification_status = 'pending'
+        current_user.verification_submitted_at = datetime.utcnow()
+        existing_entry = VerificationQueueEntry.query.filter_by(user_id=current_user.id).first()
+        if not existing_entry:
+            queue_entry = VerificationQueueEntry(
+                user_id=current_user.id,
+                submitted_at=datetime.utcnow(),
+                sla_deadline=datetime.utcnow() + timedelta(days=2),
+                priority=0,
+                status='pending'
+            )
+            db.session.add(queue_entry)
     
     db.session.commit()
     
@@ -1582,6 +1603,20 @@ def verify_npi():
                         current_user.is_verified = True
                         current_user.verification_status = 'verified'
                         current_user.verified_at = datetime.utcnow()
+                    else:
+                        # Add to verification queue for admin review
+                        current_user.verification_status = 'pending'
+                        current_user.verification_submitted_at = datetime.utcnow()
+                        existing_entry = VerificationQueueEntry.query.filter_by(user_id=current_user.id).first()
+                        if not existing_entry:
+                            queue_entry = VerificationQueueEntry(
+                                user_id=current_user.id,
+                                submitted_at=datetime.utcnow(),
+                                sla_deadline=datetime.utcnow() + timedelta(days=2),
+                                priority=0,
+                                status='pending'
+                            )
+                            db.session.add(queue_entry)
                     
                     db.session.commit()
                     flash('NPI verified successfully!', 'success')
@@ -1590,6 +1625,31 @@ def verify_npi():
             # Valid NPI but couldn't match - still accept
             current_user.npi_number = npi_number
             current_user.npi_verified = True
+            
+            # Add to verification queue for admin review
+            verified_count = sum([
+                current_user.professional_email_verified,
+                current_user.npi_verified,
+                current_user.license_verified or False
+            ])
+            if verified_count >= 2:
+                current_user.is_verified = True
+                current_user.verification_status = 'verified'
+                current_user.verified_at = datetime.utcnow()
+            else:
+                current_user.verification_status = 'pending'
+                current_user.verification_submitted_at = datetime.utcnow()
+                existing_entry = VerificationQueueEntry.query.filter_by(user_id=current_user.id).first()
+                if not existing_entry:
+                    queue_entry = VerificationQueueEntry(
+                        user_id=current_user.id,
+                        submitted_at=datetime.utcnow(),
+                        sla_deadline=datetime.utcnow() + timedelta(days=2),
+                        priority=0,
+                        status='pending'
+                    )
+                    db.session.add(queue_entry)
+            
             db.session.commit()
             flash('NPI verified successfully!', 'success')
             return redirect(url_for('auth.verify_physician'))
@@ -1647,6 +1707,19 @@ def upload_license():
     current_user.license_document_uploaded_at = datetime.utcnow()
     current_user.verification_status = 'pending'
     current_user.verification_submitted_at = datetime.utcnow()
+    
+    # Add to verification queue for admin review if not already there
+    existing_entry = VerificationQueueEntry.query.filter_by(user_id=current_user.id).first()
+    if not existing_entry:
+        queue_entry = VerificationQueueEntry(
+            user_id=current_user.id,
+            submitted_at=datetime.utcnow(),
+            sla_deadline=datetime.utcnow() + timedelta(days=2),
+            priority=1,  # Higher priority for license uploads
+            status='pending'
+        )
+        db.session.add(queue_entry)
+    
     db.session.commit()
     
     flash('License document uploaded successfully! Our team will review it within 1-2 business days.', 'success')
