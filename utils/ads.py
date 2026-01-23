@@ -2,6 +2,7 @@
 Ad Serving Utilities
 """
 import random
+import logging
 from datetime import datetime
 from app import db
 from models import AdCreative, AdCampaign, AdImpression
@@ -29,11 +30,14 @@ def get_active_ad(format_type, user_id=None):
     )
     
     creatives = query.all()
+    logging.info(f"Ad query for format '{format_type}': found {len(creatives)} creatives")
     
     if not creatives:
+        logging.warning(f"No active ads found for format: {format_type}")
         return None
     
     selected = random.choice(creatives)
+    logging.info(f"Selected ad: id={selected.id}, headline={selected.headline[:30] if selected.headline else 'N/A'}")
     
     if user_id:
         try:
