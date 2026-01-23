@@ -25,7 +25,7 @@ def get_active_ad(format_type, user_id=None):
         AdCreative.is_active == True,
         AdCreative.format == format_type,
         AdCampaign.start_at <= now,
-        db.or_(AdCampaign.end_at >= now, AdCampaign.end_at == None)
+        db.or_(AdCampaign.end_at >= now, AdCampaign.end_at.is_(None))
     )
     
     creatives = query.all()

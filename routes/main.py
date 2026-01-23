@@ -165,7 +165,8 @@ def _feed_internal():
     # Get sidebar ads
     try:
         sidebar_ads = get_sidebar_ads(user_id=current_user.id if current_user.is_authenticated else None)
-    except:
+    except Exception as e:
+        logging.error(f"Error loading sidebar ads: {e}")
         sidebar_ads = {}
     
     # Create mixed feed items (posts + news)
