@@ -41,8 +41,7 @@ def index():
 @main_bp.route('/post/<int:post_id>')
 def post_redirect(post_id):
     """Redirect old /post/<id> URLs to /rooms/post/<id>"""
-    return redirect(url_for('rooms.view_post', post_id=post_id), code=301)
-
+        return redirect(url_for('rooms.view_post', post_id=post_id), code=301)
 
 @main_bp.route('/privacy')
 def privacy():

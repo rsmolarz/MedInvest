@@ -14,8 +14,9 @@ logger = logging.getLogger(__name__)
 
 webhooks_bp = Blueprint('webhooks', __name__, url_prefix='/webhooks')
 
-FACEBOOK_WEBHOOK_SECRET = os.environ.get('FACEBOOK_WEBHOOK_SECRET', '')
-
+FACEBOOK_WEBHOOK_SECRET = os.environ.get('FACEBOOK_WEBHOOK_SECRET')
+if not FACEBOOK_WEBHOOK_SECRET:
+        raise ValueError("FACEBOOK_WEBHOOK_SECRET environment variable is not set")
 
 def verify_facebook_webhook(data, signature):
     """Verify that the webhook request came from Facebook"""
@@ -48,8 +49,9 @@ def facebook_webhook_verify():
     token = request.args.get('hub.verify_token')
     challenge = request.args.get('hub.challenge')
 
-    verify_token = os.environ.get('FACEBOOK_WEBHOOK_VERIFY_TOKEN', '')
-
+verify_token = os.environ.get('FACEBOOK_WEBHOOK_VERIFY_TOKEN')
+if not verify_token:
+        raise ValueError("FACEBOOK_WEBHOOK_VERIFY_TOKEN environment variable is not set")
     if mode == 'subscribe' and token == verify_token:
         logger.info("Facebook webhook verified successfully!")
         return challenge, 200
