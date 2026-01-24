@@ -134,43 +134,44 @@
         <div class="col-lg-9">
             <div class="card">
                 <div class="card-body">
-                    <ul class="nav network-tabs">
+                    <ul class="nav network-tabs flex-wrap">
+                        <li class="nav-item">
+                            <a class="nav-link {% if tab == 'connections' %}active{% endif %}" href="{{ url_for('main.network', tab='connections') }}">
+                                <i class="fas fa-user-friends me-1"></i>My Connections
+                                {% if connection_count > 0 %}<span class="badge bg-primary ms-1">{{ connection_count }}</span>{% endif %}
+                            </a>
+                        </li>
                         <li class="nav-item">
                             <a class="nav-link {% if tab == 'pending' %}active{% endif %}" href="{{ url_for('main.network', tab='pending') }}">
-                                Pending Requests
+                                Pending
                                 {% if pending_count > 0 %}<span class="badge bg-danger ms-1">{{ pending_count }}</span>{% endif %}
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {% if tab == 'outgoing' %}active{% endif %}" href="{{ url_for('main.network', tab='outgoing') }}">
-                                Sent Requests
+                                Sent
                                 {% if outgoing_count > 0 %}<span class="badge bg-warning ms-1">{{ outgoing_count }}</span>{% endif %}
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {% if tab == 'suggestions' %}active{% endif %}" href="{{ url_for('main.network', tab='suggestions') }}">
-                                People you may know
+                                Suggestions
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {% if tab == 'nearby' %}active{% endif %}" href="{{ url_for('main.network', tab='nearby') }}">
-                                People near you
+                                Near You
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {% if tab == 'specialty' %}active{% endif %}" href="{{ url_for('main.network', tab='specialty') }}">
-                                <i class="fas fa-stethoscope me-1"></i>Your Specialty
+                                <i class="fas fa-stethoscope me-1"></i>Specialty
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {% if tab == 'new_members' %}active{% endif %}" href="{{ url_for('main.network', tab='new_members') }}">
-                                <i class="fas fa-user-plus me-1"></i>New Members
+                                <i class="fas fa-user-plus me-1"></i>New
                                 {% if new_member_count > 0 %}<span class="badge bg-success ms-1">{{ new_member_count }}</span>{% endif %}
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if tab == 'colleagues' %}active{% endif %}" href="{{ url_for('main.network', tab='colleagues') }}">
-                                Your {{ colleague_count }} Colleagues
                             </a>
                         </li>
                     </ul>
@@ -370,9 +371,9 @@
                         {% endfor %}
                     </div>
 
-                    {% elif tab == 'colleagues' %}
+                    {% elif tab == 'connections' %}
                     <div class="colleague-grid">
-                        {% for user in colleagues %}
+                        {% for user in connections %}
                         <div class="colleague-card">
                             <div class="colleague-avatar {% if not user.profile_image_url %}initials{% endif %}">
                                 {% if user.profile_image_url %}
@@ -396,8 +397,8 @@
                         {% else %}
                         <div class="text-center text-muted py-5 col-12">
                             <i class="fas fa-user-friends fa-3x mb-3"></i>
-                            <p>You haven't connected with any colleagues yet</p>
-                            <a href="{{ url_for('main.network', tab='suggestions') }}" class="btn btn-primary mt-2">Find Colleagues</a>
+                            <p>You haven't connected with anyone yet</p>
+                            <a href="{{ url_for('main.network', tab='suggestions') }}" class="btn btn-primary mt-2">Find People to Connect</a>
                         </div>
                         {% endfor %}
                     </div>

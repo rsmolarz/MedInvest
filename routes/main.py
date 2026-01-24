@@ -886,7 +886,7 @@ def network():
         from models import User, Follow, Connection
         from utils.algorithm import get_people_you_may_know
         
-        tab = request.args.get('tab', 'suggestions')
+        tab = request.args.get('tab', 'connections')
         
         # Get connected user IDs from Connection table (accepted connections)
         connected_ids = set()
@@ -991,12 +991,12 @@ def network():
                               suggestions=suggestions,
                               near_me=near_me,
                               same_specialty=same_specialty,
-                              colleagues=colleagues,
+                              connections=colleagues,
                               new_members=new_members,
                               pending_count=len(pending_users),
                               outgoing_count=len(outgoing_users),
                               new_member_count=len(new_members),
-                              colleague_count=len(colleagues))
+                              connection_count=len(colleagues))
     except Exception as e:
         import logging
         logging.error(f"Network page error: {str(e)}")
