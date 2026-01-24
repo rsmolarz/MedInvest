@@ -3,6 +3,7 @@ import logging
 from flask import session
 from app import app, db
 from models import User
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 
 # Configure logging for production
 logging.basicConfig(level=logging.INFO,
@@ -14,6 +15,11 @@ from replit_auth import make_replit_blueprint, login_manager
 # Configure login manager messages
 login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'info'
+
+# Configure JWT for SSO between MedInvest and InvestmentVault
+app.config['JWT_SECRET_KEY'] = os.environ.get(
+    'JWT_SECRET_KEY', 'temp-dev-secret-change-in-production')
+jwt = JWTManager(app)
 
 
 # Make session permanent
@@ -49,6 +55,7 @@ from routes.connections import connections_bp
 from routes.push import push_bp
 from routes.lti import lti_bp
 from routes.webhooks import webhooks_bp
+from routes.investdocs import investdocs_bp
 
 app.register_blueprint(main_bp)
 app.register_blueprint(auth_bp)
@@ -78,6 +85,7 @@ app.register_blueprint(errors_bp)
 
 # Template filter for getting user by ID
 app.register_blueprint(webhooks_bp)
+app.register_blueprint(investdocs_bp)
 
 
 @app.template_filter('get_user')
