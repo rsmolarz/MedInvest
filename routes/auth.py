@@ -41,8 +41,7 @@ def record_login_session(user_id, login_method='password', is_successful=True, f
         
         ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
         if ip_address and ',' in ip_address:
-            ip_address = ip_address.split(',')[0].strip()
-        
+        ip_address = ip_address.strip()        
         session_record = LoginSession(
             user_id=user_id,
             ip_address=ip_address,
@@ -105,8 +104,9 @@ def create_signed_oauth_state(provider, redirect_uri):
     import base64
     import json
     
-    secret = os.environ.get('SESSION_SECRET', 'fallback-secret')
-    nonce = secrets.token_urlsafe(16)
+    secret = os.environ.get('SESSION_SECRET')
+        if not secret:
+                    raise ValueError("SESSION_SECRET environment variable is not set")nonce = secrets.token_urlsafe(16)
     timestamp = int(time.time())
     
     data = {
@@ -135,8 +135,9 @@ def verify_signed_oauth_state(state, provider, max_age=600):
             return None
         
         payload, signature = state.rsplit('.', 1)
-        secret = os.environ.get('SESSION_SECRET', 'fallback-secret')
-        
+    secret = os.environ.get('SESSION_SECRET')
+    if not secret:
+                raise ValueError("SESSION_SECRET environment variable is not set")
         expected_sig = hmac.new(secret.encode(), payload.encode(), hashlib.sha256).hexdigest()[:16]
         if not hmac.compare_digest(signature, expected_sig):
             logging.error("OAuth state signature mismatch")

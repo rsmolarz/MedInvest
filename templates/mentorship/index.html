@@ -49,8 +49,8 @@
                         {% else %}
                         <div class="col-12">
                             {% if is_mentor %}
-                            <p class="text-muted mb-2">You're currently the only approved mentor.</p>
-                            <p class="text-muted small">As more physicians join the mentorship program, they'll appear here. In the meantime, check your Mentorship Requests section for mentees who want to connect with you!</p>
+                            <p class="text-muted mb-2">No other approved mentors yet.</p>
+                            <p class="text-muted small">You're currently the only approved mentor on the platform. As other members apply and get approved for the mentorship program, they'll appear here. Check your Mentorship Requests section for mentees who want to connect with you!</p>
                             {% else %}
                             <p class="text-muted mb-2">No mentors available at this time.</p>
                             <p class="text-muted small">Consider <a href="{{ url_for('mentorship.become_mentor') }}">becoming a mentor</a> to help fellow physicians on their investment journey!</p>
