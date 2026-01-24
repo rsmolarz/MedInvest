@@ -2,6 +2,7 @@ import os
 import logging
 from flask import session
 from app import app, db
+from models import User
 
 # Configure logging for production
 logging.basicConfig(level=logging.INFO,
