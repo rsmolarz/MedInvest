@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Market Inefficiency Agents - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="d-flex align-items-center mb-4">
+                <div class="bg-primary bg-opacity-10 rounded-3 p-3 me-3">
+                    <i class="fas fa-chart-line fa-2x text-primary"></i>
+                </div>
+                <div>
+                    <h2 class="mb-1">Market Inefficiency Agents</h2>
+                    <p class="text-muted mb-0">AI-powered market alerts and investment triggers</p>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="card-title">
+                                <i class="fas fa-robot text-primary me-2"></i>12 AI Agents Monitoring Markets 24/7
+                            </h5>
+                            <p class="card-text">
+                                Connect to the Market Inefficiency Agents platform to receive real-time alerts about:
+                            </p>
+                            <ul class="mb-0">
+                                <li>Arbitrage opportunities across asset classes</li>
+                                <li>Sector rotation signals for healthcare investments</li>
+                                <li>Systemic risk indicators and market anomalies</li>
+                                <li>REIT and real estate inefficiency detection</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="bg-success bg-opacity-10 rounded-3 p-4">
+                                <i class="fas fa-shield-alt fa-3x text-success mb-2"></i>
+                                <h6 class="mb-0">Premium Feature</h6>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if is_premium %}
+                {% if connection and connection.is_active %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Connected!</strong> You're receiving MIA alerts in your feed.
+                    <a href="{{ url_for('mia.settings') }}" class="alert-link">Manage Settings</a>
+                </div>
+                {% else %}
+                <div class="card border-primary mb-4">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-link fa-3x text-primary mb-3"></i>
+                        <h4>Connect Your MIA Account</h4>
+                        <p class="text-muted">Link your Market Inefficiency Agents account to receive alerts directly in your MedInvest feed.</p>
+                        <a href="{{ url_for('mia.connect') }}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-plug me-2"></i>Connect Now
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            {% else %}
+            <div class="card border-warning mb-4">
+                <div class="card-body text-center py-5">
+                    <span class="badge bg-warning text-dark mb-3">PREMIUM FEATURE</span>
+                    <h4>Upgrade to Premium</h4>
+                    <p class="text-muted">Get access to Market Inefficiency Agents integration and more exclusive features.</p>
+                    <a href="{{ url_for('subscription.plans') }}" class="btn btn-warning btn-lg">
+                        <i class="fas fa-crown me-2"></i>Upgrade Now
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <h4 class="mb-3">
+                <i class="fas fa-bolt text-warning me-2"></i>Sample Alerts
+                {% if not is_premium %}
+                <span class="badge bg-secondary ms-2">Preview</span>
+                {% endif %}
+            </h4>
+            
+            {% for alert in demo_alerts %}
+            <div class="card mb-3 {% if not is_premium %}opacity-75{% endif %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <span class="badge 
+                                {% if alert.severity == 'high' %}bg-danger
+                                {% elif alert.severity == 'medium' %}bg-warning text-dark
+                                {% else %}bg-info{% endif %} me-2">
+                                {{ alert.severity|upper }}
+                            </span>
+                            <span class="badge bg-secondary">{{ alert.market }}</span>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-success">{{ alert.confidence }}% confidence</span>
+                        </div>
+                    </div>
+                    <h5 class="card-title">{{ alert.title }}</h5>
+                    <p class="card-text">{{ alert.content }}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            <i class="fas fa-robot me-1"></i>{{ alert.agent }}
+                        </small>
+                        <small class="text-muted">
+                            <i class="fas fa-clock me-1"></i>{{ alert.source }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card bg-light mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-info-circle text-primary me-2"></i>About MIA
+                    </h5>
+                    <p class="card-text small">
+                        Market Inefficiency Agents is an AI-powered platform that monitors global financial markets
+                        24/7 to detect inefficiencies, arbitrage opportunities, and systemic risks.
+                    </p>
+                    <hr>
+                    <h6>Coverage Areas:</h6>
+                    <ul class="small mb-0">
+                        <li>Cryptocurrency markets</li>
+                        <li>Equities and ETFs</li>
+                        <li>Fixed income and bonds</li>
+                        <li>Healthcare sector focus</li>
+                        <li>Real estate investments</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-external-link-alt text-primary me-2"></i>Visit MIA Platform
+                    </h5>
+                    <p class="card-text small text-muted">
+                        Create an account or manage your MIA subscription directly on their platform.
+                    </p>
+                    <a href="https://marketinefficiencyagents.com" target="_blank" rel="noopener" class="btn btn-outline-primary w-100">
+                        Open MIA Platform <i class="fas fa-external-link-alt ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

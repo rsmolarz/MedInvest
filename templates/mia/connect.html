@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Connect MIA - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('mia.index') }}">MIA Integration</a></li>
+                    <li class="breadcrumb-item active">Connect</li>
+                </ol>
+            </nav>
+
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-link me-2"></i>Connect to Market Inefficiency Agents
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>How to get your API key:</strong>
+                        <ol class="mb-0 mt-2">
+                            <li>Visit <a href="https://marketinefficiencyagents.com" target="_blank" rel="noopener">marketinefficiencyagents.com</a></li>
+                            <li>Sign in to your account</li>
+                            <li>Go to Settings > API Keys</li>
+                            <li>Create a new API key for MedInvest</li>
+                        </ol>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('mia.connect') }}">
+                        <div class="mb-4">
+                            <label for="api_key" class="form-label">MIA API Key</label>
+                            <input type="password" class="form-control form-control-lg" id="api_key" name="api_key"
+                                   placeholder="Enter your MIA API key" required
+                                   value="{{ connection.api_key if connection and connection.api_key else '' }}">
+                            <div class="form-text">Your API key is stored securely and encrypted.</div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-plug me-2"></i>Connect Account
+                            </button>
+                            <a href="{{ url_for('mia.index') }}" class="btn btn-outline-secondary">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% if connection and connection.is_active %}
+            <div class="card mt-4 border-success">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                    <h5>Already Connected</h5>
+                    <p class="text-muted">Your MIA account is already linked.</p>
+                    <a href="{{ url_for('mia.settings') }}" class="btn btn-outline-primary">
+                        Manage Settings
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -56,6 +56,7 @@ from routes.push import push_bp
 from routes.lti import lti_bp
 from routes.webhooks import webhooks_bp
 from routes.investdocs import investdocs_bp
+from routes.mia import mia_bp
 
 app.register_blueprint(main_bp)
 app.register_blueprint(auth_bp)
@@ -86,6 +87,7 @@ app.register_blueprint(errors_bp)
 # Template filter for getting user by ID
 app.register_blueprint(webhooks_bp)
 app.register_blueprint(investdocs_bp)
+app.register_blueprint(mia_bp)
 
 
 @app.template_filter('get_user')

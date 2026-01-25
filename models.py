@@ -2447,6 +2447,55 @@ class Petition(db.Model):
     signatures = db.relationship('PetitionSignature', back_populates='petition', lazy='dynamic', cascade='all, delete-orphan')
 
 
+class MIAConnection(db.Model):
+    """Market Inefficiency Agents platform connection (PREMIUM FEATURE)"""
+    __tablename__ = 'mia_connections'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
+    
+    api_key = db.Column(db.String(256))
+    is_active = db.Column(db.Boolean, default=False)
+    
+    enabled_markets = db.Column(db.Text)
+    enabled_agents = db.Column(db.Text)
+    
+    show_in_feed = db.Column(db.Boolean, default=True)
+    alert_frequency = db.Column(db.String(20), default='realtime')
+    min_confidence = db.Column(db.Integer, default=50)
+    
+    connected_at = db.Column(db.DateTime)
+    last_sync_at = db.Column(db.DateTime)
+    sync_status = db.Column(db.String(50), default='pending')
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('mia_connection', uselist=False))
+
+
+class MIAAlert(db.Model):
+    """Cached MIA alerts/triggers for feed display"""
+    __tablename__ = 'mia_alerts'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    external_id = db.Column(db.String(100), unique=True)
+    
+    title = db.Column(db.String(500), nullable=False)
+    content = db.Column(db.Text)
+    severity = db.Column(db.String(20), default='info')
+    market = db.Column(db.String(100))
+    agent_name = db.Column(db.String(100))
+    confidence = db.Column(db.Integer, default=0)
+    
+    alert_type = db.Column(db.String(50))
+    extra_data = db.Column(db.Text)
+    
+    received_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime)
+    is_active = db.Column(db.Boolean, default=True)
+
+
 class PetitionSignature(db.Model):
     """Signatures on petitions"""
     __tablename__ = 'petition_signatures'

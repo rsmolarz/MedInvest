@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}MIA Settings - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('mia.index') }}">MIA Integration</a></li>
+                    <li class="breadcrumb-item active">Settings</li>
+                </ol>
+            </nav>
+
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-cog me-2"></i>MIA Integration Settings</h2>
+                <span class="badge bg-{{ 'success' if connection.is_active else 'secondary' }} fs-6">
+                    {{ 'Connected' if connection.is_active else 'Disconnected' }}
+                </span>
+            </div>
+
+            <form method="POST" action="{{ url_for('mia.settings') }}">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-rss me-2"></i>Feed Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="show_in_feed" name="show_in_feed"
+                                   {{ 'checked' if connection.show_in_feed else '' }}>
+                            <label class="form-check-label" for="show_in_feed">
+                                <strong>Show MIA alerts in my feed</strong>
+                                <br><small class="text-muted">Display market alerts alongside regular posts</small>
+                            </label>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="alert_frequency" class="form-label">Alert Frequency</label>
+                            <select class="form-select" id="alert_frequency" name="alert_frequency">
+                                <option value="realtime" {{ 'selected' if connection.alert_frequency == 'realtime' else '' }}>Real-time (as they happen)</option>
+                                <option value="hourly" {{ 'selected' if connection.alert_frequency == 'hourly' else '' }}>Hourly digest</option>
+                                <option value="daily" {{ 'selected' if connection.alert_frequency == 'daily' else '' }}>Daily summary</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="min_confidence" class="form-label">
+                                Minimum Confidence Level: <span id="confidence_value">{{ connection.min_confidence or 50 }}%</span>
+                            </label>
+                            <input type="range" class="form-range" id="min_confidence" name="min_confidence"
+                                   min="0" max="100" step="5" value="{{ connection.min_confidence or 50 }}"
+                                   oninput="document.getElementById('confidence_value').textContent = this.value + '%'">
+                            <div class="form-text">Only show alerts with confidence at or above this level</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Market Filters</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-3">Select which market types to receive alerts for:</p>
+                        <div class="row">
+                            {% for value, label in available_markets %}
+                            <div class="col-md-6 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="enabled_markets"
+                                           value="{{ value }}" id="market_{{ value }}"
+                                           {{ 'checked' if value in enabled_markets else '' }}>
+                                    <label class="form-check-label" for="market_{{ value }}">
+                                        {{ label }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="form-text mt-2">Leave all unchecked to receive alerts from all markets</div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Save Settings
+                    </button>
+                    <a href="{{ url_for('mia.alerts') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-bell me-2"></i>View Alerts
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Connection Info</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="mb-0">
+                        <dt>Status</dt>
+                        <dd>
+                            <span class="badge bg-{{ 'success' if connection.is_active else 'secondary' }}">
+                                {{ 'Active' if connection.is_active else 'Inactive' }}
+                            </span>
+                        </dd>
+                        {% if connection.connected_at %}
+                        <dt>Connected Since</dt>
+                        <dd>{{ connection.connected_at.strftime('%B %d, %Y') }}</dd>
+                        {% endif %}
+                        {% if connection.last_sync_at %}
+                        <dt>Last Sync</dt>
+                        <dd>{{ connection.last_sync_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-unlink me-2"></i>Disconnect</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">Disconnect your MIA account to stop receiving alerts.</p>
+                    <form method="POST" action="{{ url_for('mia.disconnect') }}" 
+                          onsubmit="return confirm('Are you sure you want to disconnect?')">
+                        <button type="submit" class="btn btn-outline-danger w-100">
+                            <i class="fas fa-times me-2"></i>Disconnect MIA
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
