@@ -126,8 +126,13 @@ def get_mia_client_for_user(user) -> Optional[MIAClient]:
     return None
 
 
+ALLOWED_SEVERITIES = ['medium', 'low', 'info']
+
 def fetch_mia_feed_items(user, limit: int = 10) -> List[Dict]:
     """Fetch MIA triggers/alerts for user's feed
+    
+    Note: Only medium and low severity alerts are shown.
+    High/critical alerts are filtered out per business requirements.
     
     Returns empty list if:
     - User is not premium
@@ -155,11 +160,11 @@ def fetch_mia_feed_items(user, limit: int = 10) -> List[Dict]:
         if connection.enabled_markets:
             market_types = json.loads(connection.enabled_markets)
         
-        result = client.get_recent_signals(limit=limit, market_types=market_types)
+        result = client.get_recent_signals(limit=limit * 2, market_types=market_types)
         
         if result.get('success') and result.get('data'):
             signals = result['data'].get('signals', [])
-            return [
+            filtered_signals = [
                 {
                     'id': f"mia_{s.get('id', '')}",
                     'type': 'mia_trigger',
@@ -173,7 +178,9 @@ def fetch_mia_feed_items(user, limit: int = 10) -> List[Dict]:
                     'source': 'Market Inefficiency Agents'
                 }
                 for s in signals
+                if s.get('severity', 'info').lower() in ALLOWED_SEVERITIES
             ]
+            return filtered_signals[:limit]
         return []
         
     except Exception as e:
@@ -185,36 +192,36 @@ DEMO_MIA_ALERTS = [
     {
         'id': 'mia_demo_1',
         'type': 'mia_trigger',
-        'title': 'Healthcare REIT Arbitrage Opportunity',
-        'content': 'Detected 3.2% price discrepancy between Medical Properties Trust (MPW) and peer group average. Historical reversion timeline: 5-8 trading days.',
-        'severity': 'high',
-        'market': 'Real Estate',
-        'agent': 'REIT Analyzer',
-        'confidence': 87,
-        'created_at': datetime.utcnow().isoformat(),
-        'source': 'Market Inefficiency Agents'
-    },
-    {
-        'id': 'mia_demo_2',
-        'type': 'mia_trigger',
         'title': 'Biotech Sector Rotation Signal',
         'content': 'Institutional flow analysis indicates rotation from large-cap pharma to mid-cap biotech. Potential 8-12% sector outperformance.',
         'severity': 'medium',
         'market': 'Healthcare Equities',
         'agent': 'Flow Tracker',
         'confidence': 74,
+        'created_at': datetime.utcnow().isoformat(),
+        'source': 'Market Inefficiency Agents'
+    },
+    {
+        'id': 'mia_demo_2',
+        'type': 'mia_trigger',
+        'title': 'Treasury Yield Curve Anomaly',
+        'content': 'Unusual spread compression between 2Y and 10Y treasuries. Consider adjusting fixed income allocation.',
+        'severity': 'low',
+        'market': 'Fixed Income',
+        'agent': 'Bond Analyst',
+        'confidence': 91,
         'created_at': (datetime.utcnow() - timedelta(hours=2)).isoformat(),
         'source': 'Market Inefficiency Agents'
     },
     {
         'id': 'mia_demo_3',
         'type': 'mia_trigger',
-        'title': 'Treasury Yield Curve Anomaly',
-        'content': 'Unusual spread compression between 2Y and 10Y treasuries. Consider adjusting fixed income allocation.',
-        'severity': 'info',
-        'market': 'Fixed Income',
-        'agent': 'Bond Analyst',
-        'confidence': 91,
+        'title': 'Healthcare REIT Valuation Gap',
+        'content': 'Medical office building REITs trading at 12% discount to NAV. Historical mean reversion suggests 6-month recovery potential.',
+        'severity': 'medium',
+        'market': 'Real Estate',
+        'agent': 'REIT Analyzer',
+        'confidence': 68,
         'created_at': (datetime.utcnow() - timedelta(hours=5)).isoformat(),
         'source': 'Market Inefficiency Agents'
     }
@@ -222,5 +229,8 @@ DEMO_MIA_ALERTS = [
 
 
 def get_demo_mia_items() -> List[Dict]:
-    """Get demo MIA items for preview/upsell"""
-    return DEMO_MIA_ALERTS
+    """Get demo MIA items for preview/upsell
+    
+    Note: Only returns medium and low severity alerts.
+    """
+    return [a for a in DEMO_MIA_ALERTS if a['severity'] in ALLOWED_SEVERITIES]

@@ -274,7 +274,7 @@
                             <i class="fas fa-chart-line text-warning me-2"></i>
                             <small class="fw-bold text-warning">Market Inefficiency Alert</small>
                         </div>
-                        <span class="badge bg-{{ 'danger' if alert.severity == 'high' else 'warning text-dark' if alert.severity == 'medium' else 'info' }}">
+                        <span class="badge bg-{{ 'warning text-dark' if alert.severity == 'medium' else 'info' }}">
                             {{ alert.severity|upper }}
                         </span>
                     </div>

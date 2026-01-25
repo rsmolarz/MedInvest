@@ -47,10 +47,9 @@
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             <div>
                                 <span class="badge 
-                                    {% if alert.severity == 'high' %}bg-danger
-                                    {% elif alert.severity == 'medium' %}bg-warning text-dark
+                                    {% if alert.severity == 'medium' %}bg-warning text-dark
                                     {% else %}bg-info{% endif %} me-2">
-                                    <i class="fas fa-{% if alert.severity == 'high' %}exclamation-triangle{% elif alert.severity == 'medium' %}exclamation{% else %}info{% endif %} me-1"></i>
+                                    <i class="fas fa-{% if alert.severity == 'medium' %}exclamation{% else %}info{% endif %} me-1"></i>
                                     {{ alert.severity|upper }}
                                 </span>
                                 <span class="badge bg-secondary">{{ alert.market }}</span>
@@ -101,15 +100,15 @@
                 </div>
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-2">
-                        <span class="badge bg-danger me-2">HIGH</span>
-                        <small>Strong signal, immediate attention recommended</small>
-                    </div>
-                    <div class="d-flex align-items-center mb-2">
                         <span class="badge bg-warning text-dark me-2">MEDIUM</span>
                         <small>Moderate signal, worth monitoring</small>
                     </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-info me-2">LOW</span>
+                        <small>Lower priority opportunity</small>
+                    </div>
                     <div class="d-flex align-items-center">
-                        <span class="badge bg-info me-2">INFO</span>
+                        <span class="badge bg-secondary me-2">INFO</span>
                         <small>Informational, general market insight</small>
                     </div>
                 </div>
