@@ -6,7 +6,6 @@
     </linearGradient>
   </defs>
   <rect width="32" height="32" rx="6" fill="url(#grad)"/>
-  <path d="M10 10 L16 18 L22 10 L22 22 L19 22 L19 16 L16 20 L13 16 L13 22 L10 22 Z" fill="white"/>
-  <circle cx="24" cy="8" r="3" fill="#22c55e"/>
-  <path d="M23 8 L24.5 9.5 L26 7" stroke="white" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="6,22 12,16 18,19 26,9" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="26" cy="9" r="2" fill="#22c55e"/>
 </svg>
