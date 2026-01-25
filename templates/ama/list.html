@@ -52,93 +52,8 @@
     </div>
     {% endif %}
     
-    {% if show_episodes %}
-    <div class="mb-5">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="mb-0"><i class="fas fa-podcast me-2 text-primary"></i>{{ show_name }}</h4>
-            <span class="badge bg-primary">{{ show_episodes|length }} Episodes</span>
-        </div>
-        <p class="text-muted mb-3">Watch the latest episodes and educational content</p>
-        <div class="row g-3">
-            {% for video in show_episodes %}
-            <div class="col-md-6 col-lg-4 col-xl-3">
-                <div class="card h-100 episode-card" style="cursor:pointer;" data-video-id="{{ video.video_id }}" data-video-title="{{ video.title|tojson }}">
-                    <div class="position-relative">
-                        <img src="{{ video.thumbnail }}" class="card-img-top" alt="{{ video.title }}" style="aspect-ratio:16/9;object-fit:cover;">
-                        <div class="position-absolute top-50 start-50 translate-middle">
-                            <div class="bg-danger rounded-circle d-flex align-items-center justify-content-center" style="width:50px;height:50px;opacity:0.9;">
-                                <i class="fas fa-play text-white ms-1"></i>
-                            </div>
-                        </div>
-                        <span class="position-absolute bottom-0 end-0 m-2 badge bg-dark bg-opacity-75">
-                            <i class="fab fa-youtube me-1"></i>Video
-                        </span>
-                    </div>
-                    <div class="card-body p-3">
-                        <h6 class="card-title mb-2 text-truncate-2" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3;">{{ video.title }}</h6>
-                        {% if video.published_at %}
-                        <small class="text-muted">
-                            <i class="fas fa-calendar me-1"></i>{{ video.published_at[:10] }}
-                        </small>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-    
-    {% if podcast_episodes %}
-    <div class="mb-5">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="mb-0"><i class="fas fa-headphones me-2 text-success"></i>{{ podcast_name }}</h4>
-            <span class="badge bg-success">{{ podcast_episodes|length }} Episodes</span>
-        </div>
-        <p class="text-muted mb-3">Listen to our podcast episodes</p>
-        <div class="row g-3">
-            {% for ep in podcast_episodes %}
-            <div class="col-md-6 col-lg-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <div class="d-flex align-items-start">
-                            {% if ep.artwork_url %}
-                            <img src="{{ ep.artwork_url }}" class="rounded me-3" style="width:60px;height:60px;object-fit:cover;">
-                            {% else %}
-                            <div class="bg-success bg-opacity-10 rounded me-3 d-flex align-items-center justify-content-center" style="width:60px;height:60px;">
-                                <i class="fas fa-podcast fa-2x text-success"></i>
-                            </div>
-                            {% endif %}
-                            <div class="flex-grow-1">
-                                <h6 class="mb-1" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3;">{{ ep.title }}</h6>
-                                <div class="d-flex align-items-center text-muted small mb-2">
-                                    {% if ep.duration_formatted %}
-                                    <span class="me-3"><i class="fas fa-clock me-1"></i>{{ ep.duration_formatted }}</span>
-                                    {% endif %}
-                                    {% if ep.published_at %}
-                                    <span><i class="fas fa-calendar me-1"></i>{{ ep.published_at[:10] }}</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                        {% if ep.summary %}
-                        <p class="small text-muted mt-2 mb-2" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ ep.summary }}</p>
-                        {% endif %}
-                        {% if ep.audio_url %}
-                        <audio controls class="w-100 mt-2" style="height:35px;">
-                            <source src="{{ ep.audio_url }}" type="audio/mpeg">
-                        </audio>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-    
-    <h4 class="mt-4 mb-3">Upcoming Sessions</h4>
-    <div class="row g-4">
+    <h4 class="mb-3"><i class="fas fa-calendar-alt me-2 text-primary"></i>Upcoming Sessions</h4>
+    <div class="row g-4 mb-5">
         {% for ama in upcoming %}
         <div class="col-md-6 col-lg-4">
             <div class="card h-100">
@@ -170,8 +85,8 @@
         {% endfor %}
     </div>
     
-    <h4 class="mt-5 mb-3">Past Sessions</h4>
-    <div class="row g-4">
+    <h4 class="mb-3"><i class="fas fa-history me-2 text-secondary"></i>Past Sessions</h4>
+    <div class="row g-4 mb-5">
         {% for ama in past %}
         <div class="col-md-6 col-lg-4">
             <div class="card h-100 bg-light">
@@ -192,6 +107,164 @@
         </div>
         {% endfor %}
     </div>
+    
+    {% if show_episodes or podcast_episodes %}
+    <div class="mb-5">
+        <h4 class="mb-3"><i class="fas fa-tv me-2 text-danger"></i>The Medicine and Money Show</h4>
+        <p class="text-muted mb-4">Watch and listen to the latest episodes</p>
+        
+        <div class="row g-4 mb-4">
+            {% if show_episodes and show_episodes|length > 0 %}
+            <div class="col-lg-6">
+                <div class="card h-100 border-danger">
+                    <div class="card-header bg-danger text-white">
+                        <h6 class="mb-0"><i class="fab fa-youtube me-2"></i>Latest Video Episode</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="episode-card" style="cursor:pointer;" data-video-id="{{ show_episodes[0].video_id }}" data-video-title="{{ show_episodes[0].title|tojson }}">
+                            <div class="position-relative">
+                                <img src="{{ show_episodes[0].thumbnail }}" class="w-100" alt="{{ show_episodes[0].title }}" style="aspect-ratio:16/9;object-fit:cover;">
+                                <div class="position-absolute top-50 start-50 translate-middle">
+                                    <div class="bg-danger rounded-circle d-flex align-items-center justify-content-center" style="width:60px;height:60px;opacity:0.9;">
+                                        <i class="fas fa-play text-white ms-1 fa-lg"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="p-3">
+                                <h6 class="mb-2">{{ show_episodes[0].title }}</h6>
+                                {% if show_episodes[0].published_at %}
+                                <small class="text-muted"><i class="fas fa-calendar me-1"></i>{{ show_episodes[0].published_at[:10] }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if podcast_episodes and podcast_episodes|length > 0 %}
+            <div class="col-lg-6">
+                <div class="card h-100 border-success">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0"><i class="fas fa-podcast me-2"></i>Latest Podcast Episode</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex align-items-start mb-3">
+                            {% if podcast_episodes[0].artwork_url %}
+                            <img src="{{ podcast_episodes[0].artwork_url }}" class="rounded me-3" style="width:80px;height:80px;object-fit:cover;">
+                            {% else %}
+                            <div class="bg-success bg-opacity-10 rounded me-3 d-flex align-items-center justify-content-center" style="width:80px;height:80px;">
+                                <i class="fas fa-podcast fa-2x text-success"></i>
+                            </div>
+                            {% endif %}
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">{{ podcast_episodes[0].title }}</h6>
+                                <div class="d-flex align-items-center text-muted small mb-2">
+                                    {% if podcast_episodes[0].duration_formatted %}
+                                    <span class="me-3"><i class="fas fa-clock me-1"></i>{{ podcast_episodes[0].duration_formatted }}</span>
+                                    {% endif %}
+                                    {% if podcast_episodes[0].published_at %}
+                                    <span><i class="fas fa-calendar me-1"></i>{{ podcast_episodes[0].published_at[:10] }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% if podcast_episodes[0].summary %}
+                        <p class="small text-muted mb-3" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ podcast_episodes[0].summary }}</p>
+                        {% endif %}
+                        {% if podcast_episodes[0].audio_url %}
+                        <audio controls class="w-100" style="height:40px;">
+                            <source src="{{ podcast_episodes[0].audio_url }}" type="audio/mpeg">
+                        </audio>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        {% if (show_episodes and show_episodes|length > 1) or (podcast_episodes and podcast_episodes|length > 1) %}
+        <div class="accordion" id="moreEpisodesAccordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#moreEpisodes" aria-expanded="false" aria-controls="moreEpisodes">
+                        <i class="fas fa-folder-open me-2"></i>More Episodes
+                        <span class="badge bg-secondary ms-2">
+                            {% set video_count = (show_episodes|length - 1) if show_episodes else 0 %}
+                            {% set podcast_count = (podcast_episodes|length - 1) if podcast_episodes else 0 %}
+                            {{ video_count + podcast_count }} more
+                        </span>
+                    </button>
+                </h2>
+                <div id="moreEpisodes" class="accordion-collapse collapse" data-bs-parent="#moreEpisodesAccordion">
+                    <div class="accordion-body">
+                        {% if show_episodes and show_episodes|length > 1 %}
+                        <h6 class="mb-3"><i class="fab fa-youtube me-2 text-danger"></i>More Video Episodes</h6>
+                        <div class="row g-3 mb-4">
+                            {% for video in show_episodes[1:] %}
+                            <div class="col-md-6 col-lg-4 col-xl-3">
+                                <div class="card h-100 episode-card" style="cursor:pointer;" data-video-id="{{ video.video_id }}" data-video-title="{{ video.title|tojson }}">
+                                    <div class="position-relative">
+                                        <img src="{{ video.thumbnail }}" class="card-img-top" alt="{{ video.title }}" style="aspect-ratio:16/9;object-fit:cover;">
+                                        <div class="position-absolute top-50 start-50 translate-middle">
+                                            <div class="bg-danger rounded-circle d-flex align-items-center justify-content-center" style="width:40px;height:40px;opacity:0.9;">
+                                                <i class="fas fa-play text-white ms-1"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body p-2">
+                                        <small class="d-block" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3;">{{ video.title }}</small>
+                                        {% if video.published_at %}
+                                        <small class="text-muted d-block mt-1">{{ video.published_at[:10] }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        {% if podcast_episodes and podcast_episodes|length > 1 %}
+                        <h6 class="mb-3"><i class="fas fa-podcast me-2 text-success"></i>More Podcast Episodes</h6>
+                        <div class="row g-3">
+                            {% for ep in podcast_episodes[1:] %}
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex align-items-start">
+                                            {% if ep.artwork_url %}
+                                            <img src="{{ ep.artwork_url }}" class="rounded me-2" style="width:50px;height:50px;object-fit:cover;">
+                                            {% else %}
+                                            <div class="bg-success bg-opacity-10 rounded me-2 d-flex align-items-center justify-content-center" style="width:50px;height:50px;">
+                                                <i class="fas fa-podcast text-success"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div class="flex-grow-1">
+                                                <small class="d-block fw-medium" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">{{ ep.title }}</small>
+                                                <small class="text-muted">
+                                                    {% if ep.duration_formatted %}{{ ep.duration_formatted }} • {% endif %}
+                                                    {% if ep.published_at %}{{ ep.published_at[:10] }}{% endif %}
+                                                </small>
+                                            </div>
+                                        </div>
+                                        {% if ep.audio_url %}
+                                        <audio controls class="w-100 mt-2" style="height:30px;">
+                                            <source src="{{ ep.audio_url }}" type="audio/mpeg">
+                                        </audio>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
 
 <div class="modal fade" id="videoModal" tabindex="-1" aria-hidden="true">
