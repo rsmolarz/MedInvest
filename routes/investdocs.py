@@ -31,9 +31,9 @@ investdocs_bp = Blueprint(
     static_folder='../static'
 )
 
-# Configuration
+# Configuration - use INVESTDOCS_URL for all API calls
 INVESTDOCS_STANDALONE_URL = os.environ.get('INVESTDOCS_URL', 'http://localhost:3000')
-INVESTDOCS_INTERNAL_URL = os.environ.get('INVESTDOCS_INTERNAL_URL', 'http://localhost:3000')
+INVESTDOCS_INTERNAL_URL = os.environ.get('INVESTDOCS_URL', 'http://localhost:3000')  # Same as standalone
 INVESTDOCS_MODE = os.environ.get('INVESTDOCS_MODE', 'iframe')
 INVESTDOCS_PROXY_API = os.environ.get('INVESTDOCS_PROXY_API', True)
 
@@ -44,8 +44,9 @@ INVESTDOCS_PROXY_API = os.environ.get('INVESTDOCS_PROXY_API', True)
 def check_api_available():
     """Check if InvestDocs API is reachable"""
     try:
-        response = requests.get(f"{INVESTDOCS_INTERNAL_URL}/health", timeout=3)
-        return response.status_code == 200
+        response = requests.get(f"{INVESTDOCS_STANDALONE_URL}/api/documents", timeout=5)
+        # API returns 401 Unauthorized when reachable but not authenticated
+        return response.status_code in [200, 401]
     except:
         return False
 
@@ -152,7 +153,7 @@ def create_sso_token(user):
             expires_delta=timedelta(hours=24),
             additional_claims={
                 'email': user.email,
-                'username': user.username,
+                'name': f"{user.first_name} {user.last_name}",
                 'avatar': user.avatar_url if hasattr(user, 'avatar_url') else None
             }
         )
@@ -176,7 +177,7 @@ def sync_auth():
         'token': token,
         'user_id': current_user.id,
         'email': current_user.email,
-        'username': current_user.username if hasattr(current_user, 'username') else None
+        'name': f"{current_user.first_name} {current_user.last_name}"
     }), 200
 
 
