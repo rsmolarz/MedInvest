@@ -143,6 +143,7 @@
                             <li><a class="dropdown-item" href="{{ url_for('events.list_events') }}"><i class="fas fa-calendar me-2"></i>Events</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('mentorship.index') }}"><i class="fas fa-users me-2"></i>Mentorship</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('investdocs.dashboard') }}"><i class="fas fa-file-contract me-2"></i>InvestDocs</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('mia.index') }}"><i class="fas fa-chart-line me-2"></i>Market Alerts (MIA)</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('main.report_bug') }}"><i class="fas fa-bug me-2"></i>Report an Issue</a></li>
                             {% if current_user.is_admin %}
