@@ -180,21 +180,21 @@ def _feed_internal():
     mia_alerts = []
     if current_user.is_authenticated and current_user.is_premium and page == 1:
         try:
-            from utils.mia_client import fetch_mia_feed_items, get_demo_mia_items
-            from models import MIAConnection
-            
-            connection = MIAConnection.query.filter_by(
-                user_id=current_user.id,
-                is_active=True
-            ).first()
-            
-            if connection and connection.show_in_feed:
-                mia_alerts = fetch_mia_feed_items(current_user, limit=3)
-                if not mia_alerts:
-                    mia_alerts = get_demo_mia_items()[:2]
+            from utils.mia_client import fetch_mia_feed_items
+            mia_alerts = fetch_mia_feed_items(current_user, limit=3)
         except Exception as e:
             logging.error(f"Error loading MIA alerts: {e}")
             mia_alerts = []
+
+    # Get YouTube Shorts from The Medicine and Money Show
+    youtube_shorts = []
+    if page == 1:
+        try:
+            from utils.youtube_live import get_channel_shorts
+            youtube_shorts = get_channel_shorts(max_results=6)
+        except Exception as e:
+            logging.error(f"Error loading YouTube shorts: {e}")
+            youtube_shorts = []
 
     # Get sidebar ads
     try:
@@ -204,12 +204,14 @@ def _feed_internal():
         logging.error(f"Error loading sidebar ads: {e}")
         sidebar_ads = {}
 
-    # Create mixed feed items (posts + news + MIA alerts)
+    # Create mixed feed items (posts + news + MIA alerts + YouTube Shorts)
     mixed_feed = []
     news_positions = [2, 7, 14]  # Insert news after these post positions
     mia_positions = [4, 10]  # Insert MIA alerts after these post positions
+    shorts_positions = [3, 8, 15]  # Insert shorts after these post positions
     news_idx = 0
     mia_idx = 0
+    shorts_idx = 0
     for i, post in enumerate(post_items):
         mixed_feed.append({'type': 'post', 'item': post})
         if i + 1 in news_positions and news_idx < len(feed_articles):
@@ -224,6 +226,12 @@ def _feed_internal():
                 'item': mia_alerts[mia_idx]
             })
             mia_idx += 1
+        if i + 1 in shorts_positions and shorts_idx < len(youtube_shorts):
+            mixed_feed.append({
+                'type': 'youtube_short',
+                'item': youtube_shorts[shorts_idx]
+            })
+            shorts_idx += 1
 
     # Create a pagination-like object for template compatibility
     class FeedPagination:
@@ -248,6 +256,7 @@ def _feed_internal():
                            articles=articles,
                            mixed_feed=mixed_feed,
                            mia_alerts=mia_alerts,
+                           youtube_shorts=youtube_shorts,
                            bloomberg_headlines=bloomberg_headlines,
                            sidebar_ads=sidebar_ads,
                            render_content=render_content_with_links)

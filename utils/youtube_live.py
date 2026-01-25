@@ -345,3 +345,117 @@ def get_uploads_playlist_id(channel_id, access_token):
     except Exception as e:
         logger.error(f'Failed to get uploads playlist: {e}')
     return None
+
+
+def get_channel_shorts(channel_id=None, max_results=10):
+    """
+    Get YouTube Shorts from a channel
+    
+    YouTube Shorts are vertical videos under 60 seconds.
+    We identify them by searching for #Shorts in title or checking video duration.
+    
+    Args:
+        channel_id: YouTube channel ID
+        max_results: Maximum number of shorts to return
+    
+    Returns:
+        list of short video dicts with id, title, thumbnail, published_at
+    """
+    from models import SiteSettings
+    
+    if not channel_id:
+        settings = SiteSettings.query.first()
+        if settings:
+            channel_id = settings.youtube_channel_id
+    
+    if not channel_id:
+        return []
+    
+    access_token = get_youtube_access_token()
+    if not access_token:
+        logger.warning('No YouTube access token available for shorts')
+        return []
+    
+    try:
+        response = requests.get(
+            'https://www.googleapis.com/youtube/v3/search',
+            params={
+                'part': 'snippet',
+                'channelId': channel_id,
+                'type': 'video',
+                'order': 'date',
+                'maxResults': max_results * 3,
+                'videoDuration': 'short'
+            },
+            headers={'Authorization': f'Bearer {access_token}'},
+            timeout=10
+        )
+        response.raise_for_status()
+        data = response.json()
+        
+        video_ids = [item['id']['videoId'] for item in data.get('items', []) if item.get('id', {}).get('videoId')]
+        
+        if not video_ids:
+            return []
+        
+        video_response = requests.get(
+            'https://www.googleapis.com/youtube/v3/videos',
+            params={
+                'part': 'snippet,contentDetails,statistics',
+                'id': ','.join(video_ids)
+            },
+            headers={'Authorization': f'Bearer {access_token}'},
+            timeout=10
+        )
+        video_response.raise_for_status()
+        video_data = video_response.json()
+        
+        shorts = []
+        for item in video_data.get('items', []):
+            snippet = item.get('snippet', {})
+            content = item.get('contentDetails', {})
+            stats = item.get('statistics', {})
+            
+            duration = content.get('duration', 'PT0S')
+            duration_seconds = parse_iso8601_duration(duration)
+            
+            if duration_seconds <= 60:
+                shorts.append({
+                    'video_id': item.get('id'),
+                    'title': snippet.get('title', ''),
+                    'description': snippet.get('description', '')[:200],
+                    'thumbnail': snippet.get('thumbnails', {}).get('medium', {}).get('url',
+                                  snippet.get('thumbnails', {}).get('default', {}).get('url', '')),
+                    'published_at': snippet.get('publishedAt', ''),
+                    'channel_title': snippet.get('channelTitle', ''),
+                    'view_count': int(stats.get('viewCount', 0)),
+                    'like_count': int(stats.get('likeCount', 0)),
+                    'duration_seconds': duration_seconds,
+                    'is_short': True
+                })
+        
+        return shorts[:max_results]
+        
+    except Exception as e:
+        logger.error(f'Failed to get YouTube shorts: {e}')
+        return []
+
+
+def parse_iso8601_duration(duration):
+    """Parse ISO 8601 duration format (e.g., PT1M30S) to seconds"""
+    import re
+    
+    if not duration:
+        return 0
+    
+    pattern = r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?'
+    match = re.match(pattern, duration)
+    
+    if not match:
+        return 0
+    
+    hours = int(match.group(1) or 0)
+    minutes = int(match.group(2) or 0)
+    seconds = int(match.group(3) or 0)
+    
+    return hours * 3600 + minutes * 60 + seconds
