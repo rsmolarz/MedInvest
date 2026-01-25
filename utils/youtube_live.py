@@ -438,7 +438,52 @@ def get_channel_shorts(channel_id=None, max_results=10):
         
     except Exception as e:
         logger.error(f'Failed to get YouTube shorts: {e}')
-        return []
+        return get_demo_shorts()
+
+
+DEMO_SHORTS = [
+    {
+        'video_id': 'tqGMM9DJOQ0',
+        'title': 'Quick Investment Tip for Doctors',
+        'description': 'Learn a simple investment strategy in under 60 seconds.',
+        'thumbnail': 'https://i.ytimg.com/vi/tqGMM9DJOQ0/mqdefault.jpg',
+        'published_at': '2025-01-20T12:00:00Z',
+        'channel_title': 'Medicine and Money Show',
+        'view_count': 1500,
+        'like_count': 120,
+        'duration_seconds': 58,
+        'is_short': True
+    },
+    {
+        'video_id': 'U0bhq27KzzM',
+        'title': 'Tax Tips for Medical Professionals',
+        'description': 'Essential tax strategies every physician should know.',
+        'thumbnail': 'https://i.ytimg.com/vi/U0bhq27KzzM/mqdefault.jpg',
+        'published_at': '2025-01-18T14:30:00Z',
+        'channel_title': 'Medicine and Money Show',
+        'view_count': 2200,
+        'like_count': 180,
+        'duration_seconds': 45,
+        'is_short': True
+    },
+    {
+        'video_id': '03fu0IX0A9Y',
+        'title': 'Retirement Planning Basics',
+        'description': 'Start planning your retirement early with these tips.',
+        'thumbnail': 'https://i.ytimg.com/vi/03fu0IX0A9Y/mqdefault.jpg',
+        'published_at': '2025-01-15T10:00:00Z',
+        'channel_title': 'Medicine and Money Show',
+        'view_count': 1800,
+        'like_count': 150,
+        'duration_seconds': 52,
+        'is_short': True
+    }
+]
+
+
+def get_demo_shorts():
+    """Get demo YouTube shorts when API is unavailable"""
+    return DEMO_SHORTS.copy()
 
 
 def parse_iso8601_duration(duration):
