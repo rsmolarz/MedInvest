@@ -93,6 +93,24 @@ def get_user_filter(user_id):
     return User.query.get(user_id)
 
 
+@app.template_filter('localtime')
+def localtime_filter(dt, format_type='short'):
+    """Format datetime for display in templates"""
+    if dt is None:
+        return ''
+    try:
+        if format_type == 'short':
+            return dt.strftime('%b %d, %Y')
+        elif format_type == 'full':
+            return dt.strftime('%B %d, %Y at %I:%M %p')
+        elif format_type == 'shortdate':
+            return dt.strftime('%m/%d/%y')
+        else:
+            return dt.strftime('%b %d, %Y')
+    except Exception:
+        return str(dt)
+
+
 # Import legacy routes for backwards compatibility
 import routes  # noqa: F401
 
