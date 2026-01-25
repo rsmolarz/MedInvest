@@ -1773,15 +1773,12 @@ def approve_feature(issue_id):
         issue.ai_reasoning = f"Implementation Plan:\n{analysis.get('summary', 'No summary')}\n\nComplexity: {analysis.get('complexity', 'unknown')}\nEstimated Effort: {analysis.get('estimated_effort', 'unknown')}\n\nSteps:\n" + '\n'.join(analysis.get('implementation_steps', []))
         db.session.commit()
         
-        if analysis.get('recommendation') == 'approve' and analysis.get('complexity') == 'low':
-            result = agent.implement_feature(issue, analysis)
-            
-            if result.get('success'):
-                flash(f'Feature implemented successfully! Files modified: {", ".join(result.get("files_modified", []))}', 'success')
-            else:
-                flash(f'Feature approved but implementation requires manual work. See details below.', 'info')
+        result = agent.implement_feature(issue, analysis)
+        
+        if result.get('success'):
+            flash(f'Feature approved! Implementation plan generated. Review the details below and implement manually for security.', 'success')
         else:
-            flash(f'Feature approved! Complexity: {analysis.get("complexity")}. Manual implementation recommended.', 'success')
+            flash(f'Feature approved! Complexity: {analysis.get("complexity")}. Review details below.', 'info')
         
     except Exception as e:
         flash(f'Error processing feature: {str(e)}', 'error')

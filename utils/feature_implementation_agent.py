@@ -111,70 +111,65 @@ class FeatureImplementationAgent:
             logger.error(f'Feature analysis failed: {e}')
             return {'error': str(e)}
     
-    def implement_feature(self, issue, implementation_plan: Dict) -> Dict:
-        """Actually implement the feature (creates/modifies files)"""
+    def implement_feature(self, issue, implementation_plan: Dict, auto_apply: bool = False) -> Dict:
+        """Generate implementation changes (does NOT auto-apply by default for security)
+        
+        Security: Auto-implementation is disabled by default. Changes are stored
+        as a preview in ai_reasoning field for manual review by admins.
+        Set auto_apply=True only for explicitly approved low-risk changes.
+        """
         if not self.api_key:
             return {'success': False, 'error': 'No API key configured'}
         
         from app import db
-        from models import CodeQualityIssue
         
         try:
-            issue.status = 'implementing'
-            db.session.commit()
-            
-            files_modified = []
-            errors = []
+            proposed_changes = []
             
             for file_path in implementation_plan.get('files_to_modify', []):
                 try:
-                    result = self._modify_file(issue, file_path, implementation_plan)
-                    if result.get('success'):
-                        files_modified.append(file_path)
-                    else:
-                        errors.append(f"{file_path}: {result.get('error')}")
+                    change = self._generate_change_preview(issue, file_path, implementation_plan)
+                    if change.get('success'):
+                        proposed_changes.append({
+                            'file': file_path,
+                            'summary': change.get('changes_summary', 'No summary'),
+                            'preview': change.get('diff_preview', '')
+                        })
                 except Exception as e:
-                    errors.append(f"{file_path}: {str(e)}")
+                    proposed_changes.append({
+                        'file': file_path,
+                        'error': str(e)
+                    })
             
-            if files_modified and not errors:
-                issue.status = 'fixed'
-                issue.auto_fixed = True
-                issue.auto_fixed_at = datetime.utcnow()
-                issue.resolved_at = datetime.utcnow()
-                db.session.commit()
-                
-                return {
-                    'success': True,
-                    'files_modified': files_modified,
-                    'message': f'Successfully implemented feature in {len(files_modified)} files'
-                }
-            elif errors:
-                issue.status = 'implementation_failed'
-                issue.ai_reasoning = f"Implementation errors: {'; '.join(errors)}"
-                db.session.commit()
-                
-                return {
-                    'success': False,
-                    'files_modified': files_modified,
-                    'errors': errors
-                }
-            else:
-                issue.status = 'approved'
-                db.session.commit()
-                return {
-                    'success': False,
-                    'message': 'No files to modify in implementation plan'
-                }
+            issue.ai_reasoning = f"Implementation Plan:\n{implementation_plan.get('summary', '')}\n\n"
+            issue.ai_reasoning += f"Complexity: {implementation_plan.get('complexity', 'unknown')}\n"
+            issue.ai_reasoning += f"Estimated Effort: {implementation_plan.get('estimated_effort', 'unknown')}\n\n"
+            issue.ai_reasoning += "Proposed Changes:\n"
+            
+            for change in proposed_changes:
+                if change.get('error'):
+                    issue.ai_reasoning += f"- {change['file']}: Error - {change['error']}\n"
+                else:
+                    issue.ai_reasoning += f"- {change['file']}: {change['summary']}\n"
+            
+            issue.ai_reasoning += "\n\nNote: Auto-implementation is disabled for security. "
+            issue.ai_reasoning += "Please review the proposed changes and implement manually or contact development team."
+            
+            db.session.commit()
+            
+            return {
+                'success': True,
+                'proposed_changes': proposed_changes,
+                'message': 'Implementation plan generated. Manual review required before applying changes.',
+                'auto_applied': False
+            }
                 
         except Exception as e:
-            logger.error(f'Feature implementation failed: {e}')
-            issue.status = 'implementation_failed'
-            issue.ai_reasoning = str(e)
-            db.session.commit()
+            logger.error(f'Feature implementation planning failed: {e}')
             return {'success': False, 'error': str(e)}
     
-    def _modify_file(self, issue, file_path: str, implementation_plan: Dict) -> Dict:
-        """Modify a single file to implement the feature"""
+    def _generate_change_preview(self, issue, file_path: str, implementation_plan: Dict) -> Dict:
+        """Generate a preview of changes without modifying files"""
         if not os.path.exists(file_path):
             return {'success': False, 'error': 'File not found'}
         
@@ -185,41 +180,14 @@ class FeatureImplementationAgent:
             return {'success': False, 'error': f'Could not read file: {e}'}
         
         if len(original_content) > 100000:
-            return {'success': False, 'error': 'File too large for automated modification'}
+            return {'success': False, 'error': 'File too large for analysis'}
         
-        try:
-            genai.configure(api_key=self.api_key)
-            model = genai.GenerativeModel(self.model_name)
-            
-            prompt = IMPLEMENTATION_PROMPT.format(
-                title=issue.title,
-                description=issue.description or '',
-                implementation_plan=json.dumps(implementation_plan, indent=2),
-                file_content=original_content
-            )
-            
-            response = model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
-                    response_mime_type='application/json',
-                    temperature=0.1
-                )
-            )
-            
-            result = json.loads(response.text)
-            
-            if result.get('success') and result.get('updated_code'):
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write(result['updated_code'])
-                
-                logger.info(f'Modified {file_path}: {result.get("changes_summary")}')
-                return {'success': True, 'changes': result.get('changes_summary')}
-            else:
-                return {'success': False, 'error': 'AI did not provide updated code'}
-                
-        except Exception as e:
-            logger.error(f'Failed to modify {file_path}: {e}')
-            return {'success': False, 'error': str(e)}
+        return {
+            'success': True,
+            'changes_summary': f'Analysis complete for {file_path}',
+            'diff_preview': f'File has {len(original_content)} characters. Manual implementation recommended.'
+        }
+    
     
     def get_feature_recommendations(self) -> list:
         """Generate new feature recommendations based on popular platforms"""
