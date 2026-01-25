@@ -101,6 +101,10 @@ class User(UserMixin, db.Model):
     # Subscription & gamification
     subscription_tier = db.Column(db.String(20), default='free')
     subscription_ends_at = db.Column(db.DateTime)
+    premium_permanent = db.Column(db.Boolean, default=False)
+    premium_granted_by_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    premium_granted_at = db.Column(db.DateTime)
+    premium_grant_reason = db.Column(db.String(255))
     points = db.Column(db.Integer, default=0)
     level = db.Column(db.Integer, default=1)
     login_streak = db.Column(db.Integer, default=0)
@@ -215,6 +219,8 @@ class User(UserMixin, db.Model):
     
     @property
     def is_premium(self):
+        if self.premium_permanent:
+            return True
         if self.subscription_tier == 'premium':
             if self.subscription_ends_at is None or self.subscription_ends_at > datetime.utcnow():
                 return True

@@ -329,6 +329,97 @@ def toggle_verified(user_id):
     })
 
 
+@admin_bp.route('/premium')
+@login_required
+@admin_required
+def premium_management():
+    """Premium access management"""
+    page = request.args.get('page', 1, type=int)
+    search = request.args.get('search', '')
+    filter_type = request.args.get('filter', 'all')
+    
+    query = User.query
+    
+    if search:
+        query = query.filter(
+            (User.email.ilike(f'%{search}%')) |
+            (User.first_name.ilike(f'%{search}%')) |
+            (User.last_name.ilike(f'%{search}%'))
+        )
+    
+    if filter_type == 'premium':
+        query = query.filter(
+            (User.premium_permanent == True) |
+            ((User.subscription_tier == 'premium') & 
+             ((User.subscription_ends_at == None) | (User.subscription_ends_at > datetime.utcnow())))
+        )
+    elif filter_type == 'permanent':
+        query = query.filter(User.premium_permanent == True)
+    elif filter_type == 'temporary':
+        query = query.filter(
+            (User.premium_permanent != True) &
+            (User.subscription_tier == 'premium') & 
+            ((User.subscription_ends_at == None) | (User.subscription_ends_at > datetime.utcnow()))
+        )
+    
+    users = query.order_by(User.created_at.desc()).paginate(
+        page=page, per_page=50, error_out=False
+    )
+    
+    return render_template('admin/premium.html', 
+                         users=users, 
+                         search=search,
+                         filter_type=filter_type)
+
+
+@admin_bp.route('/users/<int:user_id>/grant-premium', methods=['POST'])
+@login_required
+@admin_required
+def grant_premium(user_id):
+    """Grant premium access to a user"""
+    user = User.query.get_or_404(user_id)
+    
+    duration = request.form.get('duration', 'permanent')
+    reason = request.form.get('reason', 'Admin granted')
+    
+    user.premium_granted_by_id = current_user.id
+    user.premium_granted_at = datetime.utcnow()
+    user.premium_grant_reason = reason
+    
+    if duration == 'permanent':
+        user.premium_permanent = True
+        user.subscription_tier = 'premium'
+        user.subscription_ends_at = None
+        flash(f'Granted permanent premium access to {user.full_name}', 'success')
+    else:
+        user.premium_permanent = False
+        user.subscription_tier = 'premium'
+        days = int(duration)
+        user.subscription_ends_at = datetime.utcnow() + timedelta(days=days)
+        flash(f'Granted {days}-day premium access to {user.full_name}', 'success')
+    
+    db.session.commit()
+    
+    return redirect(request.referrer or url_for('admin.premium_management'))
+
+
+@admin_bp.route('/users/<int:user_id>/revoke-premium', methods=['POST'])
+@login_required
+@admin_required
+def revoke_premium(user_id):
+    """Revoke premium access from a user"""
+    user = User.query.get_or_404(user_id)
+    
+    user.premium_permanent = False
+    user.subscription_tier = 'free'
+    user.subscription_ends_at = None
+    
+    db.session.commit()
+    flash(f'Revoked premium access from {user.full_name}', 'info')
+    
+    return redirect(request.referrer or url_for('admin.premium_management'))
+
+
 @admin_bp.route('/deals')
 @login_required
 @admin_required
