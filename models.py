@@ -2389,3 +2389,92 @@ class CodeReviewRun(db.Model):
     
     # Config used for this run
     config_snapshot = db.Column(db.Text)  # JSON of settings used
+
+
+# =============================================================================
+# PETITION SYSTEM MODELS
+# =============================================================================
+
+class UserMedicalLicense(db.Model):
+    """Multiple medical licenses per user for different states"""
+    __tablename__ = 'user_medical_licenses'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    license_number = db.Column(db.String(50), nullable=False)
+    state = db.Column(db.String(2), nullable=False)  # Two-letter state code
+    license_type = db.Column(db.String(50), default='MD')  # MD, DO, etc.
+    expiration_date = db.Column(db.Date)
+    is_primary = db.Column(db.Boolean, default=False)
+    is_verified = db.Column(db.Boolean, default=False)
+    verification_document_url = db.Column(db.String(500))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('medical_licenses', lazy='dynamic'))
+    
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'license_number', 'state', name='unique_user_license'),
+    )
+
+
+class Petition(db.Model):
+    """Petitions that can be assigned to rooms for users to sign"""
+    __tablename__ = 'petitions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    target_recipient = db.Column(db.String(200))  # Who the petition is addressed to
+    goal_signatures = db.Column(db.Integer, default=100)
+    
+    room_id = db.Column(db.Integer, db.ForeignKey('investment_rooms.id'), nullable=True, index=True)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    status = db.Column(db.String(20), default='draft')  # draft, active, closed, delivered
+    is_active = db.Column(db.Boolean, default=True)
+    
+    start_date = db.Column(db.DateTime)
+    end_date = db.Column(db.DateTime)
+    
+    signature_count = db.Column(db.Integer, default=0)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    room = db.relationship('InvestmentRoom', backref=db.backref('petitions', lazy='dynamic'))
+    created_by = db.relationship('User', backref=db.backref('created_petitions', lazy='dynamic'))
+    signatures = db.relationship('PetitionSignature', back_populates='petition', lazy='dynamic', cascade='all, delete-orphan')
+
+
+class PetitionSignature(db.Model):
+    """Signatures on petitions"""
+    __tablename__ = 'petition_signatures'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    petition_id = db.Column(db.Integer, db.ForeignKey('petitions.id'), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    
+    full_name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), nullable=False)
+    address_line1 = db.Column(db.String(200), nullable=False)
+    address_line2 = db.Column(db.String(200))
+    city = db.Column(db.String(100), nullable=False)
+    state = db.Column(db.String(2), nullable=False)
+    zip_code = db.Column(db.String(10), nullable=False)
+    
+    license_number = db.Column(db.String(50), nullable=False)
+    license_state = db.Column(db.String(2), nullable=False)
+    
+    comments = db.Column(db.Text)  # Optional additional comments
+    is_public = db.Column(db.Boolean, default=True)  # Show name publicly
+    
+    signed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    ip_address = db.Column(db.String(45))  # For verification
+    
+    petition = db.relationship('Petition', back_populates='signatures')
+    user = db.relationship('User', backref=db.backref('petition_signatures', lazy='dynamic'))
+    
+    __table_args__ = (
+        db.UniqueConstraint('petition_id', 'user_id', name='unique_petition_signature'),
+    )

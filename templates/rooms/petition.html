@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %}{{ petition.title }} - Petition{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    {% if petition.room %}
+                    <li class="breadcrumb-item"><a href="{{ url_for('rooms.view_room', slug=petition.room.slug) }}">{{ petition.room.name }}</a></li>
+                    {% else %}
+                    <li class="breadcrumb-item"><a href="{{ url_for('rooms.list_rooms') }}">Rooms</a></li>
+                    {% endif %}
+                    <li class="breadcrumb-item active">Petition</li>
+                </ol>
+            </nav>
+
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-file-signature me-2"></i>{{ petition.title }}</h4>
+                </div>
+                <div class="card-body">
+                    {% if petition.target_recipient %}
+                    <p class="text-muted mb-3">
+                        <i class="fas fa-user-tie me-2"></i>To: <strong>{{ petition.target_recipient }}</strong>
+                    </p>
+                    {% endif %}
+                    
+                    <div class="petition-description mb-4">
+                        {{ petition.description|safe }}
+                    </div>
+                    
+                    {% set progress = (petition.signature_count / petition.goal_signatures * 100) if petition.goal_signatures > 0 else 0 %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span><strong>{{ petition.signature_count }}</strong> of {{ petition.goal_signatures }} signatures</span>
+                            <span>{{ progress|int }}%</span>
+                        </div>
+                        <div class="progress" style="height: 20px;">
+                            <div class="progress-bar {% if progress >= 100 %}bg-success{% else %}bg-primary{% endif %}" 
+                                 role="progressbar" 
+                                 style="width: {{ progress|min(100) }}%">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if already_signed %}
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle me-2"></i>
+                <strong>Thank you!</strong> You have already signed this petition.
+            </div>
+            {% else %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-pen me-2"></i>Sign This Petition</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('rooms.sign_petition', petition_id=petition.id) }}">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="full_name" class="form-label">Full Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="full_name" name="full_name" 
+                                       value="{{ current_user.first_name }} {{ current_user.last_name }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="email" name="email" 
+                                       value="{{ current_user.email }}" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="address_line1" class="form-label">Address Line 1 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="address_line1" name="address_line1" 
+                                   placeholder="Street address" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="address_line2" class="form-label">Address Line 2</label>
+                            <input type="text" class="form-control" id="address_line2" name="address_line2" 
+                                   placeholder="Apt, suite, unit, etc. (optional)">
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-5 mb-3">
+                                <label for="city" class="form-label">City <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="city" name="city" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="state" class="form-label">State <span class="text-danger">*</span></label>
+                                <select class="form-select" id="state" name="state" required>
+                                    <option value="">Select State</option>
+                                    {% for code, name in us_states %}
+                                    <option value="{{ code }}">{{ name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="zip_code" class="form-label">ZIP Code <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="zip_code" name="zip_code" 
+                                       pattern="[0-9]{5}(-[0-9]{4})?" maxlength="10" required>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <h6 class="mb-3"><i class="fas fa-id-card me-2"></i>Medical License Information</h6>
+                        
+                        {% if user_licenses %}
+                        <div class="mb-3">
+                            <label class="form-label">Select from your licenses:</label>
+                            <div class="row">
+                                {% for license in user_licenses %}
+                                <div class="col-md-6 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input license-radio" type="radio" 
+                                               name="selected_license" id="license_{{ license.id }}"
+                                               data-number="{{ license.license_number }}"
+                                               data-state="{{ license.state }}"
+                                               {% if license.is_primary %}checked{% endif %}>
+                                        <label class="form-check-label" for="license_{{ license.id }}">
+                                            <strong>{{ license.state }}</strong> - {{ license.license_number }}
+                                            {% if license.is_primary %}<span class="badge bg-primary ms-1">Primary</span>{% endif %}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="license_number" class="form-label">License Number <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="license_number" name="license_number" 
+                                       value="{{ primary_license.license_number if primary_license else '' }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="license_state" class="form-label">License State <span class="text-danger">*</span></label>
+                                <select class="form-select" id="license_state" name="license_state" required>
+                                    <option value="">Select State</option>
+                                    {% for code, name in us_states %}
+                                    <option value="{{ code }}" {% if primary_license and primary_license.state == code %}selected{% endif %}>{{ name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <a href="{{ url_for('rooms.my_licenses') }}" class="text-decoration-none small">
+                                <i class="fas fa-plus me-1"></i>Manage my medical licenses
+                            </a>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="comments" class="form-label">Comments (optional)</label>
+                            <textarea class="form-control" id="comments" name="comments" rows="2"
+                                      placeholder="Add a personal message to accompany your signature..."></textarea>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="is_public" name="is_public" checked>
+                                <label class="form-check-label" for="is_public">
+                                    Display my name publicly as a signer
+                                </label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <i class="fas fa-signature me-2"></i>Sign This Petition
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-lg-4">
+            {% if recent_signatures %}
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-users me-2"></i>Recent Signers</h6>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for sig in recent_signatures %}
+                    <li class="list-group-item">
+                        <i class="fas fa-check text-success me-2"></i>
+                        {{ sig.full_name }}
+                        <small class="text-muted d-block">{{ sig.city }}, {{ sig.state }} - {{ sig.signed_at.strftime('%b %d') }}</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% if petition.signature_count > 10 %}
+                <div class="card-footer text-center">
+                    <small class="text-muted">and {{ petition.signature_count - 10 }} more...</small>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="card mt-3">
+                <div class="card-body text-center">
+                    <i class="fas fa-share-alt fa-2x text-muted mb-2"></i>
+                    <h6>Share This Petition</h6>
+                    <p class="small text-muted">Spread the word to your colleagues</p>
+                    <button class="btn btn-outline-primary btn-sm" onclick="copyPetitionLink()">
+                        <i class="fas fa-link me-1"></i>Copy Link
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.license-radio').forEach(function(radio) {
+    radio.addEventListener('change', function() {
+        document.getElementById('license_number').value = this.dataset.number;
+        document.getElementById('license_state').value = this.dataset.state;
+    });
+});
+
+function copyPetitionLink() {
+    navigator.clipboard.writeText(window.location.href).then(function() {
+        alert('Link copied to clipboard!');
+    });
+}
+</script>
+{% endblock %}

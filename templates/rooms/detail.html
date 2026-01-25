@@ -54,13 +54,35 @@
         </div>
         
         <div class="col-lg-4">
-            <div class="card">
+            <div class="card mb-3">
                 <div class="card-header"><h6 class="mb-0">{{ room.name }}</h6></div>
                 <div class="card-body">
                     <p class="text-muted small">{{ room.description }}</p>
                     <p><i class="fas fa-users me-2"></i>{{ room.member_count }} members</p>
                 </div>
             </div>
+            
+            {% if room.petitions.filter_by(is_active=True, status='active').first() %}
+            <div class="card mb-3 border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-file-signature me-2"></i>Active Petitions</h6>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for petition in room.petitions.filter_by(is_active=True, status='active').all() %}
+                    <li class="list-group-item">
+                        <a href="{{ url_for('rooms.view_petition', petition_id=petition.id) }}" class="text-decoration-none">
+                            <strong>{{ petition.title }}</strong>
+                        </a>
+                        <div class="progress mt-2" style="height: 8px;">
+                            {% set progress = (petition.signature_count / petition.goal_signatures * 100) if petition.goal_signatures > 0 else 0 %}
+                            <div class="progress-bar" role="progressbar" style="width: {{ progress|min(100) }}%"></div>
+                        </div>
+                        <small class="text-muted">{{ petition.signature_count }} signatures</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>

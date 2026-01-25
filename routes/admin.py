@@ -10,7 +10,8 @@ from app import db
 from models import (User, Post, Room, ExpertAMA, AMAStatus, InvestmentDeal, 
                    DealStatus, Course, Event, SubscriptionTier, AdAdvertiser, 
                    AdCampaign, AdCreative, AdImpression, AdClick, MentorApplication, LTITool,
-                   SiteSettings, CodeQualityIssue, CodeReviewRun)
+                   SiteSettings, CodeQualityIssue, CodeReviewRun, Petition, PetitionSignature,
+                   UserMedicalLicense)
 import json
 import hmac
 import hashlib
@@ -562,6 +563,191 @@ def delete_post(post_id):
     
     flash('Post deleted successfully', 'success')
     return redirect(request.referrer or url_for('admin.manage_posts'))
+
+
+# ============================================================================
+# PETITION MANAGEMENT
+# ============================================================================
+
+@admin_bp.route('/petitions')
+@login_required
+@admin_required
+def manage_petitions():
+    """Petition management - view all petitions"""
+    petitions = Petition.query.order_by(Petition.created_at.desc()).all()
+    rooms = Room.query.filter_by(is_active=True).order_by(Room.name).all()
+    return render_template('admin/petitions.html', petitions=petitions, rooms=rooms)
+
+
+@admin_bp.route('/petitions/create', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def create_petition():
+    """Create a new petition"""
+    rooms = Room.query.filter_by(is_active=True).order_by(Room.name).all()
+    
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        description = request.form.get('description', '').strip()
+        target_recipient = request.form.get('target_recipient', '').strip()
+        goal_signatures = request.form.get('goal_signatures', 100, type=int)
+        room_id = request.form.get('room_id', type=int)
+        status = request.form.get('status', 'draft')
+        
+        start_date_str = request.form.get('start_date')
+        end_date_str = request.form.get('end_date')
+        
+        if not title:
+            flash('Petition title is required', 'error')
+            return render_template('admin/petition_form.html', rooms=rooms, petition=None)
+        
+        if not description:
+            flash('Petition description is required', 'error')
+            return render_template('admin/petition_form.html', rooms=rooms, petition=None)
+        
+        petition = Petition(
+            title=title,
+            description=description,
+            target_recipient=target_recipient,
+            goal_signatures=goal_signatures,
+            room_id=room_id if room_id else None,
+            created_by_id=current_user.id,
+            status=status,
+            is_active=status == 'active'
+        )
+        
+        if start_date_str:
+            try:
+                petition.start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+            except ValueError:
+                pass
+        
+        if end_date_str:
+            try:
+                petition.end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+            except ValueError:
+                pass
+        
+        db.session.add(petition)
+        db.session.commit()
+        
+        flash(f'Petition "{title}" created successfully!', 'success')
+        return redirect(url_for('admin.manage_petitions'))
+    
+    return render_template('admin/petition_form.html', rooms=rooms, petition=None)
+
+
+@admin_bp.route('/petitions/<int:petition_id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_petition(petition_id):
+    """Edit an existing petition"""
+    petition = Petition.query.get_or_404(petition_id)
+    rooms = Room.query.filter_by(is_active=True).order_by(Room.name).all()
+    
+    if request.method == 'POST':
+        petition.title = request.form.get('title', '').strip()
+        petition.description = request.form.get('description', '').strip()
+        petition.target_recipient = request.form.get('target_recipient', '').strip()
+        petition.goal_signatures = request.form.get('goal_signatures', 100, type=int)
+        
+        room_id = request.form.get('room_id', type=int)
+        petition.room_id = room_id if room_id else None
+        
+        petition.status = request.form.get('status', 'draft')
+        petition.is_active = petition.status == 'active'
+        
+        start_date_str = request.form.get('start_date')
+        end_date_str = request.form.get('end_date')
+        
+        if start_date_str:
+            try:
+                petition.start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+            except ValueError:
+                pass
+        else:
+            petition.start_date = None
+        
+        if end_date_str:
+            try:
+                petition.end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+            except ValueError:
+                pass
+        else:
+            petition.end_date = None
+        
+        db.session.commit()
+        
+        flash(f'Petition "{petition.title}" updated successfully!', 'success')
+        return redirect(url_for('admin.manage_petitions'))
+    
+    return render_template('admin/petition_form.html', rooms=rooms, petition=petition)
+
+
+@admin_bp.route('/petitions/<int:petition_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_petition(petition_id):
+    """Delete a petition"""
+    petition = Petition.query.get_or_404(petition_id)
+    title = petition.title
+    
+    db.session.delete(petition)
+    db.session.commit()
+    
+    flash(f'Petition "{title}" deleted successfully!', 'success')
+    return redirect(url_for('admin.manage_petitions'))
+
+
+@admin_bp.route('/petitions/<int:petition_id>/signatures')
+@login_required
+@admin_required
+def view_petition_signatures(petition_id):
+    """View all signatures for a petition"""
+    petition = Petition.query.get_or_404(petition_id)
+    signatures = petition.signatures.order_by(PetitionSignature.signed_at.desc()).all()
+    return render_template('admin/petition_signatures.html', petition=petition, signatures=signatures)
+
+
+@admin_bp.route('/petitions/<int:petition_id>/export')
+@login_required
+@admin_required
+def export_petition_signatures(petition_id):
+    """Export petition signatures as CSV"""
+    petition = Petition.query.get_or_404(petition_id)
+    signatures = petition.signatures.order_by(PetitionSignature.signed_at.asc()).all()
+    
+    import csv
+    from io import StringIO
+    from flask import Response
+    
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Name', 'Email', 'Address', 'City', 'State', 'Zip', 'License Number', 'License State', 'Signed At', 'Comments'])
+    
+    for sig in signatures:
+        address = sig.address_line1
+        if sig.address_line2:
+            address += ', ' + sig.address_line2
+        writer.writerow([
+            sig.full_name,
+            sig.email,
+            address,
+            sig.city,
+            sig.state,
+            sig.zip_code,
+            sig.license_number,
+            sig.license_state,
+            sig.signed_at.strftime('%Y-%m-%d %H:%M:%S'),
+            sig.comments or ''
+        ])
+    
+    output.seek(0)
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename=petition_{petition_id}_signatures.csv'}
+    )
 
 
 # ============================================================================

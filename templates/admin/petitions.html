@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Petition Management - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-file-signature me-2"></i>Petition Management</h2>
+        <a href="{{ url_for('admin.create_petition') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Create Petition
+        </a>
+    </div>
+
+    {% if petitions %}
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Title</th>
+                            <th>Room</th>
+                            <th>Status</th>
+                            <th>Signatures</th>
+                            <th>Goal</th>
+                            <th>Progress</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for petition in petitions %}
+                        <tr>
+                            <td>
+                                <strong>{{ petition.title }}</strong>
+                                {% if petition.target_recipient %}
+                                <br><small class="text-muted">To: {{ petition.target_recipient }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if petition.room %}
+                                <span class="badge bg-secondary">{{ petition.room.name }}</span>
+                                {% else %}
+                                <span class="text-muted">No room assigned</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if petition.status == 'active' %}
+                                <span class="badge bg-success">Active</span>
+                                {% elif petition.status == 'draft' %}
+                                <span class="badge bg-warning text-dark">Draft</span>
+                                {% elif petition.status == 'closed' %}
+                                <span class="badge bg-secondary">Closed</span>
+                                {% elif petition.status == 'delivered' %}
+                                <span class="badge bg-info">Delivered</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ petition.signature_count }}</td>
+                            <td>{{ petition.goal_signatures }}</td>
+                            <td style="width: 150px;">
+                                {% set progress = (petition.signature_count / petition.goal_signatures * 100) if petition.goal_signatures > 0 else 0 %}
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar {% if progress >= 100 %}bg-success{% else %}bg-primary{% endif %}" 
+                                         role="progressbar" 
+                                         style="width: {{ progress|min(100) }}%"
+                                         aria-valuenow="{{ progress|int }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                        {{ progress|int }}%
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ petition.created_at.strftime('%b %d, %Y') }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('admin.view_petition_signatures', petition_id=petition.id) }}" 
+                                       class="btn btn-outline-info" title="View Signatures">
+                                        <i class="fas fa-list"></i>
+                                    </a>
+                                    <a href="{{ url_for('admin.edit_petition', petition_id=petition.id) }}" 
+                                       class="btn btn-outline-primary" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{{ url_for('admin.export_petition_signatures', petition_id=petition.id) }}" 
+                                       class="btn btn-outline-success" title="Export CSV">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger" 
+                                            onclick="confirmDelete({{ petition.id }}, '{{ petition.title|e }}')" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-file-signature fa-3x text-muted mb-3"></i>
+            <h5>No Petitions Yet</h5>
+            <p class="text-muted">Create your first petition to get started.</p>
+            <a href="{{ url_for('admin.create_petition') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Create Petition
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<form id="deleteForm" method="POST" style="display: none;">
+    <input type="hidden" name="csrf_token" value="">
+</form>
+
+<script>
+function confirmDelete(petitionId, title) {
+    if (confirm('Are you sure you want to delete the petition "' + title + '"? This will also delete all signatures.')) {
+        var form = document.getElementById('deleteForm');
+        form.action = '/admin/petitions/' + petitionId + '/delete';
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

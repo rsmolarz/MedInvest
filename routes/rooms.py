@@ -5,7 +5,7 @@ import re
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 from app import db
-from models import Room, Post, PostVote, Comment, RoomMembership, PostMention, User, PostMedia, Bookmark, PostHashtag, Mention, Notification
+from models import Room, Post, PostVote, Comment, RoomMembership, PostMention, User, PostMedia, Bookmark, PostHashtag, Mention, Notification, Petition, PetitionSignature, UserMedicalLicense
 from utils.content import extract_mentions, render_content_with_links
 from routes.notifications import notify_mention
 
@@ -348,3 +348,250 @@ def edit_comment(comment_id):
     
     flash('Comment updated!', 'success')
     return redirect(url_for('rooms.view_post', post_id=comment.post_id))
+
+
+# ============================================================================
+# PETITION ROUTES
+# ============================================================================
+
+US_STATES = [
+    ('AL', 'Alabama'), ('AK', 'Alaska'), ('AZ', 'Arizona'), ('AR', 'Arkansas'),
+    ('CA', 'California'), ('CO', 'Colorado'), ('CT', 'Connecticut'), ('DE', 'Delaware'),
+    ('FL', 'Florida'), ('GA', 'Georgia'), ('HI', 'Hawaii'), ('ID', 'Idaho'),
+    ('IL', 'Illinois'), ('IN', 'Indiana'), ('IA', 'Iowa'), ('KS', 'Kansas'),
+    ('KY', 'Kentucky'), ('LA', 'Louisiana'), ('ME', 'Maine'), ('MD', 'Maryland'),
+    ('MA', 'Massachusetts'), ('MI', 'Michigan'), ('MN', 'Minnesota'), ('MS', 'Mississippi'),
+    ('MO', 'Missouri'), ('MT', 'Montana'), ('NE', 'Nebraska'), ('NV', 'Nevada'),
+    ('NH', 'New Hampshire'), ('NJ', 'New Jersey'), ('NM', 'New Mexico'), ('NY', 'New York'),
+    ('NC', 'North Carolina'), ('ND', 'North Dakota'), ('OH', 'Ohio'), ('OK', 'Oklahoma'),
+    ('OR', 'Oregon'), ('PA', 'Pennsylvania'), ('RI', 'Rhode Island'), ('SC', 'South Carolina'),
+    ('SD', 'South Dakota'), ('TN', 'Tennessee'), ('TX', 'Texas'), ('UT', 'Utah'),
+    ('VT', 'Vermont'), ('VA', 'Virginia'), ('WA', 'Washington'), ('WV', 'West Virginia'),
+    ('WI', 'Wisconsin'), ('WY', 'Wyoming'), ('DC', 'District of Columbia')
+]
+
+
+@rooms_bp.route('/petition/<int:petition_id>')
+@login_required
+def view_petition(petition_id):
+    """View a petition and sign form"""
+    petition = Petition.query.get_or_404(petition_id)
+    
+    if not petition.is_active or petition.status not in ['active']:
+        flash('This petition is not currently accepting signatures.', 'warning')
+        if petition.room:
+            return redirect(url_for('rooms.view_room', slug=petition.room.slug))
+        return redirect(url_for('rooms.list_rooms'))
+    
+    already_signed = PetitionSignature.query.filter_by(
+        petition_id=petition_id, 
+        user_id=current_user.id
+    ).first() is not None
+    
+    user_licenses = current_user.medical_licenses.all()
+    
+    primary_license = None
+    if current_user.medical_license and current_user.license_state:
+        primary_license = {
+            'license_number': current_user.medical_license,
+            'state': current_user.license_state
+        }
+    
+    recent_signatures = petition.signatures.filter_by(is_public=True)\
+                                          .order_by(PetitionSignature.signed_at.desc())\
+                                          .limit(10).all()
+    
+    return render_template('rooms/petition.html',
+                          petition=petition,
+                          already_signed=already_signed,
+                          user_licenses=user_licenses,
+                          primary_license=primary_license,
+                          recent_signatures=recent_signatures,
+                          us_states=US_STATES)
+
+
+@rooms_bp.route('/petition/<int:petition_id>/sign', methods=['POST'])
+@login_required
+def sign_petition(petition_id):
+    """Sign a petition"""
+    petition = Petition.query.get_or_404(petition_id)
+    
+    if not petition.is_active or petition.status != 'active':
+        flash('This petition is not currently accepting signatures.', 'error')
+        return redirect(url_for('rooms.view_petition', petition_id=petition_id))
+    
+    existing_signature = PetitionSignature.query.filter_by(
+        petition_id=petition_id,
+        user_id=current_user.id
+    ).first()
+    
+    if existing_signature:
+        flash('You have already signed this petition.', 'warning')
+        return redirect(url_for('rooms.view_petition', petition_id=petition_id))
+    
+    full_name = request.form.get('full_name', '').strip()
+    email = request.form.get('email', '').strip()
+    address_line1 = request.form.get('address_line1', '').strip()
+    address_line2 = request.form.get('address_line2', '').strip()
+    city = request.form.get('city', '').strip()
+    state = request.form.get('state', '').strip()
+    zip_code = request.form.get('zip_code', '').strip()
+    license_number = request.form.get('license_number', '').strip()
+    license_state = request.form.get('license_state', '').strip()
+    comments = request.form.get('comments', '').strip()
+    is_public = request.form.get('is_public') == 'on'
+    
+    errors = []
+    if not full_name:
+        errors.append('Full name is required')
+    if not email:
+        errors.append('Email is required')
+    if not address_line1:
+        errors.append('Address is required')
+    if not city:
+        errors.append('City is required')
+    if not state:
+        errors.append('State is required')
+    if not zip_code:
+        errors.append('ZIP code is required')
+    if not license_number:
+        errors.append('Medical license number is required')
+    if not license_state:
+        errors.append('License state is required')
+    
+    if errors:
+        for error in errors:
+            flash(error, 'error')
+        return redirect(url_for('rooms.view_petition', petition_id=petition_id))
+    
+    signature = PetitionSignature(
+        petition_id=petition_id,
+        user_id=current_user.id,
+        full_name=full_name,
+        email=email,
+        address_line1=address_line1,
+        address_line2=address_line2,
+        city=city,
+        state=state,
+        zip_code=zip_code,
+        license_number=license_number,
+        license_state=license_state,
+        comments=comments if comments else None,
+        is_public=is_public,
+        ip_address=request.remote_addr
+    )
+    
+    db.session.add(signature)
+    petition.signature_count += 1
+    db.session.commit()
+    
+    flash('Thank you for signing this petition!', 'success')
+    return redirect(url_for('rooms.view_petition', petition_id=petition_id))
+
+
+@rooms_bp.route('/my-licenses')
+@login_required
+def my_licenses():
+    """View and manage medical licenses"""
+    licenses = current_user.medical_licenses.order_by(UserMedicalLicense.is_primary.desc()).all()
+    return render_template('rooms/my_licenses.html', licenses=licenses, us_states=US_STATES)
+
+
+@rooms_bp.route('/my-licenses/add', methods=['POST'])
+@login_required
+def add_license():
+    """Add a new medical license"""
+    license_number = request.form.get('license_number', '').strip()
+    state = request.form.get('state', '').strip()
+    license_type = request.form.get('license_type', 'MD').strip()
+    is_primary = request.form.get('is_primary') == 'on'
+    
+    if not license_number or not state:
+        flash('License number and state are required', 'error')
+        return redirect(url_for('rooms.my_licenses'))
+    
+    existing = UserMedicalLicense.query.filter_by(
+        user_id=current_user.id,
+        license_number=license_number,
+        state=state
+    ).first()
+    
+    if existing:
+        flash('This license is already on file', 'warning')
+        return redirect(url_for('rooms.my_licenses'))
+    
+    if is_primary:
+        UserMedicalLicense.query.filter_by(user_id=current_user.id, is_primary=True)\
+                                .update({'is_primary': False})
+    
+    new_license = UserMedicalLicense(
+        user_id=current_user.id,
+        license_number=license_number,
+        state=state,
+        license_type=license_type,
+        is_primary=is_primary
+    )
+    
+    db.session.add(new_license)
+    
+    if is_primary:
+        current_user.medical_license = license_number
+        current_user.license_state = state
+    
+    db.session.commit()
+    
+    flash('Medical license added successfully!', 'success')
+    return redirect(url_for('rooms.my_licenses'))
+
+
+@rooms_bp.route('/my-licenses/<int:license_id>/delete', methods=['POST'])
+@login_required
+def delete_license(license_id):
+    """Delete a medical license"""
+    license = UserMedicalLicense.query.get_or_404(license_id)
+    
+    if license.user_id != current_user.id:
+        flash('Unauthorized', 'error')
+        return redirect(url_for('rooms.my_licenses'))
+    
+    was_primary = license.is_primary
+    
+    db.session.delete(license)
+    
+    if was_primary:
+        next_license = UserMedicalLicense.query.filter_by(user_id=current_user.id).first()
+        if next_license:
+            next_license.is_primary = True
+            current_user.medical_license = next_license.license_number
+            current_user.license_state = next_license.state
+        else:
+            current_user.medical_license = None
+            current_user.license_state = None
+    
+    db.session.commit()
+    
+    flash('License removed', 'success')
+    return redirect(url_for('rooms.my_licenses'))
+
+
+@rooms_bp.route('/my-licenses/<int:license_id>/set-primary', methods=['POST'])
+@login_required
+def set_primary_license(license_id):
+    """Set a license as primary"""
+    license = UserMedicalLicense.query.get_or_404(license_id)
+    
+    if license.user_id != current_user.id:
+        flash('Unauthorized', 'error')
+        return redirect(url_for('rooms.my_licenses'))
+    
+    UserMedicalLicense.query.filter_by(user_id=current_user.id, is_primary=True)\
+                            .update({'is_primary': False})
+    
+    license.is_primary = True
+    current_user.medical_license = license.license_number
+    current_user.license_state = license.state
+    
+    db.session.commit()
+    
+    flash(f'License for {license.state} set as primary', 'success')
+    return redirect(url_for('rooms.my_licenses'))
