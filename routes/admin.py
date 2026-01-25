@@ -1743,6 +1743,7 @@ def code_quality_dashboard():
     status_filter = request.args.get('status', 'open')
     type_filter = request.args.get('type', 'all')
     severity_filter = request.args.get('severity', 'all')
+    active_tab = request.args.get('tab', 'all')
     
     query = CodeQualityIssue.query
     
@@ -1756,6 +1757,16 @@ def code_quality_dashboard():
     severity_order = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3, 'info': 4}
     issues = query.order_by(CodeQualityIssue.detected_at.desc()).all()
     issues.sort(key=lambda x: severity_order.get(x.severity, 5))
+    
+    fixed_issues = CodeQualityIssue.query.filter_by(status='fixed').order_by(
+        CodeQualityIssue.resolved_at.desc()
+    ).limit(50).all()
+    
+    feature_suggestions = CodeQualityIssue.query.filter_by(
+        issue_type='feature_suggestion'
+    ).filter(
+        CodeQualityIssue.status.in_(['open', 'approved', 'in_progress'])
+    ).order_by(CodeQualityIssue.detected_at.desc()).all()
     
     recent_runs = CodeReviewRun.query.order_by(
         CodeReviewRun.started_at.desc()
@@ -1772,8 +1783,11 @@ def code_quality_dashboard():
     
     return render_template('admin/code_quality.html',
                           issues=issues,
+                          fixed_issues=fixed_issues,
+                          feature_suggestions=feature_suggestions,
                           recent_runs=recent_runs,
                           stats=stats,
+                          active_tab=active_tab,
                           status_filter=status_filter,
                           type_filter=type_filter,
                           severity_filter=severity_filter)
@@ -1870,6 +1884,77 @@ def approve_feature(issue_id):
             flash(f'Feature approved! Implementation plan generated. Review the details below and implement manually for security.', 'success')
         else:
             flash(f'Feature approved! Complexity: {analysis.get("complexity")}. Review details below.', 'info')
+        
+    except Exception as e:
+        flash(f'Error processing feature: {str(e)}', 'error')
+    
+    return redirect(url_for('admin.code_quality_issue_detail', issue_id=issue_id))
+
+
+@admin_bp.route('/code-quality/issue/<int:issue_id>/build', methods=['POST'])
+@login_required
+@admin_required
+def build_feature(issue_id):
+    """Mark a feature as in_progress and generate detailed build plan"""
+    issue = CodeQualityIssue.query.get_or_404(issue_id)
+    
+    if issue.issue_type != 'feature_suggestion':
+        flash('Only feature suggestions can be built', 'error')
+        return redirect(url_for('admin.code_quality_issue_detail', issue_id=issue_id))
+    
+    try:
+        from utils.feature_implementation_agent import FeatureImplementationAgent
+        
+        agent = FeatureImplementationAgent()
+        
+        analysis = agent.analyze_feature(issue)
+        
+        if analysis.get('error'):
+            flash(f'Feature analysis failed: {analysis["error"]}', 'error')
+            return redirect(url_for('admin.code_quality_issue_detail', issue_id=issue_id))
+        
+        issue.status = 'in_progress'
+        issue.reviewed_at = datetime.utcnow()
+        
+        build_plan = "BUILD PLAN\n" + "=" * 50 + "\n\n"
+        build_plan += f"Feature: {issue.title}\n\n"
+        build_plan += f"Summary: {analysis.get('summary', 'No summary')}\n"
+        build_plan += f"Complexity: {analysis.get('complexity', 'unknown')}\n"
+        build_plan += f"Estimated Effort: {analysis.get('estimated_effort', 'unknown')}\n"
+        build_plan += f"Recommendation: {analysis.get('recommendation', 'pending')}\n\n"
+        
+        if analysis.get('files_to_modify'):
+            build_plan += "Files to Modify:\n"
+            for f in analysis.get('files_to_modify', []):
+                build_plan += f"  - {f}\n"
+            build_plan += "\n"
+        
+        if analysis.get('files_to_create'):
+            build_plan += "Files to Create:\n"
+            for f in analysis.get('files_to_create', []):
+                build_plan += f"  - {f}\n"
+            build_plan += "\n"
+        
+        if analysis.get('database_changes') and analysis.get('database_changes') != 'None':
+            build_plan += f"Database Changes:\n  {analysis.get('database_changes')}\n\n"
+        
+        if analysis.get('implementation_steps'):
+            build_plan += "Implementation Steps:\n"
+            for i, step in enumerate(analysis.get('implementation_steps', []), 1):
+                build_plan += f"  {i}. {step}\n"
+            build_plan += "\n"
+        
+        if analysis.get('risks'):
+            build_plan += "Risks & Considerations:\n"
+            for risk in analysis.get('risks', []):
+                build_plan += f"  - {risk}\n"
+        
+        build_plan += "\n\nNote: Auto-implementation is disabled for security. Please review and implement manually."
+        
+        issue.ai_reasoning = build_plan
+        db.session.commit()
+        
+        flash(f'Feature marked for building! Review the detailed build plan below.', 'success')
         
     except Exception as e:
         flash(f'Error processing feature: {str(e)}', 'error')

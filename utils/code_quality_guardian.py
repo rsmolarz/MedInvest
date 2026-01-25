@@ -82,14 +82,19 @@ class CodeQualityGuardian:
             'utils/*.py', 
             'models.py',
             'app.py',
-            'main.py'
+            'main.py',
+            'templates/*.html',
+            'templates/**/*.html',
+            'static/css/*.css',
+            'static/js/*.js'
         ]
         self.exclude_patterns = [
             '__pycache__',
             '.pyc',
             'migrations/',
             'test_',
-            '_test.py'
+            '_test.py',
+            'attached_assets/'
         ]
         
     def get_python_files(self) -> List[str]:
