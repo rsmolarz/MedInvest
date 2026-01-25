@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, send_from_directory
 from flask_login import login_required, current_user
 from app import db
-from models import Post, Room, PostVote, Bookmark, PostMedia, User, Hashtag, NotificationType, PostScore, UserFeedPreference, InvestmentSkill, SkillEndorsement, Recommendation, PostMention
+from models import Post, Room, PostVote, Bookmark, PostMedia, User, Hashtag, NotificationType, PostScore, UserFeedPreference, InvestmentSkill, SkillEndorsement, Recommendation, PostMention, UserActivity, Follow
 from utils.content import (extract_mentions, extract_hashtags,
                            process_hashtags, link_hashtag,
                            render_content_with_links, get_trending_hashtags,
@@ -1441,3 +1441,78 @@ def follow_user(user_id):
         flash(f'Now connected with {user.first_name}!', 'success')
 
     return redirect(request.referrer or url_for('main.network'))
+
+
+@main_bp.route('/activity-feed')
+@login_required
+def activity_feed():
+    """User Activity Feed - show recent actions from followed users"""
+    from sqlalchemy.orm import joinedload
+    
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+    
+    following_ids = [f.following_id for f in Follow.query.filter_by(follower_id=current_user.id).all()]
+    
+    if not following_ids:
+        activities = []
+        pagination = None
+    else:
+        query = UserActivity.query.options(
+            joinedload(UserActivity.user)
+        ).filter(
+            UserActivity.user_id.in_(following_ids)
+        ).order_by(UserActivity.created_at.desc())
+        
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        activities = pagination.items
+    
+    post_ids = [a.entity_id for a in activities if a.entity_type == 'post' and a.entity_id]
+    room_ids = [a.entity_id for a in activities if a.entity_type == 'room' and a.entity_id]
+    
+    posts_map = {p.id: p for p in Post.query.filter(Post.id.in_(post_ids)).all()} if post_ids else {}
+    rooms_map = {r.id: r for r in Room.query.filter(Room.id.in_(room_ids)).all()} if room_ids else {}
+    
+    activity_data = []
+    for activity in activities:
+        entity = None
+        if activity.entity_type == 'post' and activity.entity_id:
+            entity = posts_map.get(activity.entity_id)
+        elif activity.entity_type == 'room' and activity.entity_id:
+            entity = rooms_map.get(activity.entity_id)
+        
+        item = {
+            'user': activity.user,
+            'activity_type': activity.activity_type,
+            'entity_type': activity.entity_type,
+            'entity_id': activity.entity_id,
+            'created_at': activity.created_at,
+            'entity': entity,
+            'description': get_activity_description(activity)
+        }
+        activity_data.append(item)
+    
+    return render_template('activity_feed.html',
+                         activities=activity_data,
+                         pagination=pagination)
+
+
+def get_activity_description(activity):
+    """Generate human-readable description for an activity"""
+    descriptions = {
+        'post': 'created a new post',
+        'comment': 'commented on a post',
+        'like': 'liked a post',
+        'view': 'viewed content',
+        'endorse': 'endorsed a skill',
+        'deal_create': 'created a new deal',
+        'deal_interest': 'expressed interest in a deal',
+        'ai_run': 'used AI assistant',
+        'invite_accept': 'joined the community',
+        'follow': 'followed someone',
+        'room_join': 'joined a room',
+        'course_enroll': 'enrolled in a course',
+        'event_register': 'registered for an event',
+        'bookmark': 'bookmarked content',
+    }
+    return descriptions.get(activity.activity_type, f'performed action: {activity.activity_type}')

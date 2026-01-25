@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Activity Feed - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-stream me-2"></i>Activity Feed</h2>
+                <a href="{{ url_for('main.network') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-user-plus me-1"></i>Find People
+                </a>
+            </div>
+
+            {% if not activities %}
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                    <h5>No activity yet</h5>
+                    <p class="text-muted mb-3">Follow other members to see their recent activity here.</p>
+                    <a href="{{ url_for('main.network') }}" class="btn btn-primary">
+                        <i class="fas fa-user-plus me-1"></i>Find People to Follow
+                    </a>
+                </div>
+            </div>
+            {% else %}
+            <div class="activity-timeline">
+                {% for activity in activities %}
+                <div class="card mb-3 activity-item">
+                    <div class="card-body">
+                        <div class="d-flex">
+                            <a href="{{ url_for('main.profile', user_id=activity.user.id) }}" class="me-3">
+                                {% if activity.user.profile_image_url %}
+                                <img src="{{ activity.user.profile_image_url }}" class="rounded-circle" width="48" height="48" alt="{{ activity.user.display_name }}" style="object-fit: cover;">
+                                {% else %}
+                                <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white" style="width: 48px; height: 48px; font-size: 1.2rem;">
+                                    {{ activity.user.first_name[0] if activity.user.first_name else 'U' }}{{ activity.user.last_name[0] if activity.user.last_name else '' }}
+                                </div>
+                                {% endif %}
+                            </a>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <a href="{{ url_for('main.profile', user_id=activity.user.id) }}" class="fw-bold text-decoration-none">
+                                            {{ activity.user.display_name }}
+                                        </a>
+                                        {% if activity.user.is_verified %}
+                                        <i class="fas fa-check-circle text-primary ms-1" title="Verified"></i>
+                                        {% endif %}
+                                        <span class="text-muted">{{ activity.description }}</span>
+                                    </div>
+                                    <small class="text-muted">
+                                        <i class="far fa-clock me-1"></i>
+                                        {{ activity.created_at|timesince if activity.created_at else 'Recently' }}
+                                    </small>
+                                </div>
+
+                                {% if activity.user.specialty %}
+                                <small class="text-muted d-block">{{ activity.user.specialty }}</small>
+                                {% endif %}
+
+                                {% if activity.entity %}
+                                <div class="mt-2 p-3 bg-light rounded">
+                                    {% if activity.entity_type == 'post' %}
+                                    <a href="{{ url_for('rooms.view_post', post_id=activity.entity.id) }}" class="text-decoration-none">
+                                        <p class="mb-0 text-dark">{{ activity.entity.content[:150] }}{% if activity.entity.content|length > 150 %}...{% endif %}</p>
+                                    </a>
+                                    {% elif activity.entity_type == 'room' %}
+                                    <a href="{{ url_for('rooms.view_room', room_id=activity.entity.id) }}" class="text-decoration-none">
+                                        <p class="mb-0 text-dark"><i class="fas fa-door-open me-1"></i>{{ activity.entity.name }}</p>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+
+                                <div class="mt-2">
+                                    {% if activity.activity_type == 'post' %}
+                                    <span class="badge bg-primary"><i class="fas fa-pen me-1"></i>Post</span>
+                                    {% elif activity.activity_type == 'comment' %}
+                                    <span class="badge bg-info"><i class="fas fa-comment me-1"></i>Comment</span>
+                                    {% elif activity.activity_type == 'like' %}
+                                    <span class="badge bg-danger"><i class="fas fa-heart me-1"></i>Like</span>
+                                    {% elif activity.activity_type == 'endorse' %}
+                                    <span class="badge bg-success"><i class="fas fa-thumbs-up me-1"></i>Endorsement</span>
+                                    {% elif activity.activity_type == 'deal_create' %}
+                                    <span class="badge bg-warning text-dark"><i class="fas fa-handshake me-1"></i>Deal</span>
+                                    {% elif activity.activity_type == 'course_enroll' %}
+                                    <span class="badge bg-purple"><i class="fas fa-graduation-cap me-1"></i>Course</span>
+                                    {% elif activity.activity_type == 'event_register' %}
+                                    <span class="badge bg-orange"><i class="fas fa-calendar me-1"></i>Event</span>
+                                    {% elif activity.activity_type == 'follow' %}
+                                    <span class="badge bg-secondary"><i class="fas fa-user-plus me-1"></i>Follow</span>
+                                    {% elif activity.activity_type == 'room_join' %}
+                                    <span class="badge bg-teal"><i class="fas fa-door-open me-1"></i>Room</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary"><i class="fas fa-bolt me-1"></i>Activity</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if pagination and pagination.pages > 1 %}
+            <nav aria-label="Activity pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if pagination.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.activity_feed', page=pagination.prev_num) }}">
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                            {% if page_num == pagination.page %}
+                            <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                            {% else %}
+                            <li class="page-item"><a class="page-link" href="{{ url_for('main.activity_feed', page=page_num) }}">{{ page_num }}</a></li>
+                            {% endif %}
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if pagination.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.activity_feed', page=pagination.next_num) }}">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.activity-item {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.activity-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.bg-purple {
+    background-color: #6f42c1 !important;
+}
+.bg-orange {
+    background-color: #fd7e14 !important;
+}
+.bg-teal {
+    background-color: #20c997 !important;
+}
+</style>
+{% endblock %}
