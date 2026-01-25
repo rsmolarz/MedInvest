@@ -1762,6 +1762,10 @@ def code_quality_dashboard():
         CodeQualityIssue.resolved_at.desc()
     ).limit(50).all()
     
+    bug_issues = CodeQualityIssue.query.filter_by(issue_type='bug').filter(
+        CodeQualityIssue.status.in_(['open', 'in_progress'])
+    ).order_by(CodeQualityIssue.detected_at.desc()).all()
+    
     feature_suggestions = CodeQualityIssue.query.filter_by(
         issue_type='feature_suggestion'
     ).filter(
@@ -1783,6 +1787,7 @@ def code_quality_dashboard():
     
     return render_template('admin/code_quality.html',
                           issues=issues,
+                          bug_issues=bug_issues,
                           fixed_issues=fixed_issues,
                           feature_suggestions=feature_suggestions,
                           recent_runs=recent_runs,
