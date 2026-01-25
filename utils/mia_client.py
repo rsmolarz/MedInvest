@@ -111,18 +111,11 @@ class MIAClient:
         return self._make_request('GET', '/market/summary')
 
 
-def get_mia_client_for_user(user) -> Optional[MIAClient]:
-    """Get MIA client configured for a specific user"""
-    from app import db
-    from models import MIAConnection
-    
-    connection = MIAConnection.query.filter_by(
-        user_id=user.id,
-        is_active=True
-    ).first()
-    
-    if connection and connection.api_key:
-        return MIAClient(api_key=connection.api_key)
+def get_platform_mia_client() -> Optional[MIAClient]:
+    """Get MIA client using platform API key (MIA_API_KEY secret)"""
+    api_key = os.environ.get('MIA_API_KEY')
+    if api_key:
+        return MIAClient(api_key=api_key)
     return None
 
 
@@ -131,36 +124,26 @@ ALLOWED_SEVERITIES = ['medium', 'low', 'info']
 def fetch_mia_feed_items(user, limit: int = 10) -> List[Dict]:
     """Fetch MIA triggers/alerts for user's feed
     
+    Uses platform's MIA_API_KEY to fetch alerts for all premium users.
+    No individual user connection required.
+    
     Note: Only medium and low severity alerts are shown.
     High/critical alerts are filtered out per business requirements.
     
     Returns empty list if:
     - User is not premium
-    - User has no active MIA connection
+    - Platform MIA_API_KEY is not configured
     - API call fails
     """
     if not user.is_premium:
         return []
     
-    client = get_mia_client_for_user(user)
+    client = get_platform_mia_client()
     if not client:
-        return []
+        return get_demo_mia_items()
     
     try:
-        from models import MIAConnection
-        connection = MIAConnection.query.filter_by(
-            user_id=user.id,
-            is_active=True
-        ).first()
-        
-        if not connection:
-            return []
-        
-        market_types = None
-        if connection.enabled_markets:
-            market_types = json.loads(connection.enabled_markets)
-        
-        result = client.get_recent_signals(limit=limit * 2, market_types=market_types)
+        result = client.get_recent_signals(limit=limit * 2)
         
         if result.get('success') and result.get('data'):
             signals = result['data'].get('signals', [])
@@ -181,11 +164,11 @@ def fetch_mia_feed_items(user, limit: int = 10) -> List[Dict]:
                 if s.get('severity', 'info').lower() in ALLOWED_SEVERITIES
             ]
             return filtered_signals[:limit]
-        return []
+        return get_demo_mia_items()
         
     except Exception as e:
         logger.error(f'Failed to fetch MIA feed items: {e}')
-        return []
+        return get_demo_mia_items()
 
 
 DEMO_MIA_ALERTS = [

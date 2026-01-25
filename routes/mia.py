@@ -37,18 +37,16 @@ def premium_required(f):
 @mia_bp.route('/')
 @login_required
 def index():
-    """MIA integration landing/info page"""
-    from utils.mia_client import get_demo_mia_items
+    """MIA integration landing/info page - shows alerts directly to premium users"""
+    from utils.mia_client import fetch_mia_feed_items, get_demo_mia_items
     
-    connection = None
     if current_user.is_premium:
-        connection = MIAConnection.query.filter_by(user_id=current_user.id).first()
-    
-    demo_alerts = get_demo_mia_items()
+        alerts = fetch_mia_feed_items(current_user, limit=50)
+    else:
+        alerts = get_demo_mia_items()
     
     return render_template('mia/index.html',
-                         connection=connection,
-                         demo_alerts=demo_alerts,
+                         alerts=alerts,
                          is_premium=current_user.is_premium)
 
 
