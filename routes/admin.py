@@ -1746,6 +1746,68 @@ def update_code_quality_issue(issue_id):
     return redirect(url_for('admin.code_quality_dashboard'))
 
 
+@admin_bp.route('/code-quality/issue/<int:issue_id>/approve', methods=['POST'])
+@login_required
+@admin_required
+def approve_feature(issue_id):
+    """Approve a feature suggestion and trigger implementation"""
+    issue = CodeQualityIssue.query.get_or_404(issue_id)
+    
+    if issue.issue_type != 'feature_suggestion':
+        flash('Only feature suggestions can be approved for implementation', 'error')
+        return redirect(url_for('admin.code_quality_issue_detail', issue_id=issue_id))
+    
+    try:
+        from utils.feature_implementation_agent import FeatureImplementationAgent
+        
+        agent = FeatureImplementationAgent()
+        
+        analysis = agent.analyze_feature(issue)
+        
+        if analysis.get('error'):
+            flash(f'Feature analysis failed: {analysis["error"]}', 'error')
+            return redirect(url_for('admin.code_quality_issue_detail', issue_id=issue_id))
+        
+        issue.status = 'approved'
+        issue.reviewed_at = datetime.utcnow()
+        issue.ai_reasoning = f"Implementation Plan:\n{analysis.get('summary', 'No summary')}\n\nComplexity: {analysis.get('complexity', 'unknown')}\nEstimated Effort: {analysis.get('estimated_effort', 'unknown')}\n\nSteps:\n" + '\n'.join(analysis.get('implementation_steps', []))
+        db.session.commit()
+        
+        if analysis.get('recommendation') == 'approve' and analysis.get('complexity') == 'low':
+            result = agent.implement_feature(issue, analysis)
+            
+            if result.get('success'):
+                flash(f'Feature implemented successfully! Files modified: {", ".join(result.get("files_modified", []))}', 'success')
+            else:
+                flash(f'Feature approved but implementation requires manual work. See details below.', 'info')
+        else:
+            flash(f'Feature approved! Complexity: {analysis.get("complexity")}. Manual implementation recommended.', 'success')
+        
+    except Exception as e:
+        flash(f'Error processing feature: {str(e)}', 'error')
+    
+    return redirect(url_for('admin.code_quality_issue_detail', issue_id=issue_id))
+
+
+@admin_bp.route('/code-quality/generate-recommendations', methods=['POST'])
+@login_required
+@admin_required
+def generate_feature_recommendations():
+    """Generate new feature recommendations using AI"""
+    try:
+        from utils.feature_implementation_agent import FeatureImplementationAgent
+        
+        agent = FeatureImplementationAgent()
+        recommendations = agent.get_feature_recommendations()
+        created = agent.create_feature_issues(recommendations)
+        
+        flash(f'Generated {created} new feature recommendations!', 'success')
+    except Exception as e:
+        flash(f'Error generating recommendations: {str(e)}', 'error')
+    
+    return redirect(url_for('admin.code_quality_dashboard'))
+
+
 # ============== Buzzsprout Podcast Settings ==============
 
 @admin_bp.route('/podcast-settings', methods=['GET', 'POST'])

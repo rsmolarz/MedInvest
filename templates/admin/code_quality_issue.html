@@ -105,12 +105,22 @@
                 <h5 class="mb-0">Update Status</h5>
             </div>
             <div class="card-body">
+                {% if issue.issue_type == 'feature_suggestion' and issue.status == 'open' %}
+                <form action="{{ url_for('admin.approve_feature', issue_id=issue.id) }}" method="post" class="mb-3">
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-magic me-2"></i>Approve & Implement
+                    </button>
+                </form>
+                <hr>
+                {% endif %}
                 <form action="{{ url_for('admin.code_quality_issue_detail', issue_id=issue.id) }}" method="post">
                     <div class="mb-3">
                         <label class="form-label">Status</label>
                         <select name="status" class="form-select">
                             <option value="open" {% if issue.status == 'open' %}selected{% endif %}>Open</option>
                             <option value="in_progress" {% if issue.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                            <option value="approved" {% if issue.status == 'approved' %}selected{% endif %}>Approved</option>
+                            <option value="implementing" {% if issue.status == 'implementing' %}selected{% endif %}>Implementing</option>
                             <option value="fixed" {% if issue.status == 'fixed' %}selected{% endif %}>Fixed</option>
                             <option value="ignored" {% if issue.status == 'ignored' %}selected{% endif %}>Ignored</option>
                             <option value="wont_fix" {% if issue.status == 'wont_fix' %}selected{% endif %}>Won't Fix</option>
