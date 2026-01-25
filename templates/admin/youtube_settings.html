@@ -55,6 +55,53 @@
                             <small class="text-muted">When enabled, live streams from your channel will automatically appear in the Spotlight section</small>
                         </div>
                         
+                        <hr class="my-4">
+                        
+                        <h6 class="mb-3"><i class="fas fa-podcast me-2"></i>Show Episodes Settings</h6>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Show Name</label>
+                            <input type="text" name="show_name" class="form-control" 
+                                   value="{{ settings.show_name or 'The Medicine and Money Show' }}"
+                                   placeholder="The Medicine and Money Show"
+                                   {% if not youtube_connected %}disabled{% endif %}>
+                            <small class="text-muted">Name displayed in the Spotlight section for your video content</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Playlist ID (optional)</label>
+                            <input type="text" name="show_playlist_id" class="form-control" 
+                                   value="{{ settings.show_playlist_id or '' }}"
+                                   placeholder="PLxxxxxxxxxxxxxxxxx"
+                                   {% if not youtube_connected %}disabled{% endif %}>
+                            <small class="text-muted">
+                                Optional: Enter a specific YouTube playlist ID to show episodes from. If left blank, videos from your channel will be displayed.
+                            </small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Number of Episodes to Display</label>
+                            <select name="show_episodes_limit" class="form-select" {% if not youtube_connected %}disabled{% endif %}>
+                                <option value="6" {% if settings.show_episodes_limit == 6 %}selected{% endif %}>6 episodes</option>
+                                <option value="8" {% if settings.show_episodes_limit == 8 %}selected{% endif %}>8 episodes</option>
+                                <option value="12" {% if (settings.show_episodes_limit or 12) == 12 %}selected{% endif %}>12 episodes</option>
+                                <option value="16" {% if settings.show_episodes_limit == 16 %}selected{% endif %}>16 episodes</option>
+                                <option value="20" {% if settings.show_episodes_limit == 20 %}selected{% endif %}>20 episodes</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input type="checkbox" class="form-check-input" name="show_episodes_enabled" id="showEpisodesEnabled"
+                                       {% if settings.show_episodes_enabled %}checked{% endif %}
+                                       {% if not youtube_connected %}disabled{% endif %}>
+                                <label class="form-check-label" for="showEpisodesEnabled">
+                                    Enable Show Episodes in Spotlight
+                                </label>
+                            </div>
+                            <small class="text-muted">Display video episodes from your YouTube channel/playlist in the Spotlight section</small>
+                        </div>
+                        
                         <button type="submit" class="btn btn-primary" {% if not youtube_connected %}disabled{% endif %}>
                             <i class="fas fa-save me-1"></i>Save Settings
                         </button>

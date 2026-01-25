@@ -30,15 +30,27 @@ def list_amas():
     
     # Check for YouTube live stream
     youtube_live = None
+    show_episodes = []
+    show_name = 'The Medicine and Money Show'
     try:
-        from utils.youtube_live import get_channel_live_stream
+        from utils.youtube_live import get_channel_live_stream, get_channel_videos
         from models import SiteSettings
         settings = SiteSettings.query.first()
-        if settings and settings.youtube_live_enabled and settings.youtube_channel_id:
-            youtube_live = get_channel_live_stream(settings.youtube_channel_id)
+        if settings:
+            if settings.youtube_live_enabled and settings.youtube_channel_id:
+                youtube_live = get_channel_live_stream(settings.youtube_channel_id)
+            show_episodes_enabled = getattr(settings, 'show_episodes_enabled', True)
+            if show_episodes_enabled and (settings.youtube_channel_id or getattr(settings, 'show_playlist_id', None)):
+                show_name = getattr(settings, 'show_name', None) or 'The Medicine and Money Show'
+                limit = getattr(settings, 'show_episodes_limit', None) or 12
+                show_episodes = get_channel_videos(
+                    channel_id=settings.youtube_channel_id,
+                    playlist_id=getattr(settings, 'show_playlist_id', None),
+                    max_results=limit
+                )
     except Exception as e:
         import logging
-        logging.getLogger(__name__).warning(f'Failed to check YouTube live status: {e}')
+        logging.getLogger(__name__).warning(f'Failed to check YouTube status: {e}')
     
     # Live AMAs
     live = ExpertAMA.query.filter(
@@ -67,7 +79,9 @@ def list_amas():
                          upcoming=upcoming,
                          past=past,
                          user_registrations=user_registrations,
-                         youtube_live=youtube_live)
+                         youtube_live=youtube_live,
+                         show_episodes=show_episodes,
+                         show_name=show_name)
 
 
 @ama_bp.route('/<int:ama_id>')

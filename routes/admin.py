@@ -228,6 +228,15 @@ def youtube_settings():
             settings.youtube_channel_name = None
         
         settings.youtube_live_enabled = enabled
+        
+        settings.show_name = request.form.get('show_name', '').strip() or 'The Medicine and Money Show'
+        settings.show_playlist_id = request.form.get('show_playlist_id', '').strip() or None
+        settings.show_episodes_enabled = request.form.get('show_episodes_enabled') == 'on'
+        try:
+            settings.show_episodes_limit = int(request.form.get('show_episodes_limit', 12))
+        except ValueError:
+            settings.show_episodes_limit = 12
+        
         settings.updated_by_id = current_user.id
         db.session.commit()
         flash('YouTube settings updated successfully', 'success')

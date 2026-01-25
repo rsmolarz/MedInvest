@@ -52,6 +52,43 @@
     </div>
     {% endif %}
     
+    {% if show_episodes %}
+    <div class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0"><i class="fas fa-podcast me-2 text-primary"></i>{{ show_name }}</h4>
+            <span class="badge bg-primary">{{ show_episodes|length }} Episodes</span>
+        </div>
+        <p class="text-muted mb-3">Watch the latest episodes and educational content</p>
+        <div class="row g-3">
+            {% for video in show_episodes %}
+            <div class="col-md-6 col-lg-4 col-xl-3">
+                <div class="card h-100 episode-card" style="cursor:pointer;" data-video-id="{{ video.video_id }}" data-video-title="{{ video.title|tojson }}">
+                    <div class="position-relative">
+                        <img src="{{ video.thumbnail }}" class="card-img-top" alt="{{ video.title }}" style="aspect-ratio:16/9;object-fit:cover;">
+                        <div class="position-absolute top-50 start-50 translate-middle">
+                            <div class="bg-danger rounded-circle d-flex align-items-center justify-content-center" style="width:50px;height:50px;opacity:0.9;">
+                                <i class="fas fa-play text-white ms-1"></i>
+                            </div>
+                        </div>
+                        <span class="position-absolute bottom-0 end-0 m-2 badge bg-dark bg-opacity-75">
+                            <i class="fab fa-youtube me-1"></i>Video
+                        </span>
+                    </div>
+                    <div class="card-body p-3">
+                        <h6 class="card-title mb-2 text-truncate-2" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.3;">{{ video.title }}</h6>
+                        {% if video.published_at %}
+                        <small class="text-muted">
+                            <i class="fas fa-calendar me-1"></i>{{ video.published_at[:10] }}
+                        </small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
     <h4 class="mt-4 mb-3">Upcoming Sessions</h4>
     <div class="row g-4">
         {% for ama in upcoming %}
@@ -109,6 +146,22 @@
     </div>
 </div>
 
+<div class="modal fade" id="videoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="videoModalTitle"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="ratio ratio-16x9">
+                    <iframe id="videoModalFrame" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
 .blink {
     animation: blink-animation 1s steps(5, start) infinite;
@@ -116,5 +169,36 @@
 @keyframes blink-animation {
     to { visibility: hidden; }
 }
+.episode-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.episode-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+.episode-card:hover .bg-danger {
+    opacity: 1 !important;
+    transform: scale(1.1);
+}
 </style>
+
+<script>
+function openVideoModal(videoId, title) {
+    document.getElementById('videoModalTitle').textContent = title;
+    document.getElementById('videoModalFrame').src = 'https://www.youtube.com/embed/' + videoId + '?autoplay=1';
+    new bootstrap.Modal(document.getElementById('videoModal')).show();
+}
+
+document.querySelectorAll('.episode-card').forEach(function(card) {
+    card.addEventListener('click', function() {
+        var videoId = this.dataset.videoId;
+        var title = JSON.parse(this.dataset.videoTitle);
+        openVideoModal(videoId, title);
+    });
+});
+
+document.getElementById('videoModal').addEventListener('hidden.bs.modal', function() {
+    document.getElementById('videoModalFrame').src = '';
+});
+</script>
 {% endblock %}

@@ -228,3 +228,120 @@ def is_youtube_connected():
     """Check if YouTube connection is available"""
     token = get_youtube_access_token()
     return token is not None
+
+
+def get_channel_videos(channel_id=None, playlist_id=None, max_results=12):
+    """
+    Get recent videos from a YouTube channel or playlist
+    
+    Args:
+        channel_id: YouTube channel ID
+        playlist_id: YouTube playlist ID (takes priority over channel_id)
+        max_results: Maximum number of videos to return
+    
+    Returns:
+        list of video dicts with id, title, description, thumbnail, published_at, duration
+    """
+    from models import SiteSettings
+    
+    if not playlist_id and not channel_id:
+        settings = SiteSettings.query.first()
+        if settings:
+            playlist_id = settings.show_playlist_id
+            channel_id = settings.youtube_channel_id
+    
+    access_token = get_youtube_access_token()
+    if not access_token:
+        logger.warning('No YouTube access token available')
+        return []
+    
+    try:
+        if playlist_id:
+            response = requests.get(
+                'https://www.googleapis.com/youtube/v3/playlistItems',
+                params={
+                    'part': 'snippet,contentDetails',
+                    'playlistId': playlist_id,
+                    'maxResults': max_results
+                },
+                headers={'Authorization': f'Bearer {access_token}'},
+                timeout=10
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            videos = []
+            for item in data.get('items', []):
+                snippet = item.get('snippet', {})
+                content = item.get('contentDetails', {})
+                videos.append({
+                    'video_id': content.get('videoId'),
+                    'title': snippet.get('title', ''),
+                    'description': snippet.get('description', ''),
+                    'thumbnail': snippet.get('thumbnails', {}).get('medium', {}).get('url', 
+                                  snippet.get('thumbnails', {}).get('default', {}).get('url', '')),
+                    'published_at': snippet.get('publishedAt', ''),
+                    'channel_title': snippet.get('channelTitle', '')
+                })
+            return videos
+        elif channel_id:
+            uploads_playlist = get_uploads_playlist_id(channel_id, access_token)
+            if uploads_playlist:
+                return get_channel_videos(playlist_id=uploads_playlist, max_results=max_results)
+            
+            response = requests.get(
+                'https://www.googleapis.com/youtube/v3/search',
+                params={
+                    'part': 'snippet',
+                    'channelId': channel_id,
+                    'type': 'video',
+                    'order': 'date',
+                    'maxResults': max_results
+                },
+                headers={'Authorization': f'Bearer {access_token}'},
+                timeout=10
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            videos = []
+            for item in data.get('items', []):
+                snippet = item.get('snippet', {})
+                videos.append({
+                    'video_id': item.get('id', {}).get('videoId'),
+                    'title': snippet.get('title', ''),
+                    'description': snippet.get('description', ''),
+                    'thumbnail': snippet.get('thumbnails', {}).get('medium', {}).get('url',
+                                  snippet.get('thumbnails', {}).get('default', {}).get('url', '')),
+                    'published_at': snippet.get('publishedAt', ''),
+                    'channel_title': snippet.get('channelTitle', '')
+                })
+            return videos
+    except Exception as e:
+        logger.error(f'Failed to get YouTube channel videos: {e}')
+        return []
+    
+    return []
+
+
+def get_uploads_playlist_id(channel_id, access_token):
+    """Get the uploads playlist ID for a channel"""
+    try:
+        response = requests.get(
+            'https://www.googleapis.com/youtube/v3/channels',
+            params={
+                'part': 'contentDetails',
+                'id': channel_id
+            },
+            headers={'Authorization': f'Bearer {access_token}'},
+            timeout=10
+        )
+        response.raise_for_status()
+        data = response.json()
+        
+        items = data.get('items', [])
+        if items:
+            return items[0].get('contentDetails', {}).get('relatedPlaylists', {}).get('uploads')
+    except Exception as e:
+        logger.error(f'Failed to get uploads playlist: {e}')
+    return None

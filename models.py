@@ -2294,6 +2294,11 @@ class SiteSettings(db.Model):
     youtube_channel_name = db.Column(db.String(200))
     youtube_live_enabled = db.Column(db.Boolean, default=True)
     
+    show_playlist_id = db.Column(db.String(50))
+    show_name = db.Column(db.String(200), default='The Medicine and Money Show')
+    show_episodes_enabled = db.Column(db.Boolean, default=True)
+    show_episodes_limit = db.Column(db.Integer, default=12)
+    
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     updated_by_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     
