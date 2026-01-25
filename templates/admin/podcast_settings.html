@@ -1,0 +1,134 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Podcast Settings - Admin{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="fas fa-podcast me-2"></i>Podcast Settings</h2>
+        <p class="text-muted mb-0">Configure Buzzsprout podcast integration</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Buzzsprout Configuration</h5>
+            </div>
+            <div class="card-body">
+                {% if not has_api_token %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>API Token Required:</strong> Please add your Buzzsprout API token as a secret named <code>BUZZSPROUT_API_TOKEN</code>.
+                    <br><small class="text-muted">Get your API token from: <a href="https://www.buzzsprout.com/my/profile/api" target="_blank">buzzsprout.com/my/profile/api</a></small>
+                </div>
+                {% endif %}
+                
+                <form action="{{ url_for('admin.podcast_settings') }}" method="post">
+                    <div class="mb-3">
+                        <label class="form-label">Podcast ID</label>
+                        <input type="text" name="buzzsprout_podcast_id" class="form-control" 
+                               value="{{ settings.buzzsprout_podcast_id or '' }}"
+                               placeholder="e.g., 123456">
+                        <div class="form-text">
+                            Find your Podcast ID in your Buzzsprout dashboard URL (e.g., buzzsprout.com/<strong>123456</strong>/episodes)
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Podcast Name (Display)</label>
+                        <input type="text" name="buzzsprout_podcast_name" class="form-control" 
+                               value="{{ settings.buzzsprout_podcast_name or '' }}"
+                               placeholder="e.g., The Medicine and Money Show">
+                        <div class="form-text">
+                            This name will be displayed on the Spotlight page
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Episodes to Display</label>
+                        <select name="buzzsprout_episodes_limit" class="form-select">
+                            <option value="6" {% if settings.buzzsprout_episodes_limit == 6 %}selected{% endif %}>6 episodes</option>
+                            <option value="12" {% if (settings.buzzsprout_episodes_limit or 12) == 12 %}selected{% endif %}>12 episodes</option>
+                            <option value="24" {% if settings.buzzsprout_episodes_limit == 24 %}selected{% endif %}>24 episodes</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="buzzsprout_enabled" id="buzzsprout_enabled"
+                                   {% if settings.buzzsprout_enabled %}checked{% endif %}>
+                            <label class="form-check-label" for="buzzsprout_enabled">
+                                Enable Podcast Episodes on Spotlight
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Save Settings
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        {% if podcast_info %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-check-circle text-success me-2"></i>Connected</h5>
+            </div>
+            <div class="card-body text-center">
+                {% if podcast_info.artwork_url %}
+                <img src="{{ podcast_info.artwork_url }}" alt="Podcast artwork" class="rounded mb-3" style="max-width:150px;">
+                {% endif %}
+                <h5>{{ podcast_info.title }}</h5>
+                <p class="text-muted small">{{ podcast_info.author }}</p>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if test_episodes %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Episodes</h5>
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for ep in test_episodes %}
+                <li class="list-group-item">
+                    <div class="d-flex align-items-start">
+                        {% if ep.artwork_url %}
+                        <img src="{{ ep.artwork_url }}" class="rounded me-2" style="width:40px;height:40px;object-fit:cover;">
+                        {% endif %}
+                        <div class="flex-grow-1">
+                            <strong class="d-block small">{{ ep.title[:50] }}{% if ep.title|length > 50 %}...{% endif %}</strong>
+                            {% if ep.duration_formatted %}
+                            <small class="text-muted"><i class="fas fa-clock me-1"></i>{{ ep.duration_formatted }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">Setup Guide</h5>
+            </div>
+            <div class="card-body">
+                <ol class="small text-muted ps-3 mb-0">
+                    <li class="mb-2">Log in to <a href="https://www.buzzsprout.com" target="_blank">Buzzsprout</a></li>
+                    <li class="mb-2">Go to <a href="https://www.buzzsprout.com/my/profile/api" target="_blank">Profile > API</a></li>
+                    <li class="mb-2">Copy your API token</li>
+                    <li class="mb-2">Add it as a secret: <code>BUZZSPROUT_API_TOKEN</code></li>
+                    <li class="mb-2">Find your Podcast ID from your dashboard URL</li>
+                    <li>Enter the Podcast ID above and save</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

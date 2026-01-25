@@ -28,13 +28,17 @@ def list_amas():
     """List all AMAs - upcoming, live, and past"""
     now = datetime.utcnow()
     
-    # Check for YouTube live stream
+    # Check for YouTube live stream and episodes
     youtube_live = None
     show_episodes = []
     show_name = 'The Medicine and Money Show'
+    podcast_episodes = []
+    podcast_name = 'Podcast Episodes'
+    
     try:
         from utils.youtube_live import get_channel_live_stream, get_channel_videos
         from models import SiteSettings
+        import os
         settings = SiteSettings.query.first()
         if settings:
             if settings.youtube_live_enabled and settings.youtube_channel_id:
@@ -48,6 +52,25 @@ def list_amas():
                     playlist_id=getattr(settings, 'show_playlist_id', None),
                     max_results=limit
                 )
+            
+            # Fetch Buzzsprout podcast episodes
+            buzzsprout_enabled = getattr(settings, 'buzzsprout_enabled', False)
+            buzzsprout_podcast_id = getattr(settings, 'buzzsprout_podcast_id', None)
+            if buzzsprout_enabled and buzzsprout_podcast_id:
+                try:
+                    from utils.buzzsprout import get_buzzsprout_episodes
+                    api_token = os.environ.get('BUZZSPROUT_API_TOKEN')
+                    if api_token:
+                        podcast_name = getattr(settings, 'buzzsprout_podcast_name', None) or 'Podcast Episodes'
+                        podcast_limit = getattr(settings, 'buzzsprout_episodes_limit', None) or 12
+                        podcast_episodes = get_buzzsprout_episodes(
+                            podcast_id=buzzsprout_podcast_id,
+                            api_token=api_token,
+                            max_results=podcast_limit
+                        )
+                except Exception as pe:
+                    import logging
+                    logging.getLogger(__name__).warning(f'Failed to fetch podcast episodes: {pe}')
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning(f'Failed to check YouTube status: {e}')
@@ -81,7 +104,9 @@ def list_amas():
                          user_registrations=user_registrations,
                          youtube_live=youtube_live,
                          show_episodes=show_episodes,
-                         show_name=show_name)
+                         show_name=show_name,
+                         podcast_episodes=podcast_episodes,
+                         podcast_name=podcast_name)
 
 
 @ama_bp.route('/<int:ama_id>')

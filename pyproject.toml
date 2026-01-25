@@ -27,4 +27,5 @@ dependencies = [
     "replit-object-storage>=1.0.2",
     "pylti1p3>=2.0.0",
     "flask-jwt-extended>=4.4.0",
+    "apscheduler>=3.11.2",
 ]

@@ -43,6 +43,10 @@ Preferred communication style: Simple, everyday language.
     - **Two-Factor Authentication (2FA)**: TOTP-based using pyotp and qrcode.
     - **Password Reset**: Secure token-based password reset flow.
 - **LTI 1.3 Integration**: Single Sign-On for external learning platforms (e.g., Coursebox). Includes RSA key management, JWKS endpoint, OIDC flow, and admin interface for tool configuration.
+- **Media Content Integration**:
+    - **YouTube Integration**: Display live streams and video episodes from YouTube channels/playlists on Spotlight page. Configured via Admin > YouTube Settings.
+    - **Buzzsprout Podcast Integration**: Display podcast episodes with embedded audio player. Requires `BUZZSPROUT_API_TOKEN` secret and Podcast ID. Configured via Admin > Podcast Settings.
+- **CodeQualityGuardian**: AI-powered code review system that analyzes codebase for bugs, security issues, performance problems, and feature suggestions. Available at Admin > Code Quality. Hourly scheduled reviews (enable with `SCHEDULER_ENABLED=true`).
 - **Deployment**: Optimized health checks, port binding, and environment detection for cloud deployment.
 
 ## Data Models
@@ -52,6 +56,7 @@ Preferred communication style: Simple, everyday language.
 - **Specialized Models**: ExpertAMA, AMAQuestion, AMARegistration, InvestmentDeal, DealInterest, Mentorship, MentorshipSession, Course, CourseModule, CourseEnrollment, Event, EventSession, EventRegistration, Referral, Subscription, Payment, EmailCampaign.
 - **Ad Models**: AdAdvertiser, AdCampaign, AdCreative, AdImpression, AdClick.
 - **Moderation Models**: verification_queue_entries, onboarding_prompts, user_prompt_dismissals, invite_credit_events, cohort_norms, moderation_events, content_reports, deal_outcomes, sponsor_profiles, sponsor_reviews.
+- **Code Quality Models**: CodeQualityIssue (tracks detected issues with severity, status, suggested fixes), CodeReviewRun (tracks review history).
 
 ## Database Design
 - **Primary Database**: SQLite for development, PostgreSQL for production.

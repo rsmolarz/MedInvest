@@ -10,7 +10,7 @@ from app import db
 from models import (User, Post, Room, ExpertAMA, AMAStatus, InvestmentDeal, 
                    DealStatus, Course, Event, SubscriptionTier, AdAdvertiser, 
                    AdCampaign, AdCreative, AdImpression, AdClick, MentorApplication, LTITool,
-                   SiteSettings)
+                   SiteSettings, CodeQualityIssue, CodeReviewRun)
 import json
 import hmac
 import hashlib
@@ -1454,3 +1454,172 @@ def update_bug_report(report_id):
     flash('Bug report updated', 'success')
     
     return redirect(url_for('admin.bug_reports'))
+
+
+# ============== CodeQualityGuardian - Automated Code Review ==============
+
+@admin_bp.route('/code-quality')
+@login_required
+@admin_required
+def code_quality_dashboard():
+    """CodeQualityGuardian dashboard - view issues and recommendations"""
+    status_filter = request.args.get('status', 'open')
+    type_filter = request.args.get('type', 'all')
+    severity_filter = request.args.get('severity', 'all')
+    
+    query = CodeQualityIssue.query
+    
+    if status_filter and status_filter != 'all':
+        query = query.filter_by(status=status_filter)
+    if type_filter and type_filter != 'all':
+        query = query.filter_by(issue_type=type_filter)
+    if severity_filter and severity_filter != 'all':
+        query = query.filter_by(severity=severity_filter)
+    
+    severity_order = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3, 'info': 4}
+    issues = query.order_by(CodeQualityIssue.detected_at.desc()).all()
+    issues.sort(key=lambda x: severity_order.get(x.severity, 5))
+    
+    recent_runs = CodeReviewRun.query.order_by(
+        CodeReviewRun.started_at.desc()
+    ).limit(10).all()
+    
+    stats = {
+        'open': CodeQualityIssue.query.filter_by(status='open').count(),
+        'fixed': CodeQualityIssue.query.filter_by(status='fixed').count(),
+        'bugs': CodeQualityIssue.query.filter_by(issue_type='bug', status='open').count(),
+        'security': CodeQualityIssue.query.filter_by(issue_type='security', status='open').count(),
+        'features': CodeQualityIssue.query.filter_by(issue_type='feature_suggestion', status='open').count(),
+        'critical': CodeQualityIssue.query.filter_by(severity='critical', status='open').count()
+    }
+    
+    return render_template('admin/code_quality.html',
+                          issues=issues,
+                          recent_runs=recent_runs,
+                          stats=stats,
+                          status_filter=status_filter,
+                          type_filter=type_filter,
+                          severity_filter=severity_filter)
+
+
+@admin_bp.route('/code-quality/run', methods=['POST'])
+@login_required
+@admin_required
+def run_code_review():
+    """Trigger a manual code review"""
+    from utils.code_quality_guardian import CodeQualityGuardian
+    
+    guardian = CodeQualityGuardian()
+    result = guardian.run_review()
+    
+    if result.get('status') == 'completed':
+        flash(f"Code review completed! Found {result.get('issues_found', 0)} new issues.", 'success')
+    else:
+        flash(f"Code review failed: {result.get('error', 'Unknown error')}", 'error')
+    
+    return redirect(url_for('admin.code_quality_dashboard'))
+
+
+@admin_bp.route('/code-quality/issue/<int:issue_id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def code_quality_issue_detail(issue_id):
+    """View/update a specific code quality issue"""
+    issue = CodeQualityIssue.query.get_or_404(issue_id)
+    
+    if request.method == 'POST':
+        new_status = request.form.get('status')
+        if new_status:
+            issue.status = new_status
+            if new_status in ['fixed', 'ignored', 'wont_fix']:
+                issue.resolved_at = datetime.utcnow()
+            elif new_status == 'in_progress':
+                issue.reviewed_at = datetime.utcnow()
+            db.session.commit()
+            flash('Issue updated', 'success')
+        return redirect(url_for('admin.code_quality_issue_detail', issue_id=issue_id))
+    
+    return render_template('admin/code_quality_issue.html', issue=issue)
+
+
+@admin_bp.route('/code-quality/issue/<int:issue_id>/update', methods=['POST'])
+@login_required
+@admin_required
+def update_code_quality_issue(issue_id):
+    """Update code quality issue status"""
+    issue = CodeQualityIssue.query.get_or_404(issue_id)
+    
+    new_status = request.form.get('status')
+    if new_status:
+        issue.status = new_status
+        if new_status in ['fixed', 'ignored', 'wont_fix']:
+            issue.resolved_at = datetime.utcnow()
+        db.session.commit()
+        flash('Issue status updated', 'success')
+    
+    return redirect(url_for('admin.code_quality_dashboard'))
+
+
+# ============== Buzzsprout Podcast Settings ==============
+
+@admin_bp.route('/podcast-settings', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def podcast_settings():
+    """Configure Buzzsprout podcast integration"""
+    settings = SiteSettings.query.first()
+    if not settings:
+        settings = SiteSettings()
+        db.session.add(settings)
+        db.session.commit()
+    
+    podcast_info = None
+    test_episodes = []
+    
+    if request.method == 'POST':
+        podcast_id = request.form.get('buzzsprout_podcast_id', '').strip()
+        if podcast_id and not podcast_id.isdigit():
+            flash('Podcast ID must be a number', 'error')
+            return redirect(url_for('admin.podcast_settings'))
+        
+        settings.buzzsprout_podcast_id = podcast_id
+        settings.buzzsprout_podcast_name = request.form.get('buzzsprout_podcast_name', '').strip()[:200]
+        settings.buzzsprout_enabled = request.form.get('buzzsprout_enabled') == 'on'
+        
+        try:
+            limit = int(request.form.get('buzzsprout_episodes_limit', 12))
+            settings.buzzsprout_episodes_limit = min(max(limit, 1), 50)
+        except (ValueError, TypeError):
+            settings.buzzsprout_episodes_limit = 12
+        
+        settings.updated_by_id = current_user.id
+        
+        db.session.commit()
+        flash('Podcast settings saved!', 'success')
+        return redirect(url_for('admin.podcast_settings'))
+    
+    if getattr(settings, 'buzzsprout_podcast_id', None):
+        try:
+            from utils.buzzsprout import get_buzzsprout_episodes, get_buzzsprout_podcast_info
+            import os
+            api_token = os.environ.get('BUZZSPROUT_API_TOKEN')
+            if api_token:
+                podcast_info = get_buzzsprout_podcast_info(
+                    settings.buzzsprout_podcast_id,
+                    api_token
+                )
+                test_episodes = get_buzzsprout_episodes(
+                    settings.buzzsprout_podcast_id,
+                    api_token,
+                    max_results=3
+                )
+        except Exception as e:
+            flash(f'Error testing Buzzsprout connection: {e}', 'warning')
+    
+    has_api_token = bool(os.environ.get('BUZZSPROUT_API_TOKEN'))
+    
+    return render_template('admin/podcast_settings.html',
+                          settings=settings,
+                          podcast_info=podcast_info,
+                          test_episodes=test_episodes,
+                          has_api_token=has_api_token)

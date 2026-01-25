@@ -2299,7 +2299,93 @@ class SiteSettings(db.Model):
     show_episodes_enabled = db.Column(db.Boolean, default=True)
     show_episodes_limit = db.Column(db.Integer, default=12)
     
+    # Buzzsprout podcast integration
+    buzzsprout_podcast_id = db.Column(db.String(50))
+    buzzsprout_podcast_name = db.Column(db.String(200))
+    buzzsprout_enabled = db.Column(db.Boolean, default=False)
+    buzzsprout_episodes_limit = db.Column(db.Integer, default=12)
+    
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     updated_by_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     
     updated_by = db.relationship('User')
+
+
+class CodeQualityIssue(db.Model):
+    """Track code quality issues and recommendations from automated reviews"""
+    __tablename__ = 'code_quality_issues'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Issue details
+    issue_type = db.Column(db.String(50), nullable=False)  # bug, security, performance, style, feature_suggestion
+    severity = db.Column(db.String(20), default='medium')  # critical, high, medium, low, info
+    status = db.Column(db.String(20), default='open')  # open, in_progress, fixed, ignored, wont_fix
+    
+    # Location
+    file_path = db.Column(db.String(500))
+    line_number = db.Column(db.Integer)
+    function_name = db.Column(db.String(200))
+    
+    # Description
+    title = db.Column(db.String(500), nullable=False)
+    description = db.Column(db.Text)
+    code_snippet = db.Column(db.Text)
+    suggested_fix = db.Column(db.Text)
+    
+    # AI analysis
+    ai_confidence = db.Column(db.Float)  # 0.0 to 1.0
+    ai_reasoning = db.Column(db.Text)
+    
+    # Auto-fix tracking
+    auto_fixable = db.Column(db.Boolean, default=False)
+    auto_fixed = db.Column(db.Boolean, default=False)
+    auto_fixed_at = db.Column(db.DateTime)
+    fix_commit_hash = db.Column(db.String(40))
+    
+    # Timestamps
+    detected_at = db.Column(db.DateTime, default=datetime.utcnow)
+    reviewed_at = db.Column(db.DateTime)
+    resolved_at = db.Column(db.DateTime)
+    
+    # Tracking
+    review_run_id = db.Column(db.String(50))  # Groups issues from same review run
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'issue_type': self.issue_type,
+            'severity': self.severity,
+            'status': self.status,
+            'file_path': self.file_path,
+            'line_number': self.line_number,
+            'title': self.title,
+            'description': self.description,
+            'suggested_fix': self.suggested_fix,
+            'auto_fixable': self.auto_fixable,
+            'auto_fixed': self.auto_fixed,
+            'detected_at': self.detected_at.isoformat() if self.detected_at else None
+        }
+
+
+class CodeReviewRun(db.Model):
+    """Track each code review run"""
+    __tablename__ = 'code_review_runs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    run_id = db.Column(db.String(50), unique=True, nullable=False)
+    
+    started_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime)
+    
+    status = db.Column(db.String(20), default='running')  # running, completed, failed
+    
+    files_analyzed = db.Column(db.Integer, default=0)
+    issues_found = db.Column(db.Integer, default=0)
+    issues_fixed = db.Column(db.Integer, default=0)
+    
+    summary = db.Column(db.Text)
+    error_message = db.Column(db.Text)
+    
+    # Config used for this run
+    config_snapshot = db.Column(db.Text)  # JSON of settings used

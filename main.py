@@ -114,6 +114,13 @@ def localtime_filter(dt, format_type='short'):
 # Import legacy routes for backwards compatibility
 import routes  # noqa: F401
 
+# Initialize background scheduler for hourly code reviews
+try:
+    from utils.scheduler import init_scheduler
+    init_scheduler(app)
+except Exception as e:
+    logging.warning(f"Failed to initialize scheduler: {e}")
+
 # For deployment compatibility - Cloud Run and Gunicorn need this
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

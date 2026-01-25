@@ -1,0 +1,150 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Issue #{{ issue.id }} - CodeQualityGuardian{% endblock %}
+
+{% block admin_content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.code_quality_dashboard') }}">CodeQualityGuardian</a></li>
+        <li class="breadcrumb-item active">Issue #{{ issue.id }}</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    {% if issue.severity == 'critical' %}
+                    <span class="badge bg-danger me-2">Critical</span>
+                    {% elif issue.severity == 'high' %}
+                    <span class="badge bg-warning text-dark me-2">High</span>
+                    {% elif issue.severity == 'medium' %}
+                    <span class="badge bg-info me-2">Medium</span>
+                    {% elif issue.severity == 'low' %}
+                    <span class="badge bg-secondary me-2">Low</span>
+                    {% else %}
+                    <span class="badge bg-light text-dark me-2">Info</span>
+                    {% endif %}
+                    
+                    {% if issue.issue_type == 'bug' %}
+                    <span class="badge bg-danger"><i class="fas fa-bug me-1"></i>Bug</span>
+                    {% elif issue.issue_type == 'security' %}
+                    <span class="badge bg-warning text-dark"><i class="fas fa-shield-alt me-1"></i>Security</span>
+                    {% elif issue.issue_type == 'performance' %}
+                    <span class="badge bg-info"><i class="fas fa-tachometer-alt me-1"></i>Performance</span>
+                    {% elif issue.issue_type == 'feature_suggestion' %}
+                    <span class="badge bg-primary"><i class="fas fa-lightbulb me-1"></i>Feature Suggestion</span>
+                    {% else %}
+                    <span class="badge bg-secondary"><i class="fas fa-code me-1"></i>Style</span>
+                    {% endif %}
+                </div>
+                <span class="badge {% if issue.status == 'open' %}bg-warning text-dark{% elif issue.status == 'fixed' %}bg-success{% else %}bg-secondary{% endif %}">
+                    {{ issue.status|title }}
+                </span>
+            </div>
+            <div class="card-body">
+                <h4 class="card-title">{{ issue.title }}</h4>
+                
+                {% if issue.file_path %}
+                <p class="mb-3">
+                    <code>{{ issue.file_path }}</code>
+                    {% if issue.line_number %}
+                    <span class="text-muted">Line {{ issue.line_number }}</span>
+                    {% endif %}
+                    {% if issue.function_name %}
+                    <span class="text-muted">in <code>{{ issue.function_name }}()</code></span>
+                    {% endif %}
+                </p>
+                {% endif %}
+                
+                {% if issue.description %}
+                <div class="mb-4">
+                    <h6>Description</h6>
+                    <p class="text-muted">{{ issue.description }}</p>
+                </div>
+                {% endif %}
+                
+                {% if issue.code_snippet %}
+                <div class="mb-4">
+                    <h6>Code Snippet</h6>
+                    <pre class="bg-dark text-light p-3 rounded"><code>{{ issue.code_snippet }}</code></pre>
+                </div>
+                {% endif %}
+                
+                {% if issue.suggested_fix %}
+                <div class="mb-4">
+                    <h6><i class="fas fa-wrench me-1"></i>Suggested Fix</h6>
+                    <div class="alert alert-info">
+                        <pre class="mb-0" style="white-space: pre-wrap;">{{ issue.suggested_fix }}</pre>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if issue.ai_reasoning %}
+                <div class="mb-4">
+                    <h6><i class="fas fa-robot me-1"></i>AI Analysis</h6>
+                    <p class="text-muted small">{{ issue.ai_reasoning }}</p>
+                    {% if issue.ai_confidence %}
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar" role="progressbar" style="width: {{ (issue.ai_confidence * 100)|int }}%">
+                            {{ (issue.ai_confidence * 100)|int }}% Confidence
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Update Status</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('admin.code_quality_issue_detail', issue_id=issue.id) }}" method="post">
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="open" {% if issue.status == 'open' %}selected{% endif %}>Open</option>
+                            <option value="in_progress" {% if issue.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                            <option value="fixed" {% if issue.status == 'fixed' %}selected{% endif %}>Fixed</option>
+                            <option value="ignored" {% if issue.status == 'ignored' %}selected{% endif %}>Ignored</option>
+                            <option value="wont_fix" {% if issue.status == 'wont_fix' %}selected{% endif %}>Won't Fix</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Update</button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">Details</h5>
+            </div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Detected</span>
+                    <span>{{ issue.detected_at.strftime('%Y-%m-%d %H:%M') if issue.detected_at else '-' }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Review Run</span>
+                    <span><code>{{ issue.review_run_id or '-' }}</code></span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Auto-Fixable</span>
+                    <span>{% if issue.auto_fixable %}<i class="fas fa-check text-success"></i>{% else %}<i class="fas fa-times text-muted"></i>{% endif %}</span>
+                </li>
+                {% if issue.resolved_at %}
+                <li class="list-group-item d-flex justify-content-between">
+                    <span class="text-muted">Resolved</span>
+                    <span>{{ issue.resolved_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

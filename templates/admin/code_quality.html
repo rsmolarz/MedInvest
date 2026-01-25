@@ -1,0 +1,264 @@
+{% extends "admin/base.html" %}
+
+{% block title %}CodeQualityGuardian - Admin{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="fas fa-shield-alt me-2"></i>CodeQualityGuardian</h2>
+        <p class="text-muted mb-0">Automated code review and quality analysis</p>
+    </div>
+    <form action="{{ url_for('admin.run_code_review') }}" method="post" class="d-inline">
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-play me-2"></i>Run Review Now
+        </button>
+    </form>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-2">
+        <div class="card bg-danger bg-opacity-10 border-danger">
+            <div class="card-body text-center">
+                <h3 class="mb-0">{{ stats.critical }}</h3>
+                <small class="text-danger">Critical</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-warning bg-opacity-10 border-warning">
+            <div class="card-body text-center">
+                <h3 class="mb-0">{{ stats.open }}</h3>
+                <small class="text-warning">Open Issues</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-info bg-opacity-10 border-info">
+            <div class="card-body text-center">
+                <h3 class="mb-0">{{ stats.bugs }}</h3>
+                <small class="text-info">Bugs</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-danger bg-opacity-10">
+            <div class="card-body text-center">
+                <h3 class="mb-0">{{ stats.security }}</h3>
+                <small class="text-muted">Security</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-primary bg-opacity-10 border-primary">
+            <div class="card-body text-center">
+                <h3 class="mb-0">{{ stats.features }}</h3>
+                <small class="text-primary">Feature Ideas</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-success bg-opacity-10 border-success">
+            <div class="card-body text-center">
+                <h3 class="mb-0">{{ stats.fixed }}</h3>
+                <small class="text-success">Fixed</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h5 class="mb-0">Issues & Recommendations</h5>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <select class="form-select form-select-sm" style="width:auto;" onchange="filterIssues(this, 'status')">
+                            <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+                            <option value="open" {% if status_filter == 'open' %}selected{% endif %}>Open</option>
+                            <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>In Progress</option>
+                            <option value="fixed" {% if status_filter == 'fixed' %}selected{% endif %}>Fixed</option>
+                            <option value="ignored" {% if status_filter == 'ignored' %}selected{% endif %}>Ignored</option>
+                        </select>
+                        <select class="form-select form-select-sm" style="width:auto;" onchange="filterIssues(this, 'type')">
+                            <option value="all" {% if type_filter == 'all' %}selected{% endif %}>All Types</option>
+                            <option value="bug" {% if type_filter == 'bug' %}selected{% endif %}>Bugs</option>
+                            <option value="security" {% if type_filter == 'security' %}selected{% endif %}>Security</option>
+                            <option value="performance" {% if type_filter == 'performance' %}selected{% endif %}>Performance</option>
+                            <option value="style" {% if type_filter == 'style' %}selected{% endif %}>Style</option>
+                            <option value="feature_suggestion" {% if type_filter == 'feature_suggestion' %}selected{% endif %}>Features</option>
+                        </select>
+                        <select class="form-select form-select-sm" style="width:auto;" onchange="filterIssues(this, 'severity')">
+                            <option value="all" {% if severity_filter == 'all' %}selected{% endif %}>All Severity</option>
+                            <option value="critical" {% if severity_filter == 'critical' %}selected{% endif %}>Critical</option>
+                            <option value="high" {% if severity_filter == 'high' %}selected{% endif %}>High</option>
+                            <option value="medium" {% if severity_filter == 'medium' %}selected{% endif %}>Medium</option>
+                            <option value="low" {% if severity_filter == 'low' %}selected{% endif %}>Low</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                {% if issues %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Severity</th>
+                                <th>Type</th>
+                                <th>Issue</th>
+                                <th>File</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for issue in issues %}
+                            <tr>
+                                <td>
+                                    {% if issue.severity == 'critical' %}
+                                    <span class="badge bg-danger">Critical</span>
+                                    {% elif issue.severity == 'high' %}
+                                    <span class="badge bg-warning text-dark">High</span>
+                                    {% elif issue.severity == 'medium' %}
+                                    <span class="badge bg-info">Medium</span>
+                                    {% elif issue.severity == 'low' %}
+                                    <span class="badge bg-secondary">Low</span>
+                                    {% else %}
+                                    <span class="badge bg-light text-dark">Info</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if issue.issue_type == 'bug' %}
+                                    <i class="fas fa-bug text-danger"></i>
+                                    {% elif issue.issue_type == 'security' %}
+                                    <i class="fas fa-shield-alt text-warning"></i>
+                                    {% elif issue.issue_type == 'performance' %}
+                                    <i class="fas fa-tachometer-alt text-info"></i>
+                                    {% elif issue.issue_type == 'feature_suggestion' %}
+                                    <i class="fas fa-lightbulb text-primary"></i>
+                                    {% else %}
+                                    <i class="fas fa-code text-muted"></i>
+                                    {% endif %}
+                                    <small>{{ issue.issue_type|replace('_', ' ')|title }}</small>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('admin.code_quality_issue_detail', issue_id=issue.id) }}" class="text-decoration-none">
+                                        {{ issue.title[:60] }}{% if issue.title|length > 60 %}...{% endif %}
+                                    </a>
+                                </td>
+                                <td>
+                                    <code class="small">{{ issue.file_path|default('-') }}</code>
+                                    {% if issue.line_number %}
+                                    <span class="text-muted">:{{ issue.line_number }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if issue.status == 'open' %}
+                                    <span class="badge bg-warning text-dark">Open</span>
+                                    {% elif issue.status == 'in_progress' %}
+                                    <span class="badge bg-info">In Progress</span>
+                                    {% elif issue.status == 'fixed' %}
+                                    <span class="badge bg-success">Fixed</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ issue.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('admin.code_quality_issue_detail', issue_id=issue.id) }}" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        {% if issue.status == 'open' %}
+                                        <form action="{{ url_for('admin.update_code_quality_issue', issue_id=issue.id) }}" method="post" class="d-inline">
+                                            <input type="hidden" name="status" value="fixed">
+                                            <button type="submit" class="btn btn-outline-success btn-sm" title="Mark Fixed">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        </form>
+                                        <form action="{{ url_for('admin.update_code_quality_issue', issue_id=issue.id) }}" method="post" class="d-inline">
+                                            <input type="hidden" name="status" value="ignored">
+                                            <button type="submit" class="btn btn-outline-secondary btn-sm" title="Ignore">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                    <h5>No Issues Found</h5>
+                    <p class="text-muted">Your code is looking good! Run a review to check for new issues.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Review Runs</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_runs %}
+                <ul class="list-group list-group-flush">
+                    {% for run in recent_runs %}
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <span class="badge {% if run.status == 'completed' %}bg-success{% elif run.status == 'failed' %}bg-danger{% else %}bg-info{% endif %} me-2">
+                                    {{ run.status }}
+                                </span>
+                                <small class="text-muted">{{ run.started_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                            </div>
+                            <span class="badge bg-light text-dark">{{ run.issues_found or 0 }} issues</span>
+                        </div>
+                        {% if run.summary %}
+                        <small class="text-muted d-block mt-1">{{ run.summary[:80] }}{% if run.summary|length > 80 %}...{% endif %}</small>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted mb-0">No reviews run yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">About CodeQualityGuardian</h5>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-2">
+                    CodeQualityGuardian uses AI to analyze your codebase and identify:
+                </p>
+                <ul class="small text-muted mb-0">
+                    <li><i class="fas fa-bug text-danger me-1"></i> Bugs and logic errors</li>
+                    <li><i class="fas fa-shield-alt text-warning me-1"></i> Security vulnerabilities</li>
+                    <li><i class="fas fa-tachometer-alt text-info me-1"></i> Performance issues</li>
+                    <li><i class="fas fa-code text-secondary me-1"></i> Code style problems</li>
+                    <li><i class="fas fa-lightbulb text-primary me-1"></i> New feature suggestions</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function filterIssues(select, param) {
+    var url = new URL(window.location.href);
+    url.searchParams.set(param, select.value);
+    window.location.href = url.toString();
+}
+</script>
+{% endblock %}
