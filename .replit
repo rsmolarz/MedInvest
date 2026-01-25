@@ -47,6 +47,7 @@ GOOGLE_OAUTH_REDIRECT_URL = "https://medmoneyincubator.com/login/google/authoriz
 GOOGLE_OAUTH_CALLBACK_URL = "https://medmoneyincubator.com/login/google/authorized"
 FACEBOOK_PAGE_ACCESS_TOKEN = "EAARMZBE6WXewBQiQVWVeLSl43DgqwwgGpodBf0lje0KUTkur0NgSPw90HnRM4KvxFPuviwsNR7LAJV04m3AVf6gz9EtQHUx5aZBc7UKOsrR9WmRUk0I0Ive1NcuZC1MuJqZCGJKZByMcDrueFuPqiuIo47mIfrVfZAzQeyWva8i9oQIy7WlZA1sTROuBx27o5bR6K7gdtpZBKiHKd5ZAyEAjPaPxbyHsOciJNrdL3MjOzzctYlZAw46eW14D9IKyR6RtNPCx9J2ZCngz9p24hZCeFzdW0AZDZD"
 FACEBOOK_PAGE_ID = "136830059484019"
+SCHEDULER_ENABLED = "true"
 
 [userenv.production]
 CUSTOM_DOMAIN = "medmoneyincubator.com"
