@@ -41,17 +41,102 @@ INVESTDOCS_PROXY_API = os.environ.get('INVESTDOCS_PROXY_API', True)
 # PHASE 1: IFRAME EMBEDDING
 # ===========================
 
+def check_api_available():
+    """Check if InvestDocs API is reachable"""
+    try:
+        response = requests.get(f"{INVESTDOCS_INTERNAL_URL}/health", timeout=3)
+        return response.status_code == 200
+    except:
+        return False
+
+
 @investdocs_bp.route('/', methods=['GET'])
 @login_required
 def dashboard():
-    """Display InvestDocs dashboard - Phase 1: Serves iframe embedding"""
+    """Display InvestDocs dashboard with document management"""
+    category = request.args.get('category', 'all')
+    api_available = check_api_available()
+    
+    documents = []
+    if api_available:
+        try:
+            response = requests.get(
+                f"{INVESTDOCS_INTERNAL_URL}/api/documents",
+                headers={
+                    'Authorization': f'Bearer {create_sso_token(current_user)}',
+                    'X-User-Id': str(current_user.id)
+                },
+                timeout=10
+            )
+            if response.status_code == 200:
+                documents = response.json()
+        except Exception as e:
+            logger.error(f"Failed to fetch documents: {e}")
+    
     context = {
         'investdocs_url': INVESTDOCS_STANDALONE_URL,
         'user_id': current_user.id,
         'mode': INVESTDOCS_MODE,
-        'has_documents': False,
+        'api_available': api_available,
+        'documents': documents,
+        'category': category,
+        'storage_used': '0 MB',
+        'storage_limit': '100 MB',
+        'storage_percent': 0,
     }
     return render_template('investdocs/iframe.html', **context)
+
+
+@investdocs_bp.route('/upload', methods=['POST'])
+@login_required
+def upload_document():
+    """Handle document upload"""
+    from flask import redirect, url_for, flash
+    
+    api_available = check_api_available()
+    if not api_available:
+        flash('Document upload is currently unavailable. Please try again later.', 'warning')
+        return redirect(url_for('investdocs.dashboard'))
+    
+    try:
+        file = request.files.get('file')
+        name = request.form.get('name')
+        category = request.form.get('category')
+        notes = request.form.get('notes', '')
+        
+        if not file or not name:
+            flash('Please provide a document name and file.', 'error')
+            return redirect(url_for('investdocs.dashboard'))
+        
+        files = {'file': (file.filename, file.stream, file.content_type)}
+        data = {
+            'name': name,
+            'category': category,
+            'notes': notes,
+            'user_id': current_user.id
+        }
+        
+        response = requests.post(
+            f"{INVESTDOCS_INTERNAL_URL}/api/documents/upload",
+            files=files,
+            data=data,
+            headers={
+                'Authorization': f'Bearer {create_sso_token(current_user)}',
+                'X-User-Id': str(current_user.id)
+            },
+            timeout=30
+        )
+        
+        if response.status_code in [200, 201]:
+            flash('Document uploaded successfully!', 'success')
+        else:
+            flash('Failed to upload document. Please try again.', 'error')
+            
+    except Exception as e:
+        logger.error(f"Upload error: {e}")
+        flash('An error occurred during upload.', 'error')
+    
+    return redirect(url_for('investdocs.dashboard'))
 
 
 # ===========================
