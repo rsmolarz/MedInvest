@@ -208,8 +208,35 @@ def api_alerts():
 
 @mia_bp.route('/webhook', methods=['POST'])
 def webhook():
-    """Webhook endpoint for receiving real-time MIA triggers"""
-    webhook_secret = request.headers.get('X-MIA-Signature')
+    """Webhook endpoint for receiving real-time MIA triggers
+    
+    Security: Validates X-MIA-Signature header using HMAC-SHA256
+    """
+    import hmac
+    import hashlib
+    import os
+    
+    webhook_secret = os.environ.get('MIA_WEBHOOK_SECRET')
+    signature = request.headers.get('X-MIA-Signature', '')
+    
+    if not webhook_secret:
+        logger.warning('MIA webhook called but MIA_WEBHOOK_SECRET not configured')
+        return jsonify({'error': 'Webhook not configured'}), 503
+    
+    raw_body = request.get_data()
+    expected_sig = hmac.new(
+        webhook_secret.encode('utf-8'),
+        raw_body,
+        hashlib.sha256
+    ).hexdigest()
+    
+    if not signature.startswith('sha256='):
+        return jsonify({'error': 'Invalid signature format'}), 401
+    
+    provided_sig = signature[7:]
+    if not hmac.compare_digest(expected_sig, provided_sig):
+        logger.warning('MIA webhook signature validation failed')
+        return jsonify({'error': 'Invalid signature'}), 401
     
     try:
         data = request.get_json()

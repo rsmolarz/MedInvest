@@ -264,6 +264,46 @@
                 </div>
             </div>
             
+            {% elif feed_item.type == 'mia_alert' %}
+            <!-- MIA Market Alert Card (Premium Feature) -->
+            {% set alert = feed_item.item %}
+            <div class="card mb-3 border-warning">
+                <div class="card-header bg-warning bg-opacity-10 py-2">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-chart-line text-warning me-2"></i>
+                            <small class="fw-bold text-warning">Market Inefficiency Alert</small>
+                        </div>
+                        <span class="badge bg-{{ 'danger' if alert.severity == 'high' else 'warning text-dark' if alert.severity == 'medium' else 'info' }}">
+                            {{ alert.severity|upper }}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="rounded bg-warning bg-opacity-10 p-2 flex-shrink-0">
+                            <i class="fas fa-robot text-warning fa-lg"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="badge bg-secondary">{{ alert.market }}</span>
+                                <span class="badge bg-success">{{ alert.confidence }}% confidence</span>
+                            </div>
+                            <h6 class="mb-2 text-dark">{{ alert.title }}</h6>
+                            <p class="text-muted small mb-2">{{ alert.content }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    <i class="fas fa-robot me-1"></i>{{ alert.agent }}
+                                </small>
+                                <a href="{{ url_for('mia.alerts') }}" class="btn btn-sm btn-outline-warning">
+                                    View All <i class="fas fa-arrow-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             {% else %}
             <!-- Regular Post Card -->
             {% set post = feed_item.item %}
