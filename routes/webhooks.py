@@ -49,8 +49,8 @@ def facebook_webhook_verify():
     token = request.args.get('hub.verify_token')
     challenge = request.args.get('hub.challenge')
 
-verify_token = os.environ.get('FACEBOOK_WEBHOOK_VERIFY_TOKEN')
-if not verify_token:
+    verify_token = os.environ.get('FACEBOOK_WEBHOOK_VERIFY_TOKEN')
+    if not verify_token:
         raise ValueError("FACEBOOK_WEBHOOK_VERIFY_TOKEN environment variable is not set")
     if mode == 'subscribe' and token == verify_token:
         logger.info("Facebook webhook verified successfully!")
