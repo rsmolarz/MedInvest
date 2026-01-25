@@ -145,21 +145,28 @@ def upload_document():
 # ===========================
 
 def create_sso_token(user):
-    """Create JWT token for SSO with InvestmentVault - Phase 2: SSO integration"""
+    """Create JWT token for SSO with InvestmentVault using shared secret"""
+    import jwt
+    from datetime import datetime
+    
+    jwt_secret = os.environ.get('INVESTDOCS_JWT_SECRET')
+    if not jwt_secret:
+        logger.error("INVESTDOCS_JWT_SECRET not configured")
+        return None
+    
     try:
-        from flask_jwt_extended import create_access_token
-        token = create_access_token(
-            identity=user.id,
-            expires_delta=timedelta(hours=24),
-            additional_claims={
-                'email': user.email,
-                'name': f"{user.first_name} {user.last_name}",
-                'avatar': user.avatar_url if hasattr(user, 'avatar_url') else None
-            }
-        )
+        payload = {
+            'sub': str(user.id),
+            'email': user.email,
+            'name': f"{user.first_name} {user.last_name}",
+            'avatar': user.avatar_url if hasattr(user, 'avatar_url') else None,
+            'iat': datetime.utcnow(),
+            'exp': datetime.utcnow() + timedelta(hours=24)
+        }
+        token = jwt.encode(payload, jwt_secret, algorithm='HS256')
         return token
-    except ImportError:
-        logger.error("flask_jwt_extended not installed. Phase 2 SSO not available.")
+    except Exception as e:
+        logger.error(f"Failed to create SSO token: {e}")
         return None
 
 
