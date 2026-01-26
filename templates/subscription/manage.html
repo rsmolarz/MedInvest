@@ -9,17 +9,38 @@
         <div class="col-lg-8">
             <div class="card mb-4">
                 <div class="card-body">
-                    <h5>Current Plan</h5>
-                    {% if current_user.is_premium %}
+                    <h5 class="card-title">Current Plan</h5>
+                    
+                    {% if current_user.is_premium or subscription %}
                     <div class="d-flex align-items-center mb-3">
-                        <span class="badge bg-warning fs-5 me-3"><i class="fas fa-crown me-1"></i>Premium</span>
+                        {% if current_user.subscription_tier == 'elite' %}
+                        <span class="badge bg-warning text-dark fs-5 me-3"><i class="fas fa-crown me-1"></i>Elite</span>
+                        {% else %}
+                        <span class="badge bg-primary fs-5 me-3"><i class="fas fa-star me-1"></i>Pro</span>
+                        {% endif %}
+                        
+                        {% if subscription %}
                         <span class="text-muted">
-                            {% if current_user.subscription_ends_at %}
-                            Renews {{ current_user.subscription_ends_at.strftime('%B %d, %Y') }}
+                            {% if subscription.cancel_at_period_end %}
+                            <span class="text-danger">Cancels on {{ subscription.current_period_end.strftime('%B %d, %Y') }}</span>
+                            {% else %}
+                            Renews {{ subscription.current_period_end.strftime('%B %d, %Y') if subscription.current_period_end else 'Active' }}
                             {% endif %}
                         </span>
+                        {% elif current_user.subscription_ends_at %}
+                        <span class="text-muted">Active until {{ current_user.subscription_ends_at.strftime('%B %d, %Y') }}</span>
+                        {% endif %}
                     </div>
+                    
                     <h6>Your Benefits:</h6>
+                    {% set current_tier = current_user.subscription_tier or 'pro' %}
+                    {% if tiers and current_tier in tiers %}
+                    <ul>
+                        {% for feature in tiers[current_tier].features %}
+                        <li>{{ feature }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
                     <ul>
                         <li>Access to all premium rooms</li>
                         <li>Premium-only AMAs</li>
@@ -27,12 +48,61 @@
                         <li>Advanced AI features</li>
                         <li>Portfolio analytics</li>
                     </ul>
-                    <hr>
-                    <button class="btn btn-outline-danger" onclick="cancelSubscription()">Cancel Subscription</button>
-                    {% else %}
-                    <p class="text-muted">You're on the Free plan</p>
-                    <a href="{{ url_for('subscription.pricing') }}" class="btn btn-primary">Upgrade to Premium</a>
                     {% endif %}
+                    
+                    <hr>
+                    
+                    <div class="d-flex gap-2">
+                        {% if subscription and subscription.stripe_subscription_id %}
+                        <a href="{{ url_for('subscription.portal') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-credit-card me-1"></i> Billing Portal
+                        </a>
+                        {% endif %}
+                        
+                        {% if not subscription or not subscription.cancel_at_period_end %}
+                        <button class="btn btn-outline-danger" onclick="cancelSubscription()">
+                            <i class="fas fa-times me-1"></i> Cancel Subscription
+                        </button>
+                        {% else %}
+                        <span class="text-muted">Subscription will end on {{ subscription.current_period_end.strftime('%B %d, %Y') }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    {% else %}
+                    <p class="text-muted mb-3">You're currently on the <strong>Free</strong> plan</p>
+                    <p>Upgrade to unlock premium features:</p>
+                    <ul>
+                        <li>Unlimited deal access</li>
+                        <li>Premium courses</li>
+                        <li>Expert AMAs</li>
+                        <li>Priority support</li>
+                    </ul>
+                    <a href="{{ url_for('subscription.pricing') }}" class="btn btn-primary">
+                        <i class="fas fa-arrow-up me-1"></i> Upgrade to Premium
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if current_user.is_premium %}
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Payment History</h5>
+                    <p class="text-muted">View your billing history and invoices in the Stripe billing portal.</p>
+                    <a href="{{ url_for('subscription.portal') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-file-invoice me-1"></i> View Invoices
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h6><i class="fas fa-question-circle me-1"></i> Need Help?</h6>
+                    <p class="small text-muted mb-2">Have questions about your subscription?</p>
+                    <a href="mailto:support@medinvest.com" class="btn btn-sm btn-outline-primary">Contact Support</a>
                 </div>
             </div>
         </div>
@@ -42,9 +112,19 @@
 {% block extra_js %}
 <script>
 function cancelSubscription() {
-    if(confirm('Are you sure you want to cancel your subscription?')) {
-        fetch('{{ url_for("subscription.cancel_subscription") }}', {method: 'POST'})
-            .then(r => r.json()).then(d => { alert(d.message); location.reload(); });
+    if(confirm('Are you sure you want to cancel your subscription? You will retain access until the end of your billing period.')) {
+        fetch('{{ url_for("subscription.cancel_subscription") }}', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(r => r.json())
+        .then(d => { 
+            alert(d.message); 
+            location.reload(); 
+        })
+        .catch(e => {
+            alert('Error cancelling subscription. Please try again.');
+        });
     }
 }
 </script>

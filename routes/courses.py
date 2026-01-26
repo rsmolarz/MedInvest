@@ -23,9 +23,39 @@ courses_bp = Blueprint('courses', __name__, url_prefix='/courses')
 
 @courses_bp.route('/')
 def list_courses():
-    """List all published courses"""
-    courses = Course.query.filter_by(is_published=True)\
-                         .order_by(Course.is_featured.desc(), Course.created_at.desc()).all()
+    """List all published courses with filtering and sorting"""
+    # Filter parameters
+    category = request.args.get('category')
+    level = request.args.get('level')
+    price_filter = request.args.get('price')
+    sort_by = request.args.get('sort', 'featured')
+    
+    query = Course.query.filter_by(is_published=True)
+    
+    if category:
+        query = query.filter(Course.category == category)
+    
+    if level:
+        query = query.filter(Course.level == level)
+    
+    if price_filter == 'free':
+        query = query.filter(Course.price == 0)
+    elif price_filter == 'paid':
+        query = query.filter(Course.price > 0)
+    
+    # Sorting
+    if sort_by == 'newest':
+        query = query.order_by(Course.created_at.desc())
+    elif sort_by == 'price_low':
+        query = query.order_by(Course.price.asc())
+    elif sort_by == 'price_high':
+        query = query.order_by(Course.price.desc())
+    elif sort_by == 'popular':
+        query = query.order_by(Course.enrollment_count.desc())
+    else:
+        query = query.order_by(Course.is_featured.desc(), Course.created_at.desc())
+    
+    courses = query.all()
     
     # Get user's enrollments
     user_enrollments = []
@@ -33,9 +63,19 @@ def list_courses():
         enrollments = CourseEnrollment.query.filter_by(user_id=current_user.id).all()
         user_enrollments = [e.course_id for e in enrollments]
     
+    # Get unique categories and levels for filter dropdowns
+    categories = db.session.query(Course.category).filter(Course.is_published==True, Course.category.isnot(None)).distinct().all()
+    levels = db.session.query(Course.level).filter(Course.is_published==True, Course.level.isnot(None)).distinct().all()
+    
     return render_template('courses/list.html',
                          courses=courses,
-                         user_enrollments=user_enrollments)
+                         user_enrollments=user_enrollments,
+                         categories=[c[0] for c in categories if c[0]],
+                         levels=[l[0] for l in levels if l[0]],
+                         selected_category=category,
+                         selected_level=level,
+                         price_filter=price_filter,
+                         sort_by=sort_by)
 
 
 @courses_bp.route('/<int:course_id>')

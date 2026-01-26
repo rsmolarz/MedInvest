@@ -2,10 +2,10 @@
 Notifications Routes - User notifications system
 """
 from datetime import datetime
-from flask import Blueprint, render_template, jsonify, request
+from flask import Blueprint, render_template, jsonify, request, flash, redirect, url_for
 from flask_login import login_required, current_user
 from app import db
-from models import Notification, NotificationType, User
+from models import Notification, NotificationType, User, NotificationPreference
 from push_service import send_push_to_user
 
 notifications_bp = Blueprint('notifications', __name__, url_prefix='/notifications')
@@ -157,21 +157,52 @@ def get_time_ago(dt):
 # NOTIFICATION CREATION HELPERS
 # =============================================================================
 
+def should_send_notification(user_id, notification_type_str):
+    """Check if user has enabled this notification type in preferences"""
+    prefs = NotificationPreference.query.filter_by(user_id=user_id).first()
+    if not prefs:
+        return True
+    
+    type_mapping = {
+        'like': 'in_app_likes',
+        'comment': 'in_app_comments',
+        'follow': 'in_app_follows',
+        'mention': 'in_app_mentions',
+        'new_deal': 'in_app_deals',
+        'deal': 'in_app_deals',
+        'ama': 'in_app_amas',
+        'message': 'in_app_messages',
+        'reply': 'in_app_comments',
+    }
+    
+    pref_field = type_mapping.get(notification_type_str)
+    if pref_field and hasattr(prefs, pref_field):
+        return getattr(prefs, pref_field, True)
+    
+    return True
+
+
 def create_notification(user_id, notification_type, title, message, 
                        actor_id=None, post_id=None, comment_id=None, 
                        url=None, send_push=True):
-    """Create a notification for a user"""
+    """Create a notification for a user (respects notification preferences)"""
     # Don't notify yourself
     if actor_id and actor_id == user_id:
         return None
     
     # Convert enum to string value if needed
     if hasattr(notification_type, 'value'):
-        notification_type = notification_type.value
+        notification_type_str = notification_type.value
+    else:
+        notification_type_str = str(notification_type)
+    
+    # Check if user has this notification type enabled
+    if not should_send_notification(user_id, notification_type_str):
+        return None
     
     notification = Notification(
         user_id=user_id,
-        notification_type=notification_type,
+        notification_type=notification_type_str,
         title=title,
         message=message,
         actor_id=actor_id,
@@ -261,6 +292,56 @@ def notify_reply(parent_comment_author_id, replier, post, comment):
         comment_id=comment.id,
         url=f'/rooms/post/{post.id}'
     )
+
+
+@notifications_bp.route('/preferences')
+@login_required
+def preferences():
+    """View notification preferences"""
+    prefs = NotificationPreference.query.filter_by(user_id=current_user.id).first()
+    if not prefs:
+        prefs = NotificationPreference(user_id=current_user.id)
+        db.session.add(prefs)
+        db.session.commit()
+    
+    return render_template('notifications/preferences.html', prefs=prefs)
+
+
+@notifications_bp.route('/preferences/update', methods=['POST'])
+@login_required
+def update_preferences():
+    """Update notification preferences"""
+    prefs = NotificationPreference.query.filter_by(user_id=current_user.id).first()
+    if not prefs:
+        prefs = NotificationPreference(user_id=current_user.id)
+        db.session.add(prefs)
+    
+    # In-app notifications
+    prefs.in_app_likes = request.form.get('in_app_likes') == 'on'
+    prefs.in_app_comments = request.form.get('in_app_comments') == 'on'
+    prefs.in_app_follows = request.form.get('in_app_follows') == 'on'
+    prefs.in_app_mentions = request.form.get('in_app_mentions') == 'on'
+    prefs.in_app_deals = request.form.get('in_app_deals') == 'on'
+    prefs.in_app_amas = request.form.get('in_app_amas') == 'on'
+    prefs.in_app_messages = request.form.get('in_app_messages') == 'on'
+    
+    # Email notifications
+    prefs.email_digest = request.form.get('email_digest', 'weekly')
+    prefs.email_deals = request.form.get('email_deals') == 'on'
+    prefs.email_events = request.form.get('email_events') == 'on'
+    prefs.email_newsletter = request.form.get('email_newsletter') == 'on'
+    prefs.email_marketing = request.form.get('email_marketing') == 'on'
+    
+    # Push notifications
+    prefs.push_enabled = request.form.get('push_enabled') == 'on'
+    prefs.push_likes = request.form.get('push_likes') == 'on'
+    prefs.push_comments = request.form.get('push_comments') == 'on'
+    prefs.push_messages = request.form.get('push_messages') == 'on'
+    prefs.push_deals = request.form.get('push_deals') == 'on'
+    
+    db.session.commit()
+    flash('Notification preferences updated', 'success')
+    return redirect(url_for('notifications.preferences'))
 
 
 def notify_invite_accepted(inviter_id, new_user):

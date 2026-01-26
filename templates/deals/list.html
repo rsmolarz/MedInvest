@@ -11,12 +11,62 @@
         <a href="{{ url_for('deals.submit_deal') }}" class="btn btn-outline-primary">Submit a Deal</a>
     </div>
     
-    <div class="mb-4">
-        <a href="{{ url_for('deals.list_deals') }}" class="btn btn-sm {{ 'btn-primary' if not selected_type else 'btn-outline-secondary' }}">All</a>
-        {% for type_val, type_label in deal_types %}
-        <a href="{{ url_for('deals.list_deals', type=type_val) }}" class="btn btn-sm {{ 'btn-primary' if selected_type == type_val else 'btn-outline-secondary' }}">{{ type_label }}</a>
-        {% endfor %}
+    <div class="row mb-4">
+        <div class="col-md-8 mb-2 mb-md-0">
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{ url_for('deals.list_deals') }}" class="btn btn-sm {{ 'btn-primary' if not selected_type else 'btn-outline-secondary' }}">All</a>
+                {% for type_val, type_label in deal_types %}
+                <a href="{{ url_for('deals.list_deals', type=type_val, sort=sort_by) }}" class="btn btn-sm {{ 'btn-primary' if selected_type == type_val else 'btn-outline-secondary' }}">{{ type_label }}</a>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="d-flex gap-2">
+                <select class="form-select form-select-sm" id="sortSelect" onchange="applyFilters()">
+                    <option value="featured" {{ 'selected' if sort_by == 'featured' }}>Featured First</option>
+                    <option value="newest" {{ 'selected' if sort_by == 'newest' }}>Newest First</option>
+                    <option value="min_low" {{ 'selected' if sort_by == 'min_low' }}>Min Investment: Low to High</option>
+                    <option value="min_high" {{ 'selected' if sort_by == 'min_high' }}>Min Investment: High to Low</option>
+                    <option value="popular" {{ 'selected' if sort_by == 'popular' }}>Most Popular</option>
+                </select>
+            </div>
+        </div>
     </div>
+    
+    <div class="card mb-4">
+        <div class="card-body py-2">
+            <form id="filterForm" class="row g-2 align-items-end" action="{{ url_for('deals.list_deals') }}" method="GET">
+                <input type="hidden" name="type" value="{{ selected_type or '' }}">
+                <input type="hidden" name="sort" id="sortInput" value="{{ sort_by }}">
+                <div class="col-md-4">
+                    <label class="form-label small mb-1">Min Investment Range</label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text">$</span>
+                        <input type="number" class="form-control" name="min_investment" placeholder="From" value="{{ min_investment or '' }}">
+                        <span class="input-group-text">to</span>
+                        <input type="number" class="form-control" name="max_investment" placeholder="To" value="{{ max_investment or '' }}">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-sm btn-primary w-100">
+                        <i class="fas fa-filter me-1"></i>Filter
+                    </button>
+                </div>
+                {% if min_investment or max_investment %}
+                <div class="col-md-2">
+                    <a href="{{ url_for('deals.list_deals', type=selected_type, sort=sort_by) }}" class="btn btn-sm btn-outline-secondary w-100">Clear</a>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+    
+    <script>
+    function applyFilters() {
+        document.getElementById('sortInput').value = document.getElementById('sortSelect').value;
+        document.getElementById('filterForm').submit();
+    }
+    </script>
     
     <div class="row g-4">
         {% for deal in deals %}

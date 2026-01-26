@@ -48,10 +48,33 @@ def generate_slug(name):
 @rooms_bp.route('/')
 @login_required
 def list_rooms():
-    """List all investment rooms"""
-    rooms = Room.query.order_by(Room.member_count.desc()).all()
+    """List all investment rooms with filtering and sorting"""
+    # Filter parameters
+    category_filter = request.args.get('category')
+    sort_by = request.args.get('sort', 'popular')
+    search = request.args.get('q', '').strip()
     
-    # Group by category
+    query = Room.query
+    
+    if category_filter:
+        query = query.filter(Room.category == category_filter)
+    
+    if search:
+        query = query.filter(Room.name.ilike(f'%{search}%'))
+    
+    # Sorting
+    if sort_by == 'newest':
+        query = query.order_by(Room.created_at.desc())
+    elif sort_by == 'alphabetical':
+        query = query.order_by(Room.name.asc())
+    elif sort_by == 'active':
+        query = query.order_by(Room.post_count.desc())
+    else:
+        query = query.order_by(Room.member_count.desc())
+    
+    rooms = query.all()
+    
+    # Group by category for display
     categories = {}
     for room in rooms:
         cat = room.category or 'Other'
@@ -63,7 +86,10 @@ def list_rooms():
                          categories=categories, 
                          rooms=rooms,
                          room_categories=ROOM_CATEGORIES,
-                         room_icons=ROOM_ICONS)
+                         room_icons=ROOM_ICONS,
+                         category_filter=category_filter,
+                         sort_by=sort_by,
+                         search=search)
 
 
 @rooms_bp.route('/create', methods=['GET', 'POST'])

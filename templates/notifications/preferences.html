@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Notification Preferences - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h2 mb-0">Notification Preferences</h1>
+                <a href="{{ url_for('notifications.index') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Back
+                </a>
+            </div>
+            
+            <form action="{{ url_for('notifications.update_preferences') }}" method="POST">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-bell me-2"></i>In-App Notifications</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="in_app_likes" name="in_app_likes" {{ 'checked' if prefs.in_app_likes }}>
+                                    <label class="form-check-label" for="in_app_likes">Likes on your posts</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="in_app_comments" name="in_app_comments" {{ 'checked' if prefs.in_app_comments }}>
+                                    <label class="form-check-label" for="in_app_comments">Comments on your posts</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="in_app_follows" name="in_app_follows" {{ 'checked' if prefs.in_app_follows }}>
+                                    <label class="form-check-label" for="in_app_follows">New followers</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="in_app_mentions" name="in_app_mentions" {{ 'checked' if prefs.in_app_mentions }}>
+                                    <label class="form-check-label" for="in_app_mentions">Mentions</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="in_app_deals" name="in_app_deals" {{ 'checked' if prefs.in_app_deals }}>
+                                    <label class="form-check-label" for="in_app_deals">New investment deals</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="in_app_amas" name="in_app_amas" {{ 'checked' if prefs.in_app_amas }}>
+                                    <label class="form-check-label" for="in_app_amas">Spotlight/AMA events</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="in_app_messages" name="in_app_messages" {{ 'checked' if prefs.in_app_messages }}>
+                                    <label class="form-check-label" for="in_app_messages">Direct messages</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-envelope me-2"></i>Email Notifications</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Email Digest Frequency</label>
+                            <select class="form-select" name="email_digest">
+                                <option value="none" {{ 'selected' if prefs.email_digest == 'none' }}>No digests</option>
+                                <option value="daily" {{ 'selected' if prefs.email_digest == 'daily' }}>Daily</option>
+                                <option value="weekly" {{ 'selected' if prefs.email_digest == 'weekly' }}>Weekly</option>
+                            </select>
+                            <small class="text-muted">Summary of activity on the platform</small>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="email_deals" name="email_deals" {{ 'checked' if prefs.email_deals }}>
+                                    <label class="form-check-label" for="email_deals">New investment opportunities</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="email_events" name="email_events" {{ 'checked' if prefs.email_events }}>
+                                    <label class="form-check-label" for="email_events">Upcoming events</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="email_newsletter" name="email_newsletter" {{ 'checked' if prefs.email_newsletter }}>
+                                    <label class="form-check-label" for="email_newsletter">Platform newsletter</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="email_marketing" name="email_marketing" {{ 'checked' if prefs.email_marketing }}>
+                                    <label class="form-check-label" for="email_marketing">Promotional offers</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-mobile-alt me-2"></i>Push Notifications</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="push_enabled" name="push_enabled" {{ 'checked' if prefs.push_enabled }}>
+                                <label class="form-check-label fw-bold" for="push_enabled">Enable push notifications</label>
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="push_likes" name="push_likes" {{ 'checked' if prefs.push_likes }}>
+                                    <label class="form-check-label" for="push_likes">Likes</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="push_comments" name="push_comments" {{ 'checked' if prefs.push_comments }}>
+                                    <label class="form-check-label" for="push_comments">Comments</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="push_messages" name="push_messages" {{ 'checked' if prefs.push_messages }}>
+                                    <label class="form-check-label" for="push_messages">Direct messages</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="push_deals" name="push_deals" {{ 'checked' if prefs.push_deals }}>
+                                    <label class="form-check-label" for="push_deals">New deals</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Save Preferences
+                    </button>
+                    <a href="{{ url_for('notifications.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

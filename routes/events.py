@@ -23,22 +23,42 @@ events_bp = Blueprint('events', __name__, url_prefix='/events')
 
 @events_bp.route('/')
 def list_events():
-    """List upcoming and past events"""
+    """List upcoming and past events with filtering"""
     now = datetime.utcnow()
     
-    upcoming = Event.query.filter(
-        Event.start_date > now,
-        Event.is_published == True
-    ).order_by(Event.start_date.asc()).all()
+    # Filter parameters
+    event_type = request.args.get('type')
+    sort_by = request.args.get('sort', 'date')
+    show_past = request.args.get('past', 'false') == 'true'
     
-    past = Event.query.filter(
-        Event.start_date < now,
-        Event.is_published == True
-    ).order_by(Event.start_date.desc()).limit(10).all()
+    if show_past:
+        query = Event.query.filter(Event.start_date < now, Event.is_published == True)
+        if sort_by == 'date':
+            query = query.order_by(Event.start_date.desc())
+    else:
+        query = Event.query.filter(Event.start_date > now, Event.is_published == True)
+        if sort_by == 'date':
+            query = query.order_by(Event.start_date.asc())
+    
+    if event_type:
+        query = query.filter(Event.event_type == event_type)
+    
+    events = query.all()
+    
+    # Event types for filter
+    event_types = db.session.query(Event.event_type).filter(Event.is_published==True, Event.event_type.isnot(None)).distinct().all()
+    
+    upcoming = Event.query.filter(Event.start_date > now, Event.is_published == True).order_by(Event.start_date.asc()).all() if not show_past else []
+    past = Event.query.filter(Event.start_date < now, Event.is_published == True).order_by(Event.start_date.desc()).limit(10).all() if show_past else []
     
     return render_template('events/list.html',
+                         events=events,
                          upcoming=upcoming,
-                         past=past)
+                         past=past,
+                         event_types=[e[0] for e in event_types if e[0]],
+                         selected_type=event_type,
+                         sort_by=sort_by,
+                         show_past=show_past)
 
 
 @events_bp.route('/<int:event_id>')

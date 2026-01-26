@@ -49,9 +49,22 @@ def analytics():
     week_ago = now - timedelta(days=7)
     month_ago = now - timedelta(days=30)
     
+    yesterday = now - timedelta(days=1)
+    
+    # Count premium users (pro + elite)
+    pro_users = User.query.filter(User.subscription_tier.in_(['pro', 'premium'])).count()
+    elite_users = User.query.filter(User.subscription_tier == 'elite').count()
+    premium_total = pro_users + elite_users
+    
+    # Daily active users (users who logged in within last 24 hours)
+    dau = User.query.filter(User.last_login >= yesterday).count()
+    wau = User.query.filter(User.last_login >= week_ago).count()
+    
     stats = {
         'total_users': User.query.count(),
-        'premium_users': User.query.filter(User.subscription_tier == 'premium').count(),
+        'premium_users': premium_total,
+        'pro_users': pro_users,
+        'elite_users': elite_users,
         'new_users_week': User.query.filter(User.created_at >= week_ago).count(),
         'new_users_month': User.query.filter(User.created_at >= month_ago).count(),
         'total_posts': Post.query.count(),
@@ -62,16 +75,20 @@ def analytics():
         'total_courses': Course.query.filter_by(is_published=True).count(),
         'total_events': Event.query.filter_by(is_published=True).count(),
         'pending_verifications': User.query.filter(User.verification_status == 'pending').count(),
+        'dau': dau,
+        'wau': wau,
     }
     
     # Calculate rates
     if stats['total_users'] > 0:
         stats['premium_rate'] = (stats['premium_users'] / stats['total_users']) * 100
+        stats['dau_rate'] = (dau / stats['total_users']) * 100
     else:
         stats['premium_rate'] = 0
+        stats['dau_rate'] = 0
     
-    # Estimate monthly revenue (simplified)
-    stats['monthly_revenue'] = stats['premium_users'] * 29  # $29/month
+    # Estimate monthly revenue (pro $29 + elite $99)
+    stats['monthly_revenue'] = (pro_users * 29) + (elite_users * 99)
     
     return render_template('admin/analytics.html', stats=stats)
 

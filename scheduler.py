@@ -70,6 +70,28 @@ class SimpleScheduler:
             job['last_run'] = datetime.utcnow()  # Still update to avoid rapid retries
 
 
+def send_daily_digest():
+    """Send daily email digest to subscribers"""
+    try:
+        from app import app
+        with app.app_context():
+            from utils.email_digest import send_digests
+            send_digests('daily')
+    except Exception as e:
+        logger.error(f"Error sending daily digest: {e}")
+
+
+def send_weekly_digest():
+    """Send weekly email digest to subscribers"""
+    try:
+        from app import app
+        with app.app_context():
+            from utils.email_digest import send_digests
+            send_digests('weekly')
+    except Exception as e:
+        logger.error(f"Error sending weekly digest: {e}")
+
+
 def create_default_scheduler():
     """Create scheduler with default ops jobs."""
     from ops_jobs import (
@@ -89,6 +111,12 @@ def create_default_scheduler():
     
     # Run invite boosts daily (86400 seconds)
     scheduler.add_job(invite_credit_boosts_by_specialty, 86400, 'invite_boosts')
+    
+    # Email digests - daily at 8am UTC (every 24 hours)
+    scheduler.add_job(send_daily_digest, 86400, 'daily_email_digest')
+    
+    # Weekly digest every 7 days
+    scheduler.add_job(send_weekly_digest, 604800, 'weekly_email_digest')
     
     return scheduler
 

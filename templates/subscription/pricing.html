@@ -5,69 +5,122 @@
 <div class="container py-5">
     <div class="text-center mb-5">
         <h1 class="display-5 fw-bold">Choose Your Plan</h1>
-        <p class="lead text-muted">Unlock premium features to accelerate your wealth building</p>
+        <p class="lead text-muted">Unlock premium features to accelerate your wealth building journey</p>
+        
+        <div class="btn-group mt-3" role="group">
+            <input type="radio" class="btn-check" name="billing" id="monthly" autocomplete="off" checked onchange="toggleBilling('month')">
+            <label class="btn btn-outline-primary" for="monthly">Monthly</label>
+            <input type="radio" class="btn-check" name="billing" id="yearly" autocomplete="off" onchange="toggleBilling('year')">
+            <label class="btn btn-outline-primary" for="yearly">Yearly <span class="badge bg-success">Save 17%</span></label>
+        </div>
     </div>
     
     <div class="row justify-content-center g-4">
-        <div class="col-md-4">
+        <div class="col-lg-4">
             <div class="card h-100">
                 <div class="card-body text-center p-4">
-                    <h4>Free</h4>
+                    <h4 class="text-muted">Free</h4>
                     <div class="display-4 fw-bold my-4">$0<small class="fs-6 text-muted">/mo</small></div>
-                    <ul class="list-unstyled mb-4">
-                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Access to public rooms</li>
-                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>View deal listings</li>
-                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Basic AI assistant</li>
-                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Community feed</li>
-                        <li class="py-2 text-muted"><i class="fas fa-times me-2"></i>Premium rooms</li>
-                        <li class="py-2 text-muted"><i class="fas fa-times me-2"></i>Premium AMAs</li>
+                    <p class="text-muted mb-4">Get started with basic features</p>
+                    <ul class="list-unstyled text-start mb-4">
+                        {% for feature in tiers.free.features %}
+                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>{{ feature }}</li>
+                        {% endfor %}
                     </ul>
+                    {% if current_user.is_authenticated and current_user.subscription_tier == 'free' %}
                     <button class="btn btn-outline-secondary w-100" disabled>Current Plan</button>
+                    {% else %}
+                    <span class="text-muted">Always free</span>
+                    {% endif %}
                 </div>
             </div>
         </div>
         
-        <div class="col-md-4">
-            <div class="card h-100 border-primary">
+        <div class="col-lg-4">
+            <div class="card h-100 border-primary shadow">
                 <div class="card-header bg-primary text-white text-center py-3">
-                    <span class="badge bg-warning">Most Popular</span>
+                    <i class="fas fa-star me-1"></i> Most Popular
                 </div>
                 <div class="card-body text-center p-4">
-                    <h4>Premium Monthly</h4>
-                    <div class="display-4 fw-bold my-4">$29<small class="fs-6 text-muted">/mo</small></div>
-                    <ul class="list-unstyled mb-4">
-                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Everything in Free</li>
-                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>All premium rooms</li>
-                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Premium AMAs</li>
-                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Deal flow alerts</li>
-                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Advanced AI features</li>
-                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Portfolio analytics</li>
+                    <h4 class="text-primary">Pro</h4>
+                    <div class="display-4 fw-bold my-4">
+                        <span class="monthly-price">$29</span>
+                        <span class="yearly-price d-none">$290</span>
+                        <small class="fs-6 text-muted monthly-label">/mo</small>
+                        <small class="fs-6 text-muted yearly-label d-none">/yr</small>
+                    </div>
+                    <p class="text-muted mb-4">For serious investor physicians</p>
+                    <ul class="list-unstyled text-start mb-4">
+                        {% for feature in tiers.pro.features %}
+                        <li class="py-2"><i class="fas fa-check text-primary me-2"></i>{{ feature }}</li>
+                        {% endfor %}
                     </ul>
-                    <a href="{{ url_for('subscription.checkout', plan='monthly') }}" class="btn btn-primary w-100">Get Started</a>
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.subscription_tier == 'pro' %}
+                        <button class="btn btn-outline-primary w-100" disabled>Current Plan</button>
+                        {% else %}
+                        <a href="{{ url_for('subscription.checkout', tier='pro', interval='month') }}" class="btn btn-primary w-100 monthly-btn">Get Pro Monthly</a>
+                        <a href="{{ url_for('subscription.checkout', tier='pro', interval='year') }}" class="btn btn-primary w-100 yearly-btn d-none">Get Pro Yearly</a>
+                        {% endif %}
+                    {% else %}
+                    <a href="{{ url_for('auth.login') }}?next={{ url_for('subscription.pricing') }}" class="btn btn-primary w-100">Sign In to Subscribe</a>
+                    {% endif %}
                 </div>
             </div>
         </div>
         
-        <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-header bg-success text-white text-center py-3">
-                    <span>Save $99/year</span>
+        <div class="col-lg-4">
+            <div class="card h-100 border-warning">
+                <div class="card-header bg-warning text-dark text-center py-3">
+                    <i class="fas fa-crown me-1"></i> Elite
                 </div>
                 <div class="card-body text-center p-4">
-                    <h4>Premium Annual</h4>
-                    <div class="display-4 fw-bold my-4">$249<small class="fs-6 text-muted">/yr</small></div>
-                    <ul class="list-unstyled mb-4">
-                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Everything in Monthly</li>
-                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>2 months free</li>
-                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Priority support</li>
-                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Early event access</li>
-                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Exclusive webinars</li>
-                        <li class="py-2"><i class="fas fa-check text-success me-2"></i>Annual member badge</li>
+                    <h4 class="text-warning">Elite</h4>
+                    <div class="display-4 fw-bold my-4">
+                        <span class="monthly-price">$99</span>
+                        <span class="yearly-price d-none">$990</span>
+                        <small class="fs-6 text-muted monthly-label">/mo</small>
+                        <small class="fs-6 text-muted yearly-label d-none">/yr</small>
+                    </div>
+                    <p class="text-muted mb-4">For high-net-worth physicians</p>
+                    <ul class="list-unstyled text-start mb-4">
+                        {% for feature in tiers.elite.features %}
+                        <li class="py-2"><i class="fas fa-check text-warning me-2"></i>{{ feature }}</li>
+                        {% endfor %}
                     </ul>
-                    <a href="{{ url_for('subscription.checkout', plan='yearly') }}" class="btn btn-success w-100">Best Value</a>
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.subscription_tier == 'elite' %}
+                        <button class="btn btn-outline-warning w-100" disabled>Current Plan</button>
+                        {% else %}
+                        <a href="{{ url_for('subscription.checkout', tier='elite', interval='month') }}" class="btn btn-warning w-100 monthly-btn">Get Elite Monthly</a>
+                        <a href="{{ url_for('subscription.checkout', tier='elite', interval='year') }}" class="btn btn-warning w-100 yearly-btn d-none">Get Elite Yearly</a>
+                        {% endif %}
+                    {% else %}
+                    <a href="{{ url_for('auth.login') }}?next={{ url_for('subscription.pricing') }}" class="btn btn-warning w-100">Sign In to Subscribe</a>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
+    
+    <div class="text-center mt-5">
+        <p class="text-muted">
+            <i class="fas fa-lock me-1"></i> Secure payment powered by Stripe. Cancel anytime.
+        </p>
+    </div>
 </div>
+
+{% block extra_js %}
+<script>
+function toggleBilling(interval) {
+    const isYearly = interval === 'year';
+    document.querySelectorAll('.monthly-price, .monthly-label, .monthly-btn').forEach(el => {
+        el.classList.toggle('d-none', isYearly);
+    });
+    document.querySelectorAll('.yearly-price, .yearly-label, .yearly-btn').forEach(el => {
+        el.classList.toggle('d-none', !isYearly);
+    });
+}
+</script>
+{% endblock %}
 {% endblock %}

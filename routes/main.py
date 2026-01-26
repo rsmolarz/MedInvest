@@ -823,17 +823,58 @@ def delete_recommendation(rec_id):
 @main_bp.route('/dashboard')
 @login_required
 def dashboard():
-    """User dashboard with stats and quick actions"""
-    from models import Referral, Notification
-
-    referral_count = Referral.query.filter_by(
-        referrer_id=current_user.id).count()
-    unread_notifications = Notification.query.filter_by(
-        user_id=current_user.id, is_read=False).count()
-
+    """User dashboard with stats, analytics and quick actions"""
+    from models import Referral, Notification, DealInterest, CourseEnrollment, Comment, PostVote
+    from datetime import timedelta
+    
+    now = datetime.utcnow()
+    week_ago = now - timedelta(days=7)
+    month_ago = now - timedelta(days=30)
+    
+    referral_count = Referral.query.filter_by(referrer_id=current_user.id).count()
+    unread_notifications = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+    
+    # User analytics
+    analytics = {
+        'total_posts': Post.query.filter_by(author_id=current_user.id).count(),
+        'posts_this_week': Post.query.filter(Post.author_id==current_user.id, Post.created_at>=week_ago).count(),
+        'total_followers': Follow.query.filter_by(followed_id=current_user.id).count(),
+        'total_following': Follow.query.filter_by(follower_id=current_user.id).count(),
+        'new_followers_week': Follow.query.filter(Follow.followed_id==current_user.id, Follow.created_at>=week_ago).count(),
+        'total_likes_received': db.session.query(db.func.count(PostVote.id)).join(Post).filter(Post.author_id==current_user.id, PostVote.vote_type=='upvote').scalar() or 0,
+        'comments_received': db.session.query(db.func.count(Comment.id)).join(Post).filter(Post.author_id==current_user.id).scalar() or 0,
+        'deals_interested': DealInterest.query.filter_by(user_id=current_user.id).count(),
+        'courses_enrolled': CourseEnrollment.query.filter_by(user_id=current_user.id).count(),
+        'points': current_user.points or 0,
+        'level': current_user.level or 1,
+        'login_streak': current_user.login_streak or 0,
+    }
+    
+    # Engagement rate (likes + comments per post)
+    if analytics['total_posts'] > 0:
+        analytics['engagement_rate'] = round((analytics['total_likes_received'] + analytics['comments_received']) / analytics['total_posts'], 1)
+    else:
+        analytics['engagement_rate'] = 0
+    
+    # Recent activity
+    recent_posts = Post.query.filter_by(author_id=current_user.id).order_by(Post.created_at.desc()).limit(5).all()
+    recent_notifications = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.created_at.desc()).limit(5).all()
+    
+    # User achievements
+    try:
+        from utils.achievements import get_user_achievements, check_and_award_achievements
+        check_and_award_achievements(current_user.id)
+        achievements = get_user_achievements(current_user.id)
+    except Exception as e:
+        achievements = []
+    
     return render_template('dashboard.html',
                            referral_count=referral_count,
-                           unread_notifications=unread_notifications)
+                           unread_notifications=unread_notifications,
+                           analytics=analytics,
+                           recent_posts=recent_posts,
+                           recent_notifications=recent_notifications,
+                           achievements=achievements[:6])
 
 
 @main_bp.route('/bookmarks')

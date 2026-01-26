@@ -25,19 +25,37 @@ deals_bp = Blueprint('deals', __name__, url_prefix='/deals')
 @deals_bp.route('/')
 @login_required
 def list_deals():
-    """List active investment deals"""
-    # Filter by type if specified
+    """List active investment deals with advanced filtering and sorting"""
+    # Filter parameters
     deal_type = request.args.get('type')
+    min_investment = request.args.get('min_investment', type=int)
+    max_investment = request.args.get('max_investment', type=int)
+    sort_by = request.args.get('sort', 'featured')
     
     query = InvestmentDeal.query.filter(InvestmentDeal.status == 'active')
     
     if deal_type:
         query = query.filter(InvestmentDeal.deal_type == deal_type)
     
-    deals = query.order_by(
-        InvestmentDeal.is_featured.desc(),
-        InvestmentDeal.created_at.desc()
-    ).all()
+    if min_investment:
+        query = query.filter(InvestmentDeal.minimum_investment >= min_investment)
+    
+    if max_investment:
+        query = query.filter(InvestmentDeal.minimum_investment <= max_investment)
+    
+    # Sorting options
+    if sort_by == 'newest':
+        query = query.order_by(InvestmentDeal.created_at.desc())
+    elif sort_by == 'min_low':
+        query = query.order_by(InvestmentDeal.minimum_investment.asc())
+    elif sort_by == 'min_high':
+        query = query.order_by(InvestmentDeal.minimum_investment.desc())
+    elif sort_by == 'popular':
+        query = query.order_by(InvestmentDeal.interest_count.desc())
+    else:
+        query = query.order_by(InvestmentDeal.is_featured.desc(), InvestmentDeal.created_at.desc())
+    
+    deals = query.all()
     
     # Get user's interests
     user_interests = []
@@ -64,6 +82,9 @@ def list_deals():
                          user_interests=user_interests,
                          deal_types=deal_types,
                          selected_type=deal_type,
+                         sort_by=sort_by,
+                         min_investment=min_investment,
+                         max_investment=max_investment,
                          deal_ad=deal_ad)
 
 

@@ -27,7 +27,7 @@
     </div>
     
     <div class="row g-4 mb-4">
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <h6 class="opacity-75">Total Users</h6>
@@ -36,7 +36,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <h6 class="opacity-75">Premium Users</h6>
@@ -45,21 +45,56 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="card bg-info text-white">
                 <div class="card-body">
-                    <h6 class="opacity-75">Total Posts</h6>
-                    <h2 class="mb-0">{{ stats.total_posts }}</h2>
-                    <small class="opacity-75">+{{ stats.posts_week }} this week</small>
+                    <h6 class="opacity-75">DAU / WAU</h6>
+                    <h2 class="mb-0">{{ stats.dau }} / {{ stats.wau }}</h2>
+                    <small class="opacity-75">{{ '{:.1f}'.format(stats.dau_rate) }}% daily active</small>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="card bg-warning">
                 <div class="card-body">
                     <h6 class="opacity-75">Monthly Revenue</h6>
                     <h2 class="mb-0">${{ '{:,.0f}'.format(stats.monthly_revenue) }}</h2>
-                    <small class="opacity-75">estimated</small>
+                    <small class="opacity-75">Pro: {{ stats.pro_users }} | Elite: {{ stats.elite_users }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Posts This Week</h6>
+                    <h3 class="text-primary">{{ stats.posts_week }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Total Posts</h6>
+                    <h3 class="text-info">{{ stats.total_posts }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">New This Month</h6>
+                    <h3 class="text-success">{{ stats.new_users_month }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Pending Verifications</h6>
+                    <h3 class="text-warning">{{ stats.pending_verifications }}</h3>
                 </div>
             </div>
         </div>

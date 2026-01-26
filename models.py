@@ -16,7 +16,9 @@ import pyotp
 
 class SubscriptionTier(Enum):
     FREE = 'free'
-    PREMIUM = 'premium'
+    PRO = 'pro'
+    ELITE = 'elite'
+    PREMIUM = 'premium'  # Legacy alias for pro
 
 class DealStatus(Enum):
     DRAFT = 'draft'
@@ -98,6 +100,8 @@ class User(UserMixin, db.Model):
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
     # Admin permissions
     can_review_verifications = db.Column(db.Boolean, default=False)
+    # Stripe integration
+    stripe_customer_id = db.Column(db.String(100), unique=True, nullable=True)
     # Subscription & gamification
     subscription_tier = db.Column(db.String(20), default='free')
     subscription_ends_at = db.Column(db.DateTime)
@@ -806,6 +810,42 @@ class UserActivity(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
 
     user = db.relationship('User', foreign_keys=[user_id])
+
+
+class NotificationPreference(db.Model):
+    """User notification preferences for different channels"""
+    __tablename__ = 'notification_preferences'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
+    
+    # In-app notifications
+    in_app_likes = db.Column(db.Boolean, default=True)
+    in_app_comments = db.Column(db.Boolean, default=True)
+    in_app_follows = db.Column(db.Boolean, default=True)
+    in_app_mentions = db.Column(db.Boolean, default=True)
+    in_app_deals = db.Column(db.Boolean, default=True)
+    in_app_amas = db.Column(db.Boolean, default=True)
+    in_app_messages = db.Column(db.Boolean, default=True)
+    
+    # Email notifications
+    email_digest = db.Column(db.String(20), default='weekly')  # none, daily, weekly
+    email_deals = db.Column(db.Boolean, default=True)
+    email_events = db.Column(db.Boolean, default=True)
+    email_newsletter = db.Column(db.Boolean, default=True)
+    email_marketing = db.Column(db.Boolean, default=False)
+    
+    # Push notifications
+    push_enabled = db.Column(db.Boolean, default=True)
+    push_likes = db.Column(db.Boolean, default=False)
+    push_comments = db.Column(db.Boolean, default=True)
+    push_messages = db.Column(db.Boolean, default=True)
+    push_deals = db.Column(db.Boolean, default=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('notification_preferences', uselist=False))
 
 
 class Alert(db.Model):

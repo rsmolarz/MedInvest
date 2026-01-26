@@ -5,46 +5,108 @@
 <div class="container py-4">
     <h1 class="h2 mb-4">Welcome back, {{ current_user.first_name }}!</h1>
     
-    <!-- Stats -->
     <div class="row g-4 mb-4">
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <h6 class="opacity-75">Points</h6>
-                    <h2 class="mb-0">{{ current_user.points }}</h2>
+                <div class="card-body text-center">
+                    <h6 class="opacity-75 mb-1">Points</h6>
+                    <h2 class="mb-0">{{ analytics.points }}</h2>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="card bg-success text-white">
-                <div class="card-body">
-                    <h6 class="opacity-75">Level</h6>
-                    <h2 class="mb-0">{{ current_user.level }}</h2>
+                <div class="card-body text-center">
+                    <h6 class="opacity-75 mb-1">Level</h6>
+                    <h2 class="mb-0">{{ analytics.level }}</h2>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="card bg-info text-white">
-                <div class="card-body">
-                    <h6 class="opacity-75">Login Streak</h6>
-                    <h2 class="mb-0">{{ current_user.login_streak }} days</h2>
+                <div class="card-body text-center">
+                    <h6 class="opacity-75 mb-1">Streak</h6>
+                    <h2 class="mb-0">{{ analytics.login_streak }} <small class="fs-6">days</small></h2>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="card bg-warning">
-                <div class="card-body">
-                    <h6 class="opacity-75">Referrals</h6>
+                <div class="card-body text-center">
+                    <h6 class="opacity-75 mb-1">Referrals</h6>
                     <h2 class="mb-0">{{ referral_count }}</h2>
                 </div>
             </div>
         </div>
     </div>
     
-    <div class="row">
+    <div class="row g-4">
         <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header"><h5 class="mb-0">Quick Actions</h5></div>
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Your Analytics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-6 col-md-4">
+                            <div class="text-center p-3 bg-light rounded">
+                                <div class="fs-3 fw-bold text-primary">{{ analytics.total_posts }}</div>
+                                <small class="text-muted">Total Posts</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="text-center p-3 bg-light rounded">
+                                <div class="fs-3 fw-bold text-success">{{ analytics.total_followers }}</div>
+                                <small class="text-muted">Followers</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="text-center p-3 bg-light rounded">
+                                <div class="fs-3 fw-bold text-info">{{ analytics.total_following }}</div>
+                                <small class="text-muted">Following</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="text-center p-3 bg-light rounded">
+                                <div class="fs-3 fw-bold text-danger">{{ analytics.total_likes_received }}</div>
+                                <small class="text-muted">Likes Received</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="text-center p-3 bg-light rounded">
+                                <div class="fs-3 fw-bold text-warning">{{ analytics.comments_received }}</div>
+                                <small class="text-muted">Comments</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="text-center p-3 bg-light rounded">
+                                <div class="fs-3 fw-bold text-secondary">{{ analytics.engagement_rate }}</div>
+                                <small class="text-muted">Engagement/Post</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="text-primary fw-bold">{{ analytics.deals_interested }}</div>
+                            <small class="text-muted">Deals Explored</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-success fw-bold">{{ analytics.courses_enrolled }}</div>
+                            <small class="text-muted">Courses Enrolled</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-info fw-bold">+{{ analytics.new_followers_week }}</div>
+                            <small class="text-muted">New This Week</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header"><h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5></div>
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-4">
@@ -54,7 +116,7 @@
                         </div>
                         <div class="col-md-4">
                             <a href="{{ url_for('ama.list_amas') }}" class="btn btn-outline-primary w-100">
-                                <i class="fas fa-video me-2"></i>AMAs
+                                <i class="fas fa-video me-2"></i>Spotlight
                             </a>
                         </div>
                         <div class="col-md-4">
@@ -81,15 +143,61 @@
                 </div>
             </div>
         </div>
+        
         <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header"><h5 class="mb-0">Your Referral Code</h5></div>
+            {% if achievements %}
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-medal me-2"></i>Achievements</h5>
+                    <span class="badge bg-primary">{{ achievements|length }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        {% for ua in achievements %}
+                        <div class="col-4 text-center">
+                            <div class="p-2 bg-light rounded" title="{{ ua.achievement.name }}: {{ ua.achievement.description }}">
+                                <div class="fs-4">{{ ua.achievement.icon }}</div>
+                                <small class="text-muted d-block text-truncate">{{ ua.achievement.name }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="card mb-4">
+                <div class="card-header"><h5 class="mb-0"><i class="fas fa-gift me-2"></i>Referral Code</h5></div>
                 <div class="card-body text-center">
                     <h3 class="text-primary mb-3">{{ current_user.referral_code or 'N/A' }}</h3>
                     <p class="text-muted small">Share with colleagues to earn rewards!</p>
                     <a href="{{ url_for('referral.index') }}" class="btn btn-outline-primary btn-sm">View Referral Program</a>
                 </div>
             </div>
+            
+            {% if recent_notifications %}
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-bell me-2"></i>Recent Activity</h5>
+                    {% if unread_notifications > 0 %}
+                    <span class="badge bg-danger">{{ unread_notifications }} new</span>
+                    {% endif %}
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for notif in recent_notifications[:5] %}
+                    <li class="list-group-item d-flex align-items-start {% if not notif.is_read %}bg-light{% endif %}">
+                        <div>
+                            <div class="small fw-bold">{{ notif.title }}</div>
+                            <small class="text-muted">{{ notif.created_at.strftime('%b %d') }}</small>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <div class="card-footer text-center">
+                    <a href="{{ url_for('notifications.index') }}" class="small">View All Notifications</a>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
