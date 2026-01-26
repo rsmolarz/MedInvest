@@ -8,12 +8,12 @@
         <p class="text-muted mb-0">{{ webhook.name or webhook.url }}</p>
     </div>
     <div>
-        <form method="POST" action="{{ url_for('webhooks.test_webhook', webhook_id=webhook.id) }}" class="d-inline">
+        <form method="POST" action="{{ url_for('webhook_admin.test_webhook', webhook_id=webhook.id) }}" class="d-inline">
             <button type="submit" class="btn btn-outline-primary">
                 <i class="fas fa-paper-plane me-2"></i>Send Test
             </button>
         </form>
-        <a href="{{ url_for('webhooks.list_webhooks') }}" class="btn btn-outline-secondary">
+        <a href="{{ url_for('webhook_admin.list_webhooks') }}" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left me-2"></i>Back
         </a>
     </div>

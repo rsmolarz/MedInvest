@@ -4,7 +4,7 @@
 {% block admin_content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>{{ 'Edit' if webhook else 'Create' }} Webhook</h2>
-    <a href="{{ url_for('webhooks.list_webhooks') }}" class="btn btn-outline-secondary">
+    <a href="{{ url_for('webhook_admin.list_webhooks') }}" class="btn btn-outline-secondary">
         <i class="fas fa-arrow-left me-2"></i>Back to Webhooks
     </a>
 </div>
@@ -60,7 +60,7 @@
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-save me-2"></i>{{ 'Update' if webhook else 'Create' }} Webhook
                 </button>
-                <a href="{{ url_for('webhooks.list_webhooks') }}" class="btn btn-outline-secondary">Cancel</a>
+                <a href="{{ url_for('webhook_admin.list_webhooks') }}" class="btn btn-outline-secondary">Cancel</a>
             </div>
         </form>
     </div>
