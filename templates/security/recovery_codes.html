@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Recovery Codes - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="fas fa-key me-2"></i>Your Recovery Codes</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Important:</strong> Save these recovery codes in a secure location. 
+                        Each code can only be used once. If you lose access to your authenticator app, 
+                        you can use these codes to sign in.
+                    </div>
+                    
+                    <div class="bg-light p-3 rounded mb-4">
+                        <div class="row">
+                            {% for code in codes %}
+                            <div class="col-6 mb-2">
+                                <code class="fs-6">{{ code }}</code>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary" onclick="copyRecoveryCodes()">
+                            <i class="fas fa-copy me-2"></i>Copy All Codes
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="downloadRecoveryCodes()">
+                            <i class="fas fa-download me-2"></i>Download as Text File
+                        </button>
+                        <a href="{{ url_for('two_factor.two_factor_settings') }}" class="btn btn-primary">
+                            <i class="fas fa-check me-2"></i>I've Saved My Codes
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const recoveryCodes = {{ codes | tojson }};
+
+function copyRecoveryCodes() {
+    const text = recoveryCodes.join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Recovery codes copied to clipboard!');
+    });
+}
+
+function downloadRecoveryCodes() {
+    const text = 'MedInvest Recovery Codes\n' + 
+                 '========================\n\n' +
+                 recoveryCodes.join('\n') + 
+                 '\n\nKeep these codes safe!';
+    
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'medinvest-recovery-codes.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %}

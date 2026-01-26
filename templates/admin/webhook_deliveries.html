@@ -1,0 +1,90 @@
+{% extends "admin/base.html" %}
+{% block title %}Webhook Deliveries - Admin{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2>Webhook Deliveries</h2>
+        <p class="text-muted mb-0">{{ webhook.name or webhook.url }}</p>
+    </div>
+    <div>
+        <form method="POST" action="{{ url_for('webhooks.test_webhook', webhook_id=webhook.id) }}" class="d-inline">
+            <button type="submit" class="btn btn-outline-primary">
+                <i class="fas fa-paper-plane me-2"></i>Send Test
+            </button>
+        </form>
+        <a href="{{ url_for('webhooks.list_webhooks') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Event</th>
+                        <th>Status</th>
+                        <th>Duration</th>
+                        <th>Delivered At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for delivery in deliveries %}
+                    <tr>
+                        <td><code>{{ delivery.event }}</code></td>
+                        <td>
+                            {% if delivery.success %}
+                            <span class="badge bg-success">{{ delivery.status_code }}</span>
+                            {% else %}
+                            <span class="badge bg-danger">{{ delivery.status_code or 'Failed' }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ delivery.duration_ms or '-' }} ms</td>
+                        <td>{{ delivery.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-secondary" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#deliveryModal{{ delivery.id }}">
+                                View Details
+                            </button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            No deliveries yet. Send a test webhook to get started.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% for delivery in deliveries %}
+<div class="modal fade" id="deliveryModal{{ delivery.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delivery Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6>Request Payload</h6>
+                <pre class="bg-light p-3 rounded"><code>{{ delivery.payload }}</code></pre>
+                
+                {% if delivery.response_body %}
+                <h6>Response</h6>
+                <pre class="bg-light p-3 rounded"><code>{{ delivery.response_body }}</code></pre>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

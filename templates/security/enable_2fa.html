@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Enable Two-Factor Authentication - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Enable Two-Factor Authentication</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Scan the QR code below with your authenticator app (Google Authenticator, Authy, etc.)
+                    </div>
+                    
+                    <div class="text-center mb-4">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ qr_uri | urlencode }}" 
+                             alt="QR Code" class="img-fluid border rounded p-2">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">Manual Entry Key:</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control font-monospace" value="{{ secret }}" readonly id="secretKey">
+                            <button class="btn btn-outline-secondary" type="button" onclick="copySecret()">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">If you can't scan the QR code, enter this key manually in your app.</small>
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('two_factor.enable_2fa') }}">
+                        <div class="mb-3">
+                            <label for="code" class="form-label">Verification Code</label>
+                            <input type="text" class="form-control form-control-lg text-center" 
+                                   id="code" name="code" placeholder="Enter 6-digit code" 
+                                   maxlength="6" pattern="[0-9]{6}" required autofocus>
+                            <small class="text-muted">Enter the 6-digit code from your authenticator app</small>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-check me-2"></i>Verify & Enable
+                            </button>
+                            <a href="{{ url_for('two_factor.two_factor_settings') }}" class="btn btn-outline-secondary">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copySecret() {
+    const secretKey = document.getElementById('secretKey');
+    secretKey.select();
+    document.execCommand('copy');
+    alert('Secret key copied to clipboard!');
+}
+</script>
+{% endblock %}

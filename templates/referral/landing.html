@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Join MedInvest - Referred by {{ referrer.first_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="text-center mb-4">
+                <h1 class="display-5 fw-bold">Welcome to MedInvest</h1>
+                <p class="lead text-muted">
+                    You've been invited by <strong>{{ referrer.first_name }} {{ referrer.last_name }}</strong>
+                </p>
+            </div>
+            
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        {% if referrer.profile_image_url %}
+                        <img src="{{ referrer.profile_image_url }}" alt="{{ referrer.first_name }}" 
+                             class="rounded-circle mb-3" style="width: 80px; height: 80px; object-fit: cover;">
+                        {% else %}
+                        <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+                             style="width: 80px; height: 80px;">
+                            <span class="text-white fs-3">{{ referrer.first_name[0] }}</span>
+                        </div>
+                        {% endif %}
+                        <h5>{{ referrer.first_name }} {{ referrer.last_name }}</h5>
+                        {% if referrer.specialty %}
+                        <p class="text-muted mb-0">{{ referrer.specialty }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <hr>
+                    
+                    <h5 class="mb-3">Why Join MedInvest?</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Connect with fellow medical professionals</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Learn investment strategies tailored for physicians</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Access exclusive deals and opportunities</li>
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Expert AMAs and educational content</li>
+                    </ul>
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-user-plus me-2"></i>Join Now
+                        </a>
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-secondary">
+                            Already have an account? Sign In
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

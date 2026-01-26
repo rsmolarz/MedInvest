@@ -91,6 +91,17 @@ app.register_blueprint(investdocs_bp)
 app.register_blueprint(mia_bp)
 app.register_blueprint(health_bp)
 
+# Register new feature blueprints
+from blueprints.two_factor_bp import two_factor_bp
+from blueprints.moderation_bp import moderation_bp
+from blueprints.webhook_bp import webhook_bp as webhook_admin_bp
+from blueprints.roles_bp import roles_bp
+
+app.register_blueprint(two_factor_bp)
+app.register_blueprint(moderation_bp)
+app.register_blueprint(webhook_admin_bp)
+app.register_blueprint(roles_bp)
+
 
 @app.template_filter('get_user')
 def get_user_filter(user_id):

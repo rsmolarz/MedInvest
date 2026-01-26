@@ -1,0 +1,132 @@
+{% extends "admin/base.html" %}
+{% block title %}User Roles - Admin{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>User Roles</h2>
+    <a href="{{ url_for('roles.list_roles') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-shield-alt me-2"></i>Manage Roles
+    </a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-8">
+                <input type="text" class="form-control" name="search" 
+                       value="{{ search }}" placeholder="Search by username or email...">
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-2"></i>Search
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>User</th>
+                        <th>Email</th>
+                        <th>Current Role</th>
+                        <th>Admin</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users.items %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                {% if user.profile_image_url %}
+                                <img src="{{ user.profile_image_url }}" alt="" class="rounded-circle me-2" 
+                                     style="width: 32px; height: 32px; object-fit: cover;">
+                                {% else %}
+                                <div class="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center"
+                                     style="width: 32px; height: 32px;">
+                                    <span class="text-white small">{{ user.first_name[0] if user.first_name else 'U' }}</span>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <div>{{ user.first_name }} {{ user.last_name }}</div>
+                                    <small class="text-muted">@{{ user.email.split('@')[0] }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            {% if user.custom_role_id %}
+                                {% set role = roles | selectattr('id', 'equalto', user.custom_role_id) | first %}
+                                {% if role %}
+                                <span class="badge" style="background-color: {{ role.color }}">{{ role.name }}</span>
+                                {% endif %}
+                            {% else %}
+                            <span class="text-muted">None</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.is_admin %}
+                            <span class="badge bg-danger">Admin</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form method="POST" action="{{ url_for('roles.assign_role', user_id=user.id) }}" class="d-inline">
+                                <select name="role_id" class="form-select form-select-sm d-inline-block" 
+                                        style="width: auto;" onchange="this.form.submit()">
+                                    <option value="">No Role</option>
+                                    {% for role in roles %}
+                                    <option value="{{ role.id }}" 
+                                            {% if user.custom_role_id == role.id %}selected{% endif %}>
+                                        {{ role.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            No users found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if users.pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if users.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('roles.user_roles', page=users.prev_num, search=search) }}">Previous</a>
+        </li>
+        {% endif %}
+        
+        {% for page in users.iter_pages() %}
+            {% if page %}
+            <li class="page-item {% if page == users.page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('roles.user_roles', page=page, search=search) }}">{{ page }}</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if users.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('roles.user_roles', page=users.next_num, search=search) }}">Next</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

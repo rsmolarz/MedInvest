@@ -1,0 +1,68 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ 'Edit' if webhook else 'Create' }} Webhook - Admin{% endblock %}
+
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>{{ 'Edit' if webhook else 'Create' }} Webhook</h2>
+    <a href="{{ url_for('webhooks.list_webhooks') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Webhooks
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="mb-3">
+                <label for="name" class="form-label">Name</label>
+                <input type="text" class="form-control" id="name" name="name" 
+                       value="{{ webhook.name if webhook else '' }}" placeholder="My Webhook">
+                <small class="text-muted">A friendly name to identify this webhook</small>
+            </div>
+            
+            <div class="mb-3">
+                <label for="url" class="form-label">Webhook URL <span class="text-danger">*</span></label>
+                <input type="url" class="form-control" id="url" name="url" required
+                       value="{{ webhook.url if webhook else '' }}" placeholder="https://example.com/webhook">
+                <small class="text-muted">The endpoint that will receive webhook events</small>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Events</label>
+                <div class="row">
+                    {% for event in available_events %}
+                    <div class="col-md-4 mb-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="events" 
+                                   value="{{ event }}" id="event_{{ loop.index }}"
+                                   {% if webhook and event in (current_events or []) %}checked{% endif %}>
+                            <label class="form-check-label" for="event_{{ loop.index }}">
+                                {{ event }}
+                            </label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            {% if webhook %}
+            <div class="mb-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="is_active" 
+                           id="is_active" {% if webhook.is_active %}checked{% endif %}>
+                    <label class="form-check-label" for="is_active">
+                        Webhook is active
+                    </label>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>{{ 'Update' if webhook else 'Create' }} Webhook
+                </button>
+                <a href="{{ url_for('webhooks.list_webhooks') }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

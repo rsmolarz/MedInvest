@@ -113,6 +113,7 @@ class User(UserMixin, db.Model):
     level = db.Column(db.Integer, default=1)
     login_streak = db.Column(db.Integer, default=0)
     referral_code = db.Column(db.String(10), unique=True)
+    custom_role_id = db.Column(db.Integer, db.ForeignKey('custom_roles.id'))
     referred_by_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     last_login = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
