@@ -329,6 +329,35 @@ def toggle_verified(user_id):
     })
 
 
+@admin_bp.route('/users/<int:user_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_user(user_id):
+    """Delete/cancel a user account"""
+    user = User.query.get_or_404(user_id)
+    
+    if user.id == current_user.id:
+        return jsonify({'error': 'Cannot delete your own account'}), 400
+    
+    if user.is_admin:
+        return jsonify({'error': 'Cannot delete admin accounts. Remove admin status first.'}), 400
+    
+    user_email = user.email
+    user_name = user.full_name
+    
+    try:
+        db.session.delete(user)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Account for {user_name} ({user_email}) has been deleted'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to delete account: {str(e)}'}), 500
+
+
 @admin_bp.route('/premium')
 @login_required
 @admin_required

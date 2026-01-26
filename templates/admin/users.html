@@ -3,47 +3,140 @@
 
 {% block content %}
 <div class="container py-4">
-    <h1 class="h2 mb-4">Manage Users</h1>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2 mb-0">Manage Users</h1>
+        <span class="badge bg-primary fs-6">{{ users.total }} total users</span>
+    </div>
     
     <form class="mb-4">
         <div class="input-group">
             <input type="text" name="search" class="form-control" placeholder="Search by name or email..." value="{{ search }}">
             <button class="btn btn-primary" type="submit">Search</button>
+            {% if search %}
+            <a href="{{ url_for('admin.manage_users') }}" class="btn btn-outline-secondary">Clear</a>
+            {% endif %}
         </div>
     </form>
     
     <div class="card">
         <div class="table-responsive">
             <table class="table table-hover mb-0">
-                <thead><tr><th>User</th><th>Email</th><th>Specialty</th><th>Status</th><th>Points</th><th>Actions</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Joined</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
                 <tbody>
                     {% for user in users.items %}
-                    <tr>
-                        <td>{{ user.full_name }}</td>
-                        <td>{{ user.email }}</td>
-                        <td>{{ (user.specialty or '-')|replace('_', ' ')|title }}</td>
+                    <tr id="user-row-{{ user.id }}">
                         <td>
-                            {% if user.is_premium %}<span class="badge bg-warning">Premium</span>{% endif %}
-                            {% if user.is_verified %}<span class="badge bg-success">Verified</span>{% endif %}
+                            <strong>{{ user.full_name or 'No name' }}</strong>
+                            {% if user.specialty %}
+                            <br><small class="text-muted">{{ user.specialty|replace('_', ' ')|title }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="mailto:{{ user.email }}">{{ user.email }}</a>
+                        </td>
+                        <td>
+                            <small>{{ user.created_at.strftime('%b %d, %Y') if user.created_at else 'Unknown' }}</small>
+                        </td>
+                        <td>
                             {% if user.is_admin %}<span class="badge bg-danger">Admin</span>{% endif %}
+                            {% if user.is_premium %}<span class="badge bg-warning text-dark">Premium</span>{% endif %}
+                            {% if user.is_verified %}<span class="badge bg-success">Verified</span>{% endif %}
+                            {% if not user.is_admin and not user.is_premium and not user.is_verified %}
+                            <span class="badge bg-secondary">Basic</span>
+                            {% endif %}
                         </td>
-                        <td>{{ user.points }}</td>
                         <td>
-                            <button class="btn btn-sm btn-outline-success" onclick="toggleVerified({{ user.id }})">Verify</button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="toggleAdmin({{ user.id }})">Admin</button>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-success" onclick="toggleVerified({{ user.id }})" title="Toggle Verified">
+                                    <i class="fas fa-check-circle"></i>
+                                </button>
+                                <button class="btn btn-outline-primary" onclick="toggleAdmin({{ user.id }})" title="Toggle Admin">
+                                    <i class="fas fa-user-shield"></i>
+                                </button>
+                                {% if not user.is_admin and user.id != current_user.id %}
+                                <button class="btn btn-outline-danger" onclick="deleteUser({{ user.id }}, '{{ user.full_name|e }}', '{{ user.email|e }}')" title="Delete Account">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
                         </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">No users found</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
+    
+    {% if users.pages > 1 %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if users.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin.manage_users', page=users.prev_num, search=search) }}">Previous</a>
+            </li>
+            {% endif %}
+            
+            {% for p in users.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if p %}
+                <li class="page-item {{ 'active' if p == users.page else '' }}">
+                    <a class="page-link" href="{{ url_for('admin.manage_users', page=p, search=search) }}">{{ p }}</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if users.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin.manage_users', page=users.next_num, search=search) }}">Next</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
 </div>
 
 {% block extra_js %}
 <script>
-function toggleVerified(id) { fetch('/admin/users/' + id + '/toggle-verified', {method:'POST'}).then(()=>location.reload()); }
-function toggleAdmin(id) { if(confirm('Toggle admin?')) fetch('/admin/users/' + id + '/toggle-admin', {method:'POST'}).then(()=>location.reload()); }
+function toggleVerified(id) { 
+    fetch('/admin/users/' + id + '/toggle-verified', {method:'POST'})
+        .then(()=>location.reload()); 
+}
+
+function toggleAdmin(id) { 
+    if(confirm('Are you sure you want to toggle admin status for this user?')) {
+        fetch('/admin/users/' + id + '/toggle-admin', {method:'POST'})
+            .then(()=>location.reload()); 
+    }
+}
+
+function deleteUser(id, name, email) {
+    if(confirm('Are you sure you want to permanently delete the account for:\n\n' + name + '\n' + email + '\n\nThis action cannot be undone!')) {
+        fetch('/admin/users/' + id + '/delete', {method:'POST'})
+            .then(response => response.json())
+            .then(data => {
+                if(data.success) {
+                    document.getElementById('user-row-' + id).remove();
+                    alert('Account deleted successfully');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(err => alert('Failed to delete account'));
+    }
+}
 </script>
 {% endblock %}
 {% endblock %}
