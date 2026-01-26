@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Verify 2FA - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-shield-alt fa-3x text-primary mb-3"></i>
+                        <h4>Two-Factor Authentication</h4>
+                        <p class="text-muted">Enter the 6-digit code from your authenticator app</p>
+                    </div>
+                    
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                    {% endwith %}
+                    
+                    <form method="POST" action="{{ url_for('auth.verify_2fa') }}" id="verify2faForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-center gap-2" id="codeInputs">
+                                {% for i in range(6) %}
+                                <input type="text" class="form-control form-control-lg text-center code-input"
+                                       maxlength="1" pattern="[0-9]" inputmode="numeric"
+                                       style="width: 50px; height: 60px; font-size: 1.5rem; font-weight: bold;"
+                                       data-index="{{ i }}" required>
+                                {% endfor %}
+                            </div>
+                            <input type="hidden" name="totp_code" id="totpCode">
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100 btn-lg mb-3" id="verifyBtn">
+                            <i class="fas fa-check me-2"></i>Verify
+                        </button>
+                    </form>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="text-center">
+                        <p class="text-muted small mb-2">Having trouble?</p>
+                        <button class="btn btn-link btn-sm" data-bs-toggle="collapse" data-bs-target="#recoveryForm">
+                            Use a recovery code instead
+                        </button>
+                    </div>
+                    
+                    <div class="collapse mt-3" id="recoveryForm">
+                        <form method="POST" action="{{ url_for('auth.verify_recovery_code') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="mb-3">
+                                <input type="text" class="form-control" name="recovery_code" 
+                                       placeholder="XXXX-XXXX" pattern="[A-Z0-9]{4}-[A-Z0-9]{4}">
+                            </div>
+                            <button type="submit" class="btn btn-outline-primary w-100">
+                                Use Recovery Code
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-4">
+                <a href="{{ url_for('auth.logout') }}" class="text-muted">
+                    <i class="fas fa-arrow-left me-1"></i>Back to login
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const inputs = document.querySelectorAll('.code-input');
+    const totpCode = document.getElementById('totpCode');
+    const form = document.getElementById('verify2faForm');
+    
+    inputs.forEach((input, index) => {
+        input.addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            
+            if (this.value && index < inputs.length - 1) {
+                inputs[index + 1].focus();
+            }
+            
+            updateHiddenInput();
+        });
+        
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Backspace' && !this.value && index > 0) {
+                inputs[index - 1].focus();
+            }
+        });
+        
+        input.addEventListener('paste', function(e) {
+            e.preventDefault();
+            const paste = (e.clipboardData || window.clipboardData).getData('text');
+            const digits = paste.replace(/[^0-9]/g, '').slice(0, 6);
+            
+            digits.split('').forEach((digit, i) => {
+                if (inputs[i]) {
+                    inputs[i].value = digit;
+                }
+            });
+            
+            updateHiddenInput();
+            if (digits.length === 6) {
+                form.submit();
+            }
+        });
+    });
+    
+    function updateHiddenInput() {
+        totpCode.value = Array.from(inputs).map(i => i.value).join('');
+        
+        if (totpCode.value.length === 6) {
+            form.submit();
+        }
+    }
+    
+    inputs[0].focus();
+});
+</script>
+{% endblock %}

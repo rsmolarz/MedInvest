@@ -2573,3 +2573,48 @@ class PetitionSignature(db.Model):
     __table_args__ = (
         db.UniqueConstraint('petition_id', 'user_id', name='unique_petition_signature'),
     )
+
+
+class Webhook(db.Model):
+    """Webhook configuration for external integrations"""
+    __tablename__ = 'webhooks'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100))
+    url = db.Column(db.String(500), nullable=False)
+    events = db.Column(db.Text)
+    secret = db.Column(db.String(100))
+    is_active = db.Column(db.Boolean, default=True)
+    last_triggered = db.Column(db.DateTime)
+    last_status = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    deliveries = db.relationship('WebhookDelivery', backref='webhook', lazy='dynamic')
+
+
+class WebhookDelivery(db.Model):
+    """Webhook delivery log"""
+    __tablename__ = 'webhook_deliveries'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    webhook_id = db.Column(db.Integer, db.ForeignKey('webhooks.id'), nullable=False)
+    event = db.Column(db.String(50), nullable=False)
+    payload = db.Column(db.Text)
+    status_code = db.Column(db.Integer)
+    response_body = db.Column(db.Text)
+    duration_ms = db.Column(db.Integer)
+    success = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class CustomRole(db.Model):
+    """Custom user roles with configurable permissions"""
+    __tablename__ = 'custom_roles'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    description = db.Column(db.String(200))
+    permissions = db.Column(db.Text)
+    color = db.Column(db.String(20), default='#6c757d')
+    priority = db.Column(db.Integer, default=1)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

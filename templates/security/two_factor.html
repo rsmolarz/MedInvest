@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Two-Factor Authentication - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.settings') }}">Settings</a></li>
+                    <li class="breadcrumb-item active">Two-Factor Authentication</li>
+                </ol>
+            </nav>
+            
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Two-Factor Authentication</h4>
+                </div>
+                <div class="card-body">
+                    {% if not twofa_enabled %}
+                    <div class="text-center mb-4">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Two-factor authentication adds an extra layer of security to your account.
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 text-center mb-4">
+                            <h5>Step 1: Scan QR Code</h5>
+                            <p class="text-muted">Use an authenticator app like Google Authenticator or Authy</p>
+                            <div class="qr-code-container p-3 bg-white rounded border d-inline-block">
+                                {% if qr_code %}
+                                <img src="data:image/png;base64,{{ qr_code }}" alt="2FA QR Code" class="img-fluid">
+                                {% else %}
+                                <div class="placeholder-glow" style="width: 200px; height: 200px;">
+                                    <span class="placeholder w-100 h-100"></span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h5>Step 2: Enter Code</h5>
+                            <p class="text-muted">Enter the 6-digit code from your authenticator app</p>
+                            
+                            <form method="POST" action="{{ url_for('auth.enable_2fa') }}" id="enable2faForm">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="secret" value="{{ secret }}">
+                                
+                                <div class="mb-3">
+                                    <label for="totp_code" class="form-label">Verification Code</label>
+                                    <input type="text" class="form-control form-control-lg text-center" 
+                                           id="totp_code" name="totp_code" 
+                                           pattern="[0-9]{6}" maxlength="6" 
+                                           placeholder="000000" required autofocus
+                                           style="letter-spacing: 0.5em; font-family: monospace;">
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-check me-2"></i>Enable 2FA
+                                </button>
+                            </form>
+                            
+                            <hr class="my-4">
+                            
+                            <div class="manual-entry">
+                                <p class="small text-muted mb-2">Can't scan? Enter this code manually:</p>
+                                <code class="d-block bg-light p-2 rounded text-break user-select-all">
+                                    {{ secret or 'XXXXXXXXXXXXXXXX' }}
+                                </code>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% else %}
+                    <div class="text-center">
+                        <div class="mb-4">
+                            <i class="fas fa-check-circle fa-5x text-success"></i>
+                        </div>
+                        <h5 class="text-success">Two-Factor Authentication is Enabled</h5>
+                        <p class="text-muted">Your account is protected with an additional layer of security.</p>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="recovery-codes mb-4">
+                            <h6>Recovery Codes</h6>
+                            <p class="small text-muted">Save these codes in a safe place. You can use them to access your account if you lose your authenticator device.</p>
+                            
+                            <div class="bg-light p-3 rounded mb-3">
+                                <div class="row g-2">
+                                    {% for code in recovery_codes or ['XXXX-XXXX', 'XXXX-XXXX', 'XXXX-XXXX', 'XXXX-XXXX', 'XXXX-XXXX'] %}
+                                    <div class="col-6 col-md-4">
+                                        <code class="d-block text-center py-1">{{ code }}</code>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                            <button class="btn btn-outline-secondary btn-sm" onclick="regenerateCodes()">
+                                <i class="fas fa-sync me-1"></i>Generate New Codes
+                            </button>
+                        </div>
+                        
+                        <hr>
+                        
+                        <form method="POST" action="{{ url_for('auth.disable_2fa') }}" 
+                              onsubmit="return confirm('Are you sure you want to disable 2FA? This will make your account less secure.');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-outline-danger">
+                                <i class="fas fa-times me-2"></i>Disable Two-Factor Authentication
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>FAQ</h5>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="faqAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                    What is two-factor authentication?
+                                </button>
+                            </h2>
+                            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Two-factor authentication (2FA) adds an extra step when logging in. After entering your password, you'll also need to enter a code from your phone. This makes it much harder for someone to access your account, even if they know your password.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                    What if I lose my phone?
+                                </button>
+                            </h2>
+                            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Save your recovery codes in a safe place. Each code can be used once to log in without your phone. If you've used all your codes, contact support for help accessing your account.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                    Which authenticator apps work?
+                                </button>
+                            </h2>
+                            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Any TOTP-compatible authenticator app works:
+                                    <ul class="mb-0 mt-2">
+                                        <li>Google Authenticator</li>
+                                        <li>Authy</li>
+                                        <li>Microsoft Authenticator</li>
+                                        <li>1Password</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('totp_code')?.addEventListener('input', function(e) {
+    this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6);
+});
+
+function regenerateCodes() {
+    if (confirm('This will invalidate your current recovery codes. Continue?')) {
+        fetch('/auth/regenerate-recovery-codes', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            });
+    }
+}
+</script>
+{% endblock %}

@@ -57,6 +57,7 @@ from routes.lti import lti_bp
 from routes.webhooks import webhooks_bp
 from routes.investdocs import investdocs_bp
 from routes.mia import mia_bp
+from utils.health_check import health_bp
 
 app.register_blueprint(main_bp)
 app.register_blueprint(auth_bp)
@@ -88,6 +89,7 @@ app.register_blueprint(errors_bp)
 app.register_blueprint(webhooks_bp)
 app.register_blueprint(investdocs_bp)
 app.register_blueprint(mia_bp)
+app.register_blueprint(health_bp)
 
 
 @app.template_filter('get_user')

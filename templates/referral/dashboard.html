@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}Referral Program - MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <h2 class="mb-4"><i class="fas fa-gift me-2 text-primary"></i>Referral Program</h2>
+            
+            <div class="card bg-gradient-primary text-white mb-4" 
+                 style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h4 class="mb-2">Invite colleagues, earn rewards!</h4>
+                            <p class="mb-3 opacity-75">
+                                Share MedInvest with fellow medical professionals and earn commission 
+                                when they subscribe to a premium plan.
+                            </p>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="referralLink" readonly
+                                       value="{{ referral_url or 'https://medinvest.app/ref/YOUR_CODE' }}">
+                                <button class="btn btn-light" type="button" onclick="copyReferralLink()">
+                                    <i class="fas fa-copy me-1"></i>Copy
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-center d-none d-md-block">
+                            <i class="fas fa-users fa-5x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row g-4 mb-4">
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="display-4 text-primary fw-bold">{{ stats.total_referrals or 0 }}</div>
+                            <p class="text-muted mb-0">Total Referrals</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="display-4 text-success fw-bold">{{ stats.successful_referrals or 0 }}</div>
+                            <p class="text-muted mb-0">Successful Conversions</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="display-4 text-warning fw-bold">${{ '{:.2f}'.format(stats.total_earnings or 0) }}</div>
+                            <p class="text-muted mb-0">Total Earnings</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Referral History</h5>
+                    <span class="badge bg-primary">{{ referrals|length if referrals else 0 }} referrals</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>User</th>
+                                    <th>Date Joined</th>
+                                    <th>Status</th>
+                                    <th>Commission</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for referral in referrals %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-circle bg-secondary text-white me-2" 
+                                                 style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                                {{ referral.referred_user.username[0]|upper if referral.referred_user else '?' }}
+                                            </div>
+                                            <span>{{ referral.referred_user.username if referral.referred_user else 'Anonymous' }}</span>
+                                        </div>
+                                    </td>
+                                    <td>{{ referral.created_at.strftime('%b %d, %Y') if referral.created_at else 'N/A' }}</td>
+                                    <td>
+                                        {% if referral.status == 'converted' %}
+                                        <span class="badge bg-success">Converted</span>
+                                        {% elif referral.status == 'pending' %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ referral.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if referral.commission_amount %}
+                                        <span class="text-success fw-bold">${{ '{:.2f}'.format(referral.commission_amount) }}</span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        <i class="fas fa-users fa-2x mb-2 opacity-50"></i>
+                                        <p class="mb-0">No referrals yet. Share your link to get started!</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-trophy me-2 text-warning"></i>Reward Tiers</h5>
+                </div>
+                <div class="card-body">
+                    <div class="tier mb-3 pb-3 border-bottom">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge bg-secondary">Bronze</span>
+                            <span class="fw-bold">10% Commission</span>
+                        </div>
+                        <small class="text-muted">1-4 successful referrals</small>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div class="progress-bar bg-secondary" style="width: {{ (stats.successful_referrals or 0) / 5 * 100 }}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="tier mb-3 pb-3 border-bottom">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge" style="background-color: #cd7f32;">Silver</span>
+                            <span class="fw-bold">15% Commission</span>
+                        </div>
+                        <small class="text-muted">5-9 successful referrals</small>
+                    </div>
+                    
+                    <div class="tier mb-3 pb-3 border-bottom">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge bg-warning text-dark">Gold</span>
+                            <span class="fw-bold">20% Commission</span>
+                        </div>
+                        <small class="text-muted">10-24 successful referrals</small>
+                    </div>
+                    
+                    <div class="tier">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge" style="background: linear-gradient(135deg, #c0c0c0, #e8e8e8); color: #333;">Platinum</span>
+                            <span class="fw-bold">25% Commission</span>
+                        </div>
+                        <small class="text-muted">25+ successful referrals</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-share-alt me-2"></i>Share</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="https://twitter.com/intent/tweet?text=Join%20me%20on%20MedInvest%20-%20the%20investment%20platform%20for%20medical%20professionals!&url={{ referral_url }}" 
+                           class="btn btn-outline-info" target="_blank">
+                            <i class="fab fa-twitter me-2"></i>Share on Twitter
+                        </a>
+                        <a href="https://www.linkedin.com/shareArticle?mini=true&url={{ referral_url }}&title=MedInvest" 
+                           class="btn btn-outline-primary" target="_blank">
+                            <i class="fab fa-linkedin me-2"></i>Share on LinkedIn
+                        </a>
+                        <a href="mailto:?subject=Join%20MedInvest&body=Check%20out%20MedInvest%20-%20{{ referral_url }}" 
+                           class="btn btn-outline-secondary">
+                            <i class="fas fa-envelope me-2"></i>Share via Email
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>How It Works</h5>
+                </div>
+                <div class="card-body">
+                    <ol class="mb-0">
+                        <li class="mb-2">Share your unique referral link with colleagues</li>
+                        <li class="mb-2">They sign up using your link</li>
+                        <li class="mb-2">When they subscribe to Pro or Elite, you earn commission</li>
+                        <li>Commissions are paid monthly to your account</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyReferralLink() {
+    const input = document.getElementById('referralLink');
+    input.select();
+    document.execCommand('copy');
+    
+    const btn = event.target.closest('button');
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check me-1"></i>Copied!';
+    btn.classList.remove('btn-light');
+    btn.classList.add('btn-success');
+    
+    setTimeout(() => {
+        btn.innerHTML = originalHtml;
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-light');
+    }, 2000);
+}
+</script>
+{% endblock %}
