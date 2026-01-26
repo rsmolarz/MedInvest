@@ -73,9 +73,9 @@ class ReferralManager:
         referrals = Referral.query.filter_by(referrer_id=self.user.id).all()
         
         total = len(referrals)
-        successful = sum(1 for r in referrals if r.status == 'converted')
+        successful = sum(1 for r in referrals if r.status == 'rewarded')
         pending = sum(1 for r in referrals if r.status == 'pending')
-        total_earnings = sum(r.commission_amount or 0 for r in referrals if r.status == 'converted')
+        total_earnings = sum(r.reward_value or 0 for r in referrals if r.status == 'rewarded')
         
         return {
             'total_referrals': total,
@@ -106,13 +106,14 @@ def process_referral_signup(referred_user, referral_code: str) -> Optional[int]:
     if not referrer or referrer.id == referred_user.id:
         return None
     
-    existing = Referral.query.filter_by(referred_id=referred_user.id).first()
+    existing = Referral.query.filter_by(referred_user_id=referred_user.id).first()
     if existing:
         return None
     
     referral = Referral(
         referrer_id=referrer.id,
-        referred_id=referred_user.id,
+        referred_user_id=referred_user.id,
+        referral_code_used=referral_code,
         status='pending',
         created_at=datetime.utcnow()
     )
@@ -130,7 +131,7 @@ def process_referral_conversion(user_id: int, subscription_type: str) -> Optiona
     from models import Referral
     
     referral = Referral.query.filter_by(
-        referred_id=user_id,
+        referred_user_id=user_id,
         status='pending'
     ).first()
     
@@ -142,12 +143,14 @@ def process_referral_conversion(user_id: int, subscription_type: str) -> Optiona
     
     commission = calculate_commission(subscription_type, tier)
     
-    referral.status = 'converted'
-    referral.converted_at = datetime.utcnow()
-    referral.commission_amount = commission
-    referral.subscription_type = subscription_type
+    referral.status = 'rewarded'
+    referral.rewarded_at = datetime.utcnow()
+    referral.reward_value = commission
+    referral.reward_type = 'commission'
+    referral.referred_user_premium = True
     
-    referral.referrer.add_points(50)
+    if hasattr(referral.referrer, 'add_points'):
+        referral.referrer.add_points(50)
     
     db.session.commit()
     

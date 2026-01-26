@@ -50,18 +50,18 @@ class ContentModerator:
     @staticmethod
     def create_report(
         reporter_id: int,
-        content_type: str,
-        content_id: int,
+        entity_type: str,
+        entity_id: int,
         reason: str,
-        description: str = None
+        details: str = None
     ) -> Optional[int]:
         """Create a content report."""
         from models import ContentReport
         
         existing = ContentReport.query.filter_by(
             reporter_id=reporter_id,
-            content_type=content_type,
-            content_id=content_id
+            entity_type=entity_type,
+            entity_id=entity_id
         ).first()
         
         if existing:
@@ -69,49 +69,48 @@ class ContentModerator:
         
         report = ContentReport(
             reporter_id=reporter_id,
-            content_type=content_type,
-            content_id=content_id,
+            entity_type=entity_type,
+            entity_id=entity_id,
             reason=reason,
-            description=description,
-            status='pending',
+            details=details,
+            status='open',
             created_at=datetime.utcnow()
         )
         db.session.add(report)
         db.session.commit()
         
-        ContentModerator.check_auto_moderation(content_type, content_id)
+        ContentModerator.check_auto_moderation(entity_type, entity_id)
         
         return report.id
     
     @staticmethod
-    def check_auto_moderation(content_type: str, content_id: int) -> None:
+    def check_auto_moderation(entity_type: str, entity_id: int) -> None:
         """Check if auto-moderation should be triggered."""
         from models import ContentReport
         
         report_count = ContentReport.query.filter_by(
-            content_type=content_type,
-            content_id=content_id,
-            status='pending'
+            entity_type=entity_type,
+            entity_id=entity_id,
+            status='open'
         ).count()
         
         if report_count >= AUTO_MODERATION_THRESHOLDS['hide_content']:
-            ContentModerator.hide_content(content_type, content_id, reason='auto_moderation')
-            logger.info(f"Auto-hid {content_type} {content_id} due to {report_count} reports")
+            ContentModerator.hide_content(entity_type, entity_id, reason='auto_moderation')
+            logger.info(f"Auto-hid {entity_type} {entity_id} due to {report_count} reports")
     
     @staticmethod
-    def hide_content(content_type: str, content_id: int, reason: str = None) -> bool:
+    def hide_content(entity_type: str, entity_id: int, reason: str = None) -> bool:
         """Hide content from public view."""
         from models import Post, Comment
         
-        if content_type == 'post':
-            content = Post.query.get(content_id)
+        if entity_type == 'post':
+            content = Post.query.get(entity_id)
             if content:
                 content.is_hidden = True
-                content.hidden_reason = reason
                 db.session.commit()
                 return True
-        elif content_type == 'comment':
-            content = Comment.query.get(content_id)
+        elif entity_type == 'comment':
+            content = Comment.query.get(entity_id)
             if content:
                 content.is_hidden = True
                 db.session.commit()
@@ -129,24 +128,22 @@ class ContentModerator:
             return False
         
         report.status = 'resolved'
-        report.resolved_by = moderator_id
+        report.resolved_by_id = moderator_id
         report.resolved_at = datetime.utcnow()
-        report.resolution_action = action
-        report.resolution_notes = notes
+        report.resolution = action
         
         event = ModerationEvent(
-            moderator_id=moderator_id,
-            content_type=report.content_type,
-            content_id=report.content_id,
+            performed_by_id=moderator_id,
+            entity_type=report.entity_type,
+            entity_id=report.entity_id,
             action=action,
             reason=report.reason,
-            notes=notes,
             created_at=datetime.utcnow()
         )
         db.session.add(event)
         
         if action in ['hide', 'delete']:
-            ContentModerator.hide_content(report.content_type, report.content_id, reason=action)
+            ContentModerator.hide_content(report.entity_type, report.entity_id, reason=action)
         
         db.session.commit()
         return True
@@ -172,7 +169,7 @@ class ContentModerator:
         """Get pending reports for moderation."""
         from models import ContentReport
         return ContentReport.query.filter_by(
-            status='pending'
+            status='open'
         ).order_by(ContentReport.created_at.asc()).limit(limit).all()
     
     @staticmethod
@@ -184,7 +181,7 @@ class ContentModerator:
         today = now.replace(hour=0, minute=0, second=0, microsecond=0)
         week_ago = now - timedelta(days=7)
         
-        pending = ContentReport.query.filter_by(status='pending').count()
+        pending = ContentReport.query.filter_by(status='open').count()
         resolved_today = ContentReport.query.filter(
             ContentReport.resolved_at >= today,
             ContentReport.status == 'resolved'
@@ -225,8 +222,9 @@ class ContentModerator:
         user.warning_count = (user.warning_count or 0) + 1
         
         event = ModerationEvent(
-            moderator_id=moderator_id,
-            target_user_id=user_id,
+            performed_by_id=moderator_id,
+            entity_type='user',
+            entity_id=user_id,
             action='warn',
             reason=reason,
             created_at=datetime.utcnow()
@@ -253,8 +251,9 @@ class ContentModerator:
             user.banned_until = datetime.utcnow() + timedelta(days=duration_days)
         
         event = ModerationEvent(
-            moderator_id=moderator_id,
-            target_user_id=user_id,
+            performed_by_id=moderator_id,
+            entity_type='user',
+            entity_id=user_id,
             action='ban',
             reason=reason,
             created_at=datetime.utcnow()
