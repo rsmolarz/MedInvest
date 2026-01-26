@@ -1,0 +1,274 @@
+{% macro notification_bell(unread_count=0) %}
+<div class="notification-bell dropdown">
+    <button class="btn btn-link position-relative" type="button" id="notificationDropdown" 
+            data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="fas fa-bell fa-lg"></i>
+        {% if unread_count > 0 %}
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" 
+              id="notificationBadge">
+            {{ unread_count if unread_count < 100 else '99+' }}
+        </span>
+        {% endif %}
+    </button>
+    
+    <div class="dropdown-menu dropdown-menu-end notification-dropdown" aria-labelledby="notificationDropdown">
+        <div class="notification-header d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+            <h6 class="mb-0">Notifications</h6>
+            <button class="btn btn-link btn-sm text-decoration-none" id="markAllRead">
+                Mark all read
+            </button>
+        </div>
+        
+        <div class="notification-list" id="notificationList" style="max-height: 400px; overflow-y: auto;">
+            <div class="text-center py-4 text-muted" id="noNotifications">
+                <i class="fas fa-bell-slash fa-2x mb-2"></i>
+                <p class="mb-0">No notifications</p>
+            </div>
+        </div>
+        
+        <div class="notification-footer text-center border-top py-2">
+            <a href="{{ url_for('notifications.index') if url_for else '/notifications' }}" 
+               class="text-decoration-none">View all notifications</a>
+        </div>
+    </div>
+</div>
+
+<style>
+.notification-dropdown {
+    width: 350px;
+    padding: 0;
+}
+.notification-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--bs-border-color);
+    transition: background-color 0.2s;
+}
+.notification-item:hover {
+    background-color: var(--bs-light);
+}
+.notification-item.unread {
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+    border-left: 3px solid var(--bs-primary);
+}
+.notification-item .notification-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.notification-item .notification-time {
+    font-size: 0.75rem;
+    color: var(--bs-secondary);
+}
+</style>
+
+<script>
+class NotificationManager {
+    constructor() {
+        this.pollInterval = 30000;
+        this.init();
+    }
+    
+    init() {
+        this.loadNotifications();
+        setInterval(() => this.loadNotifications(), this.pollInterval);
+        
+        document.getElementById('markAllRead')?.addEventListener('click', () => this.markAllRead());
+    }
+    
+    async loadNotifications() {
+        try {
+            const response = await fetch('/notifications/api/list');
+            const data = await response.json();
+            
+            this.updateBadge(data.unread_count);
+            this.renderNotifications(data.notifications);
+        } catch (error) {
+            console.error('Failed to load notifications:', error);
+        }
+    }
+    
+    updateBadge(count) {
+        const badge = document.getElementById('notificationBadge');
+        if (badge) {
+            if (count > 0) {
+                badge.textContent = count < 100 ? count : '99+';
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    }
+    
+    renderNotifications(notifications) {
+        const container = document.getElementById('notificationList');
+        const noNotifications = document.getElementById('noNotifications');
+        
+        if (!notifications || notifications.length === 0) {
+            noNotifications.style.display = 'block';
+            return;
+        }
+        
+        noNotifications.style.display = 'none';
+        
+        const html = notifications.slice(0, 10).map(n => `
+            <a href="${n.url || '#'}" class="notification-item d-flex ${n.is_read ? '' : 'unread'}" 
+               data-id="${n.id}">
+                <div class="notification-icon bg-${this.getTypeColor(n.type)} text-white me-3">
+                    <i class="fas ${this.getTypeIcon(n.type)}"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="fw-semibold">${n.title}</div>
+                    <div class="text-muted small">${n.message}</div>
+                    <div class="notification-time">${n.time_ago || ''}</div>
+                </div>
+            </a>
+        `).join('');
+        
+        container.innerHTML = html + container.querySelector('.notification-footer')?.outerHTML || '';
+    }
+    
+    getTypeIcon(type) {
+        const icons = {
+            'like': 'fa-heart',
+            'comment': 'fa-comment',
+            'follow': 'fa-user-plus',
+            'mention': 'fa-at',
+            'deal': 'fa-briefcase',
+            'ama': 'fa-microphone',
+            'message': 'fa-envelope'
+        };
+        return icons[type] || 'fa-bell';
+    }
+    
+    getTypeColor(type) {
+        const colors = {
+            'like': 'danger',
+            'comment': 'info',
+            'follow': 'success',
+            'mention': 'warning',
+            'deal': 'primary',
+            'ama': 'purple',
+            'message': 'secondary'
+        };
+        return colors[type] || 'primary';
+    }
+    
+    async markAllRead() {
+        try {
+            await fetch('/notifications/read-all', { method: 'POST' });
+            this.loadNotifications();
+        } catch (error) {
+            console.error('Failed to mark all read:', error);
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => new NotificationManager());
+</script>
+{% endmacro %}
+
+
+{% macro notification_preferences_form(preferences) %}
+<div class="notification-preferences">
+    <form method="POST" action="{{ url_for('notifications.save_preferences') if url_for else '/notifications/preferences' }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-bell me-2"></i>In-App Notifications</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% set in_app_options = [
+                        ('in_app_likes', 'Likes', 'When someone likes your posts'),
+                        ('in_app_comments', 'Comments', 'When someone comments on your posts'),
+                        ('in_app_follows', 'Follows', 'When someone follows you'),
+                        ('in_app_mentions', 'Mentions', 'When someone mentions you'),
+                        ('in_app_deals', 'Deals', 'New investment deal notifications'),
+                        ('in_app_amas', 'AMAs', 'Expert AMA announcements'),
+                        ('in_app_messages', 'Messages', 'Direct message notifications')
+                    ] %}
+                    {% for id, label, desc in in_app_options %}
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="{{ id }}" name="{{ id }}"
+                                   {{ 'checked' if preferences and getattr(preferences, id, True) else '' }}>
+                            <label class="form-check-label" for="{{ id }}">
+                                <strong>{{ label }}</strong>
+                                <small class="d-block text-muted">{{ desc }}</small>
+                            </label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-envelope me-2"></i>Email Notifications</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <label class="form-label">Email Digest Frequency</label>
+                    <select class="form-select" name="email_digest" id="email_digest">
+                        <option value="none" {{ 'selected' if not preferences or preferences.email_digest == 'none' else '' }}>
+                            No email digest
+                        </option>
+                        <option value="daily" {{ 'selected' if preferences and preferences.email_digest == 'daily' else '' }}>
+                            Daily summary
+                        </option>
+                        <option value="weekly" {{ 'selected' if preferences and preferences.email_digest == 'weekly' else '' }}>
+                            Weekly summary
+                        </option>
+                    </select>
+                </div>
+                
+                <div class="row">
+                    {% set email_options = [
+                        ('email_deals', 'New Deals', 'Email when new investment deals are posted'),
+                        ('email_amas', 'AMA Reminders', 'Reminders before AMAs you registered for'),
+                        ('email_marketing', 'Marketing', 'Platform updates and promotions')
+                    ] %}
+                    {% for id, label, desc in email_options %}
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="{{ id }}" name="{{ id }}"
+                                   {{ 'checked' if preferences and getattr(preferences, id, False) else '' }}>
+                            <label class="form-check-label" for="{{ id }}">
+                                <strong>{{ label }}</strong>
+                                <small class="d-block text-muted">{{ desc }}</small>
+                            </label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-mobile-alt me-2"></i>Push Notifications</h5>
+            </div>
+            <div class="card-body">
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" id="push_enabled" name="push_enabled"
+                           {{ 'checked' if preferences and preferences.push_enabled else '' }}>
+                    <label class="form-check-label" for="push_enabled">
+                        <strong>Enable Push Notifications</strong>
+                        <small class="d-block text-muted">Receive browser push notifications</small>
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Save Preferences</button>
+            <button type="reset" class="btn btn-outline-secondary">Reset</button>
+        </div>
+    </form>
+</div>
+{% endmacro %}

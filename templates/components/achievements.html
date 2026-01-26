@@ -1,0 +1,202 @@
+{% macro achievement_badge(achievement, size='md') %}
+{% set sizes = {'sm': '40px', 'md': '60px', 'lg': '80px'} %}
+{% set icon_sizes = {'sm': 'fa-lg', 'md': 'fa-2x', 'lg': 'fa-3x'} %}
+
+<div class="achievement-badge text-center" data-bs-toggle="tooltip" 
+     title="{{ achievement.description }}" style="width: {{ sizes[size] }};">
+    <div class="achievement-icon rounded-circle d-flex align-items-center justify-content-center mx-auto mb-1"
+         style="width: {{ sizes[size] }}; height: {{ sizes[size] }}; background: linear-gradient(135deg, {{ achievement.color or '#6366f1' }}, {{ achievement.color_secondary or '#8b5cf6' }});">
+        <i class="fas {{ achievement.icon or 'fa-trophy' }} {{ icon_sizes[size] }} text-white"></i>
+    </div>
+    <small class="text-truncate d-block" style="font-size: 0.7rem;">{{ achievement.name }}</small>
+</div>
+{% endmacro %}
+
+
+{% macro achievement_card(achievement) %}
+<div class="achievement-card card h-100 {{ 'border-success' if achievement.unlocked else 'opacity-50' }}">
+    <div class="card-body text-center">
+        <div class="achievement-icon-wrapper mb-3">
+            <div class="achievement-icon rounded-circle d-flex align-items-center justify-content-center mx-auto"
+                 style="width: 80px; height: 80px; background: {{ 'linear-gradient(135deg, #6366f1, #8b5cf6)' if achievement.unlocked else '#e5e7eb' }};">
+                <i class="fas {{ achievement.icon or 'fa-trophy' }} fa-2x {{ 'text-white' if achievement.unlocked else 'text-muted' }}"></i>
+            </div>
+            {% if achievement.unlocked %}
+            <span class="badge bg-success position-absolute" style="top: 10px; right: 10px;">
+                <i class="fas fa-check"></i>
+            </span>
+            {% endif %}
+        </div>
+        
+        <h6 class="card-title">{{ achievement.name }}</h6>
+        <p class="card-text text-muted small">{{ achievement.description }}</p>
+        
+        {% if achievement.unlocked %}
+        <small class="text-success">
+            <i class="fas fa-calendar me-1"></i>
+            Earned {{ achievement.earned_at.strftime('%b %d, %Y') if achievement.earned_at else 'Recently' }}
+        </small>
+        {% else %}
+        <div class="progress mt-2" style="height: 6px;">
+            <div class="progress-bar" role="progressbar" 
+                 style="width: {{ (achievement.progress or 0) }}%"></div>
+        </div>
+        <small class="text-muted">{{ achievement.progress_text or 'Keep going!' }}</small>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+
+{% macro achievements_grid(achievements, columns=4) %}
+<div class="achievements-grid">
+    <div class="row g-3">
+        {% for achievement in achievements %}
+        <div class="col-6 col-md-{{ 12 // columns }}">
+            {{ achievement_card(achievement) }}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endmacro %}
+
+
+{% macro achievements_showcase(achievements, max_display=5) %}
+<div class="achievements-showcase">
+    <div class="d-flex flex-wrap gap-2 justify-content-center">
+        {% for achievement in achievements[:max_display] %}
+        {{ achievement_badge(achievement, 'sm') }}
+        {% endfor %}
+        
+        {% if achievements|length > max_display %}
+        <div class="achievement-more text-center" style="width: 40px;">
+            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mx-auto"
+                 style="width: 40px; height: 40px;">
+                <span class="text-white small">+{{ achievements|length - max_display }}</span>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+
+{% macro achievements_progress_section() %}
+<div class="achievements-progress card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-trophy me-2 text-warning"></i>Achievements</h5>
+        <a href="{{ url_for('main.achievements') if url_for else '/achievements' }}" class="btn btn-sm btn-outline-primary">
+            View All
+        </a>
+    </div>
+    <div class="card-body">
+        <div class="row g-3" id="achievementsContainer">
+            <div class="text-center py-3">
+                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadAchievements();
+});
+
+async function loadAchievements() {
+    const container = document.getElementById('achievementsContainer');
+    
+    try {
+        const response = await fetch('/api/achievements');
+        const achievements = await response.json();
+        
+        if (achievements.length === 0) {
+            container.innerHTML = `
+                <div class="col-12 text-center text-muted py-4">
+                    <i class="fas fa-medal fa-3x mb-3 opacity-50"></i>
+                    <p>No achievements yet. Keep engaging to earn badges!</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = achievements.slice(0, 4).map(a => `
+            <div class="col-6 col-md-3">
+                <div class="text-center">
+                    <div class="achievement-icon rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2"
+                         style="width: 50px; height: 50px; background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+                        <i class="fas ${a.icon || 'fa-trophy'} text-white"></i>
+                    </div>
+                    <small class="d-block text-truncate">${a.name}</small>
+                </div>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        container.innerHTML = '<div class="col-12 text-center text-muted">Failed to load achievements</div>';
+    }
+}
+</script>
+{% endmacro %}
+
+
+{% macro achievement_notification(achievement) %}
+<div class="achievement-notification toast" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-header bg-warning text-dark">
+        <i class="fas fa-trophy me-2"></i>
+        <strong class="me-auto">Achievement Unlocked!</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+    </div>
+    <div class="toast-body d-flex align-items-center">
+        <div class="achievement-icon rounded-circle d-flex align-items-center justify-content-center me-3"
+             style="width: 50px; height: 50px; background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+            <i class="fas {{ achievement.icon or 'fa-trophy' }} text-white"></i>
+        </div>
+        <div>
+            <strong>{{ achievement.name }}</strong>
+            <p class="mb-0 small text-muted">{{ achievement.description }}</p>
+        </div>
+    </div>
+</div>
+
+<script>
+function showAchievementNotification(achievement) {
+    const toastHtml = `
+        <div class="toast achievement-toast" role="alert">
+            <div class="toast-header bg-warning text-dark">
+                <i class="fas fa-trophy me-2"></i>
+                <strong class="me-auto">Achievement Unlocked!</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body d-flex align-items-center">
+                <div class="achievement-icon rounded-circle d-flex align-items-center justify-content-center me-3"
+                     style="width: 50px; height: 50px; background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+                    <i class="fas ${achievement.icon || 'fa-trophy'} text-white"></i>
+                </div>
+                <div>
+                    <strong>${achievement.name}</strong>
+                    <p class="mb-0 small text-muted">${achievement.description}</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    let container = document.getElementById('achievementToasts');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'achievementToasts';
+        container.className = 'toast-container position-fixed top-0 end-0 p-3';
+        document.body.appendChild(container);
+    }
+    
+    container.insertAdjacentHTML('beforeend', toastHtml);
+    const toastEl = container.lastElementChild;
+    const toast = new bootstrap.Toast(toastEl, { delay: 5000 });
+    toast.show();
+    
+    toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+}
+</script>
+{% endmacro %}

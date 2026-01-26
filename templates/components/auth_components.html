@@ -1,0 +1,263 @@
+{% macro login_form(action_url='/auth/login', show_social=True) %}
+<div class="auth-component card shadow-sm">
+    <div class="card-body p-4">
+        <h4 class="card-title text-center mb-4">Sign In</h4>
+        
+        <form method="POST" action="{{ action_url }}" id="loginForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            
+            <div class="mb-3">
+                <label for="email" class="form-label">Email Address</label>
+                <input type="email" class="form-control" id="email" name="email" 
+                       required autocomplete="email" placeholder="doctor@hospital.com">
+                <div class="invalid-feedback" id="emailError"></div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <div class="input-group">
+                    <input type="password" class="form-control" id="password" name="password" 
+                           required autocomplete="current-password" placeholder="Enter password">
+                    <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+                <div class="invalid-feedback" id="passwordError"></div>
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="remember" name="remember">
+                    <label class="form-check-label" for="remember">Remember me</label>
+                </div>
+                <a href="{{ url_for('auth.forgot_password') if url_for else '#' }}" class="text-decoration-none">
+                    Forgot password?
+                </a>
+            </div>
+            
+            <button type="submit" class="btn btn-primary w-100 mb-3" id="loginBtn">
+                <span class="spinner-border spinner-border-sm d-none" id="loginSpinner"></span>
+                Sign In
+            </button>
+        </form>
+        
+        {% if show_social %}
+        <div class="divider my-4">
+            <span class="divider-text">or continue with</span>
+        </div>
+        
+        <div class="d-grid gap-2">
+            <a href="{{ url_for('auth.google_login') if url_for else '#' }}" class="btn btn-outline-danger">
+                <i class="fab fa-google me-2"></i>Google
+            </a>
+            <a href="{{ url_for('auth.github_login') if url_for else '#' }}" class="btn btn-outline-dark">
+                <i class="fab fa-github me-2"></i>GitHub
+            </a>
+        </div>
+        {% endif %}
+        
+        <p class="text-center mt-4 mb-0">
+            Don't have an account? 
+            <a href="{{ url_for('auth.register') if url_for else '#' }}">Sign up</a>
+        </p>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('password');
+    const loginForm = document.getElementById('loginForm');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginSpinner = document.getElementById('loginSpinner');
+    
+    if (togglePassword) {
+        togglePassword.addEventListener('click', function() {
+            const type = passwordInput.type === 'password' ? 'text' : 'password';
+            passwordInput.type = type;
+            this.querySelector('i').classList.toggle('fa-eye');
+            this.querySelector('i').classList.toggle('fa-eye-slash');
+        });
+    }
+    
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            loginBtn.disabled = true;
+            loginSpinner.classList.remove('d-none');
+        });
+    }
+});
+</script>
+
+<style>
+.divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+}
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+.divider-text {
+    padding: 0 1rem;
+    color: var(--bs-secondary);
+    font-size: 0.875rem;
+}
+</style>
+{% endmacro %}
+
+
+{% macro register_form(action_url='/auth/register') %}
+<div class="auth-component card shadow-sm">
+    <div class="card-body p-4">
+        <h4 class="card-title text-center mb-4">Create Account</h4>
+        
+        <form method="POST" action="{{ action_url }}" id="registerForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="first_name" class="form-label">First Name</label>
+                    <input type="text" class="form-control" id="first_name" name="first_name" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="last_name" class="form-label">Last Name</label>
+                    <input type="text" class="form-control" id="last_name" name="last_name" required>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="email" class="form-label">Email Address</label>
+                <input type="email" class="form-control" id="email" name="email" required>
+            </div>
+            
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username" name="username" required 
+                       pattern="[a-zA-Z0-9_]+" minlength="3" maxlength="20">
+                <div class="form-text">3-20 characters, letters, numbers, and underscores only</div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" name="password" 
+                       required minlength="8">
+                <div class="password-strength mt-2">
+                    <div class="progress" style="height: 5px;">
+                        <div class="progress-bar" id="passwordStrength" style="width: 0%"></div>
+                    </div>
+                    <small class="text-muted" id="passwordStrengthText">Enter a password</small>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="confirm_password" class="form-label">Confirm Password</label>
+                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+            </div>
+            
+            <div class="mb-3">
+                <label for="specialty" class="form-label">Medical Specialty</label>
+                <select class="form-select" id="specialty" name="specialty">
+                    <option value="">Select specialty...</option>
+                    <option value="cardiology">Cardiology</option>
+                    <option value="dermatology">Dermatology</option>
+                    <option value="emergency">Emergency Medicine</option>
+                    <option value="family">Family Medicine</option>
+                    <option value="internal">Internal Medicine</option>
+                    <option value="neurology">Neurology</option>
+                    <option value="oncology">Oncology</option>
+                    <option value="orthopedics">Orthopedics</option>
+                    <option value="pediatrics">Pediatrics</option>
+                    <option value="psychiatry">Psychiatry</option>
+                    <option value="radiology">Radiology</option>
+                    <option value="surgery">Surgery</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="terms" name="terms" required>
+                <label class="form-check-label" for="terms">
+                    I agree to the <a href="/terms" target="_blank">Terms of Service</a> 
+                    and <a href="/privacy" target="_blank">Privacy Policy</a>
+                </label>
+            </div>
+            
+            <button type="submit" class="btn btn-primary w-100">Create Account</button>
+        </form>
+        
+        <p class="text-center mt-4 mb-0">
+            Already have an account? 
+            <a href="{{ url_for('auth.login') if url_for else '#' }}">Sign in</a>
+        </p>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const passwordInput = document.getElementById('password');
+    const strengthBar = document.getElementById('passwordStrength');
+    const strengthText = document.getElementById('passwordStrengthText');
+    
+    if (passwordInput) {
+        passwordInput.addEventListener('input', function() {
+            const password = this.value;
+            let strength = 0;
+            
+            if (password.length >= 8) strength += 25;
+            if (password.match(/[a-z]/)) strength += 25;
+            if (password.match(/[A-Z]/)) strength += 25;
+            if (password.match(/[0-9!@#$%^&*]/)) strength += 25;
+            
+            strengthBar.style.width = strength + '%';
+            
+            if (strength <= 25) {
+                strengthBar.className = 'progress-bar bg-danger';
+                strengthText.textContent = 'Weak password';
+            } else if (strength <= 50) {
+                strengthBar.className = 'progress-bar bg-warning';
+                strengthText.textContent = 'Fair password';
+            } else if (strength <= 75) {
+                strengthBar.className = 'progress-bar bg-info';
+                strengthText.textContent = 'Good password';
+            } else {
+                strengthBar.className = 'progress-bar bg-success';
+                strengthText.textContent = 'Strong password';
+            }
+        });
+    }
+});
+</script>
+{% endmacro %}
+
+
+{% macro password_reset_form(action_url='/auth/reset-password') %}
+<div class="auth-component card shadow-sm">
+    <div class="card-body p-4">
+        <h4 class="card-title text-center mb-4">Reset Password</h4>
+        <p class="text-muted text-center mb-4">
+            Enter your email address and we'll send you a link to reset your password.
+        </p>
+        
+        <form method="POST" action="{{ action_url }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            
+            <div class="mb-3">
+                <label for="email" class="form-label">Email Address</label>
+                <input type="email" class="form-control" id="email" name="email" required>
+            </div>
+            
+            <button type="submit" class="btn btn-primary w-100">Send Reset Link</button>
+        </form>
+        
+        <p class="text-center mt-4 mb-0">
+            <a href="{{ url_for('auth.login') if url_for else '#' }}">
+                <i class="fas fa-arrow-left me-1"></i>Back to login
+            </a>
+        </p>
+    </div>
+</div>
+{% endmacro %}

@@ -1,0 +1,287 @@
+{% macro filter_bar(filters, current_filters={}) %}
+<div class="filter-bar card mb-4">
+    <div class="card-body">
+        <form method="GET" id="filterForm" class="row g-3 align-items-end">
+            {% for filter in filters %}
+            <div class="col-md-{{ filter.col_width or 3 }}">
+                {% if filter.type == 'select' %}
+                <label for="{{ filter.name }}" class="form-label small">{{ filter.label }}</label>
+                <select class="form-select form-select-sm" id="{{ filter.name }}" name="{{ filter.name }}"
+                        onchange="this.form.submit()">
+                    <option value="">{{ filter.placeholder or 'All' }}</option>
+                    {% for option in filter.options %}
+                    <option value="{{ option.value }}" 
+                            {{ 'selected' if current_filters.get(filter.name) == option.value else '' }}>
+                        {{ option.label }}
+                    </option>
+                    {% endfor %}
+                </select>
+                
+                {% elif filter.type == 'range' %}
+                <label class="form-label small">{{ filter.label }}</label>
+                <div class="input-group input-group-sm">
+                    <input type="number" class="form-control" name="{{ filter.name }}_min" 
+                           placeholder="Min" value="{{ current_filters.get(filter.name ~ '_min', '') }}">
+                    <span class="input-group-text">-</span>
+                    <input type="number" class="form-control" name="{{ filter.name }}_max" 
+                           placeholder="Max" value="{{ current_filters.get(filter.name ~ '_max', '') }}">
+                </div>
+                
+                {% elif filter.type == 'search' %}
+                <label for="{{ filter.name }}" class="form-label small">{{ filter.label }}</label>
+                <div class="input-group input-group-sm">
+                    <input type="text" class="form-control" id="{{ filter.name }}" name="{{ filter.name }}"
+                           placeholder="{{ filter.placeholder or 'Search...' }}"
+                           value="{{ current_filters.get(filter.name, '') }}">
+                    <button class="btn btn-outline-primary" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                
+                {% elif filter.type == 'date' %}
+                <label for="{{ filter.name }}" class="form-label small">{{ filter.label }}</label>
+                <input type="date" class="form-control form-control-sm" id="{{ filter.name }}" 
+                       name="{{ filter.name }}" value="{{ current_filters.get(filter.name, '') }}"
+                       onchange="this.form.submit()">
+                
+                {% elif filter.type == 'checkbox_group' %}
+                <label class="form-label small d-block">{{ filter.label }}</label>
+                <div class="btn-group btn-group-sm" role="group">
+                    {% for option in filter.options %}
+                    <input type="checkbox" class="btn-check" id="{{ filter.name }}_{{ option.value }}" 
+                           name="{{ filter.name }}" value="{{ option.value }}"
+                           {{ 'checked' if option.value in current_filters.get(filter.name, []) else '' }}>
+                    <label class="btn btn-outline-primary" for="{{ filter.name }}_{{ option.value }}">
+                        {{ option.label }}
+                    </label>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-filter me-1"></i>Apply
+                </button>
+                <a href="?" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-times me-1"></i>Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endmacro %}
+
+
+{% macro sort_dropdown(options, current_sort='newest') %}
+<div class="sort-dropdown dropdown">
+    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" 
+            id="sortDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="fas fa-sort me-1"></i>
+        Sort: {{ options | selectattr('value', 'equalto', current_sort) | map(attribute='label') | first | default('Newest') }}
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="sortDropdown">
+        {% for option in options %}
+        <li>
+            <a class="dropdown-item {{ 'active' if option.value == current_sort else '' }}" 
+               href="?sort={{ option.value }}">
+                {% if option.icon %}<i class="fas {{ option.icon }} me-2"></i>{% endif %}
+                {{ option.label }}
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endmacro %}
+
+
+{% macro deals_filter() %}
+{{ filter_bar([
+    {
+        'name': 'type',
+        'label': 'Deal Type',
+        'type': 'select',
+        'col_width': 2,
+        'options': [
+            {'value': 'real_estate', 'label': 'Real Estate'},
+            {'value': 'private_equity', 'label': 'Private Equity'},
+            {'value': 'venture_capital', 'label': 'Venture Capital'},
+            {'value': 'hedge_fund', 'label': 'Hedge Fund'},
+            {'value': 'crypto', 'label': 'Crypto'},
+            {'value': 'other', 'label': 'Other'}
+        ]
+    },
+    {
+        'name': 'investment',
+        'label': 'Investment Range',
+        'type': 'range',
+        'col_width': 3
+    },
+    {
+        'name': 'q',
+        'label': 'Search',
+        'type': 'search',
+        'col_width': 3,
+        'placeholder': 'Search deals...'
+    }
+], request.args.to_dict() if request else {}) }}
+{% endmacro %}
+
+
+{% macro courses_filter() %}
+{{ filter_bar([
+    {
+        'name': 'category',
+        'label': 'Category',
+        'type': 'select',
+        'col_width': 2,
+        'options': [
+            {'value': 'investing', 'label': 'Investing Basics'},
+            {'value': 'real_estate', 'label': 'Real Estate'},
+            {'value': 'tax', 'label': 'Tax Strategy'},
+            {'value': 'retirement', 'label': 'Retirement'},
+            {'value': 'business', 'label': 'Business'}
+        ]
+    },
+    {
+        'name': 'level',
+        'label': 'Level',
+        'type': 'select',
+        'col_width': 2,
+        'options': [
+            {'value': 'beginner', 'label': 'Beginner'},
+            {'value': 'intermediate', 'label': 'Intermediate'},
+            {'value': 'advanced', 'label': 'Advanced'}
+        ]
+    },
+    {
+        'name': 'price',
+        'label': 'Price',
+        'type': 'select',
+        'col_width': 2,
+        'options': [
+            {'value': 'free', 'label': 'Free'},
+            {'value': 'paid', 'label': 'Paid'}
+        ]
+    },
+    {
+        'name': 'q',
+        'label': 'Search',
+        'type': 'search',
+        'col_width': 3,
+        'placeholder': 'Search courses...'
+    }
+], request.args.to_dict() if request else {}) }}
+{% endmacro %}
+
+
+{% macro events_filter() %}
+{{ filter_bar([
+    {
+        'name': 'type',
+        'label': 'Event Type',
+        'type': 'select',
+        'col_width': 2,
+        'options': [
+            {'value': 'webinar', 'label': 'Webinar'},
+            {'value': 'workshop', 'label': 'Workshop'},
+            {'value': 'conference', 'label': 'Conference'},
+            {'value': 'networking', 'label': 'Networking'}
+        ]
+    },
+    {
+        'name': 'date',
+        'label': 'Date',
+        'type': 'select',
+        'col_width': 2,
+        'options': [
+            {'value': 'upcoming', 'label': 'Upcoming'},
+            {'value': 'this_week', 'label': 'This Week'},
+            {'value': 'this_month', 'label': 'This Month'},
+            {'value': 'past', 'label': 'Past'}
+        ]
+    },
+    {
+        'name': 'q',
+        'label': 'Search',
+        'type': 'search',
+        'col_width': 3,
+        'placeholder': 'Search events...'
+    }
+], request.args.to_dict() if request else {}) }}
+{% endmacro %}
+
+
+{% macro rooms_filter() %}
+{{ filter_bar([
+    {
+        'name': 'category',
+        'label': 'Category',
+        'type': 'select',
+        'col_width': 3,
+        'options': [
+            {'value': 'Real Estate', 'label': 'Real Estate'},
+            {'value': 'Stocks', 'label': 'Stocks'},
+            {'value': 'Crypto', 'label': 'Crypto'},
+            {'value': 'Retirement', 'label': 'Retirement'},
+            {'value': 'Tax', 'label': 'Tax Strategy'},
+            {'value': 'Business', 'label': 'Business'}
+        ]
+    },
+    {
+        'name': 'q',
+        'label': 'Search',
+        'type': 'search',
+        'col_width': 4,
+        'placeholder': 'Search rooms...'
+    }
+], request.args.to_dict() if request else {}) }}
+{% endmacro %}
+
+
+{% macro active_filters(filters) %}
+{% if filters %}
+<div class="active-filters mb-3">
+    <span class="text-muted me-2">Active filters:</span>
+    {% for key, value in filters.items() if value %}
+    <span class="badge bg-primary me-1">
+        {{ key }}: {{ value }}
+        <a href="?" class="text-white ms-1 text-decoration-none">&times;</a>
+    </span>
+    {% endfor %}
+    <a href="?" class="btn btn-link btn-sm">Clear all</a>
+</div>
+{% endif %}
+{% endmacro %}
+
+
+{% macro pagination(page, total_pages, endpoint) %}
+{% if total_pages > 1 %}
+<nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {{ 'disabled' if page <= 1 else '' }}">
+            <a class="page-link" href="{{ url_for(endpoint, page=page-1, **request.args) if page > 1 else '#' }}">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+        </li>
+        
+        {% for p in range(1, total_pages + 1) %}
+            {% if p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+            <li class="page-item {{ 'active' if p == page else '' }}">
+                <a class="page-link" href="{{ url_for(endpoint, page=p, **request.args) }}">{{ p }}</a>
+            </li>
+            {% elif p == page - 3 or p == page + 3 %}
+            <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+        {% endfor %}
+        
+        <li class="page-item {{ 'disabled' if page >= total_pages else '' }}">
+            <a class="page-link" href="{{ url_for(endpoint, page=page+1, **request.args) if page < total_pages else '#' }}">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+{% endmacro %}

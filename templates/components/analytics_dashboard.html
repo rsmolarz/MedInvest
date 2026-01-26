@@ -1,0 +1,232 @@
+{% macro stat_card(title, value, icon, color='primary', change=None, change_period='vs last week') %}
+<div class="stat-card card h-100 border-0 shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <p class="text-muted mb-1 small text-uppercase">{{ title }}</p>
+                <h3 class="mb-0 fw-bold">{{ value }}</h3>
+                {% if change is not none %}
+                <small class="{{ 'text-success' if change >= 0 else 'text-danger' }}">
+                    <i class="fas fa-{{ 'arrow-up' if change >= 0 else 'arrow-down' }} me-1"></i>
+                    {{ change|abs }}% {{ change_period }}
+                </small>
+                {% endif %}
+            </div>
+            <div class="stat-icon rounded-circle d-flex align-items-center justify-content-center"
+                 style="width: 50px; height: 50px; background-color: rgba(var(--bs-{{ color }}-rgb), 0.1);">
+                <i class="fas {{ icon }} text-{{ color }}"></i>
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+
+{% macro engagement_chart(data) %}
+<div class="engagement-chart card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Engagement Over Time</h5>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-primary active" data-period="week">Week</button>
+            <button type="button" class="btn btn-outline-primary" data-period="month">Month</button>
+            <button type="button" class="btn btn-outline-primary" data-period="year">Year</button>
+        </div>
+    </div>
+    <div class="card-body">
+        <canvas id="engagementChart" height="300"></canvas>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('engagementChart');
+    if (!ctx) return;
+    
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'Posts',
+                data: [12, 19, 3, 5, 2, 3, 7],
+                borderColor: 'rgb(99, 102, 241)',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                tension: 0.3,
+                fill: true
+            }, {
+                label: 'Likes',
+                data: [28, 48, 40, 19, 86, 27, 90],
+                borderColor: 'rgb(239, 68, 68)',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                tension: 0.3,
+                fill: true
+            }, {
+                label: 'Comments',
+                data: [8, 15, 12, 8, 24, 11, 32],
+                borderColor: 'rgb(16, 185, 129)',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.3,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+    
+    document.querySelectorAll('[data-period]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('[data-period]').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+});
+</script>
+{% endmacro %}
+
+
+{% macro activity_feed(activities) %}
+<div class="activity-feed card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-stream me-2"></i>Recent Activity</h5>
+    </div>
+    <div class="card-body p-0">
+        <ul class="list-group list-group-flush">
+            {% for activity in activities %}
+            <li class="list-group-item d-flex align-items-start">
+                <div class="activity-icon rounded-circle d-flex align-items-center justify-content-center me-3"
+                     style="width: 40px; height: 40px; background-color: rgba(var(--bs-{{ activity.color or 'primary' }}-rgb), 0.1);">
+                    <i class="fas {{ activity.icon or 'fa-circle' }} text-{{ activity.color or 'primary' }}"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <p class="mb-0">{{ activity.message }}</p>
+                    <small class="text-muted">{{ activity.time_ago or 'Just now' }}</small>
+                </div>
+            </li>
+            {% else %}
+            <li class="list-group-item text-center text-muted py-4">
+                No recent activity
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endmacro %}
+
+
+{% macro top_content_table(items, title='Top Content') %}
+<div class="top-content card">
+    <div class="card-header">
+        <h5 class="mb-0">{{ title }}</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Content</th>
+                        <th class="text-center">Views</th>
+                        <th class="text-center">Likes</th>
+                        <th class="text-center">Comments</th>
+                        <th class="text-center">Engagement</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-secondary me-2">{{ loop.index }}</span>
+                                <a href="{{ item.url or '#' }}" class="text-decoration-none text-truncate" 
+                                   style="max-width: 200px;">{{ item.title }}</a>
+                            </div>
+                        </td>
+                        <td class="text-center">{{ item.views or 0 }}</td>
+                        <td class="text-center">{{ item.likes or 0 }}</td>
+                        <td class="text-center">{{ item.comments or 0 }}</td>
+                        <td class="text-center">
+                            <span class="badge bg-{{ 'success' if (item.engagement or 0) > 5 else 'warning' }}">
+                                {{ item.engagement or 0 }}%
+                            </span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">No content yet</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+
+{% macro admin_metrics_overview(stats) %}
+<div class="admin-metrics-overview">
+    <div class="row g-4 mb-4">
+        {{ stat_card('Total Users', stats.total_users, 'fa-users', 'primary', stats.user_growth) | indent(8) }}
+        {{ stat_card('Premium Users', stats.premium_users, 'fa-crown', 'warning') | indent(8) }}
+        {{ stat_card('DAU / WAU', stats.dau ~ ' / ' ~ stats.wau, 'fa-chart-line', 'success') | indent(8) }}
+        {{ stat_card('Monthly Revenue', '$' ~ stats.monthly_revenue, 'fa-dollar-sign', 'info') | indent(8) }}
+    </div>
+    
+    <div class="row g-4">
+        <div class="col-md-8">
+            {{ engagement_chart({}) }}
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Stats</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="text-muted">Conversion Rate</span>
+                        <strong>{{ '{:.1f}'.format(stats.premium_rate or 0) }}%</strong>
+                    </div>
+                    <div class="progress mb-4" style="height: 8px;">
+                        <div class="progress-bar bg-success" style="width: {{ stats.premium_rate or 0 }}%"></div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="text-muted">DAU Rate</span>
+                        <strong>{{ '{:.1f}'.format(stats.dau_rate or 0) }}%</strong>
+                    </div>
+                    <div class="progress mb-4" style="height: 8px;">
+                        <div class="progress-bar bg-primary" style="width: {{ stats.dau_rate or 0 }}%"></div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Pro Users</span>
+                        <strong>{{ stats.pro_users or 0 }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Elite Users</span>
+                        <strong>{{ stats.elite_users or 0 }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">New This Week</span>
+                        <strong class="text-success">+{{ stats.new_users_week or 0 }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}
