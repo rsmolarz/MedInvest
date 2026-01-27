@@ -1,10 +1,8 @@
 from datetime import datetime, timedelta
-import secrets
-import string
 from enum import Enum
+import string
 from flask_login import UserMixin
 from flask_dance.consumer.storage.sqla import OAuthConsumerMixin
-from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import UniqueConstraint
 from app import db
 import pyotp
