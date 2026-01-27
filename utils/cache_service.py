@@ -55,6 +55,15 @@ class CacheService:
     
     DEFAULT_TTL = 300  # 5 minutes
     
+    # Standard TTLs for different data types
+    TTL_FEED = 300         # 5 minutes - feeds change frequently
+    TTL_PROFILE = 900      # 15 minutes - profile data changes less often
+    TTL_TRENDING = 3600    # 1 hour - trending content is aggregated
+    TTL_NEWS = 1800        # 30 minutes - external news
+    TTL_YOUTUBE = 600      # 10 minutes - YouTube content
+    TTL_STATS = 300        # 5 minutes - platform statistics
+    TTL_SUGGESTIONS = 600  # 10 minutes - people you may know
+    
     # Cache key prefixes for different data types
     PREFIX_USER = 'user:'
     PREFIX_POST = 'post:'
@@ -64,6 +73,8 @@ class CacheService:
     PREFIX_DEALS = 'deals:'
     PREFIX_STATS = 'stats:'
     PREFIX_SESSION = 'session:'
+    PREFIX_TRENDING = 'trending:'
+    PREFIX_PROFILE = 'profile:'
     
     @classmethod
     def _get_client(cls):
@@ -347,6 +358,71 @@ def cached(ttl: int = 300, prefix: str = '', key_builder: Callable = None):
     return decorator
 
 
+def cache_result(ttl: int = None, prefix: str = '', cache_type: str = 'default'):
+    """
+    Enhanced decorator for caching function results with predefined TTLs
+    
+    Args:
+        ttl: Time to live in seconds (overrides cache_type default)
+        prefix: Cache key prefix
+        cache_type: One of 'feed', 'profile', 'trending', 'news', 'youtube', 'stats', 'suggestions'
+    
+    Usage:
+        @cache_result(cache_type='feed')
+        def get_user_feed(user_id): ...
+        
+        @cache_result(cache_type='trending')
+        def get_trending_posts(): ...
+        
+        @cache_result(cache_type='profile')
+        def get_user_profile(user_id): ...
+    """
+    ttl_map = {
+        'default': CacheService.DEFAULT_TTL,
+        'feed': CacheService.TTL_FEED,
+        'profile': CacheService.TTL_PROFILE,
+        'trending': CacheService.TTL_TRENDING,
+        'news': CacheService.TTL_NEWS,
+        'youtube': CacheService.TTL_YOUTUBE,
+        'stats': CacheService.TTL_STATS,
+        'suggestions': CacheService.TTL_SUGGESTIONS,
+    }
+    
+    actual_ttl = ttl if ttl is not None else ttl_map.get(cache_type, CacheService.DEFAULT_TTL)
+    
+    def decorator(func: Callable):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            key_parts = [func.__name__]
+            for arg in args:
+                if hasattr(arg, 'id'):
+                    key_parts.append(f'id:{arg.id}')
+                elif not callable(arg):
+                    key_parts.append(str(arg))
+            key_parts.extend(f'{k}={v}' for k, v in sorted(kwargs.items()))
+            raw_key = ':'.join(key_parts)
+            cache_key = hashlib.md5(raw_key.encode()).hexdigest()
+            
+            full_key = f'{prefix}{cache_key}'
+            
+            cached_value = CacheService.get(full_key)
+            if cached_value is not None:
+                return cached_value
+            
+            result = func(*args, **kwargs)
+            
+            if result is not None:
+                CacheService.set(full_key, result, actual_ttl)
+            
+            return result
+        
+        wrapper.cache_clear = lambda: CacheService.delete_pattern(f'{prefix}*')
+        wrapper.cache_invalidate = lambda key: CacheService.delete(key)
+        return wrapper
+    
+    return decorator
+
+
 def cache_user_data(user_id: int, data: dict, ttl: int = 600):
     """Cache user-related data"""
     key = f'{CacheService.PREFIX_USER}{user_id}'
@@ -365,8 +441,10 @@ def invalidate_user_cache(user_id: int):
     CacheService.delete_pattern(f'{CacheService.PREFIX_FEED}*user:{user_id}*')
 
 
-def cache_feed_page(user_id: int, page: int, feed_type: str, data: list, ttl: int = 120):
-    """Cache a feed page for a user"""
+def cache_feed_page(user_id: int, page: int, feed_type: str, data: list, ttl: int = None):
+    """Cache a feed page for a user (5 min default)"""
+    if ttl is None:
+        ttl = CacheService.TTL_FEED
     key = f'{CacheService.PREFIX_FEED}user:{user_id}:type:{feed_type}:page:{page}'
     return CacheService.set(key, data, ttl)
 
@@ -409,8 +487,10 @@ def get_cached_youtube_content(content_type: str) -> Optional[Any]:
     return CacheService.get(key)
 
 
-def cache_platform_stats(stats: dict, ttl: int = 300):
-    """Cache platform-wide statistics"""
+def cache_platform_stats(stats: dict, ttl: int = None):
+    """Cache platform-wide statistics (5 min default)"""
+    if ttl is None:
+        ttl = CacheService.TTL_STATS
     key = f'{CacheService.PREFIX_STATS}platform'
     return CacheService.set(key, stats, ttl)
 
@@ -419,3 +499,41 @@ def get_cached_platform_stats() -> Optional[dict]:
     """Get cached platform statistics"""
     key = f'{CacheService.PREFIX_STATS}platform'
     return CacheService.get(key)
+
+
+def cache_profile(user_id: int, profile_data: dict, ttl: int = None):
+    """Cache user profile data (15 min default)"""
+    if ttl is None:
+        ttl = CacheService.TTL_PROFILE
+    key = f'{CacheService.PREFIX_PROFILE}{user_id}'
+    return CacheService.set(key, profile_data, ttl)
+
+
+def get_cached_profile(user_id: int) -> Optional[dict]:
+    """Get cached user profile data"""
+    key = f'{CacheService.PREFIX_PROFILE}{user_id}'
+    return CacheService.get(key)
+
+
+def invalidate_profile_cache(user_id: int):
+    """Invalidate profile cache for a user"""
+    CacheService.delete_pattern(f'{CacheService.PREFIX_PROFILE}{user_id}*')
+
+
+def cache_trending(data_type: str, data: Any, ttl: int = None):
+    """Cache trending content (1 hour default)"""
+    if ttl is None:
+        ttl = CacheService.TTL_TRENDING
+    key = f'{CacheService.PREFIX_TRENDING}{data_type}'
+    return CacheService.set(key, data, ttl)
+
+
+def get_cached_trending(data_type: str) -> Optional[Any]:
+    """Get cached trending content"""
+    key = f'{CacheService.PREFIX_TRENDING}{data_type}'
+    return CacheService.get(key)
+
+
+def invalidate_trending_cache():
+    """Invalidate all trending content cache"""
+    CacheService.delete_pattern(f'{CacheService.PREFIX_TRENDING}*')

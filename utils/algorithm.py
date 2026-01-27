@@ -582,4 +582,6 @@ def get_people_you_may_know(user, limit=6):
                 suggestions.append(u)
                 suggestion_ids.add(u.id)
     
-    return suggestions[:limit]
+    result = suggestions[:limit]
+    CacheService.set(cache_key, [u.id for u in result], ttl=600)
+    return result
