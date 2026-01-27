@@ -1,0 +1,421 @@
+"""
+Cache Service - Redis-based caching with in-memory fallback
+Provides a unified caching interface for the MedInvest platform
+"""
+import os
+import json
+import logging
+import hashlib
+import threading
+from datetime import datetime, timedelta
+from functools import wraps
+from typing import Any, Optional, Callable, Union
+
+logger = logging.getLogger(__name__)
+
+_redis_client = None
+_memory_cache = {}
+_memory_cache_expiry = {}
+_memory_lock = threading.RLock()
+
+
+def get_redis_client():
+    """Get or create Redis client connection"""
+    global _redis_client
+    
+    if _redis_client is not None:
+        return _redis_client
+    
+    redis_url = os.environ.get('REDIS_URL') or os.environ.get('REDIS_PRIVATE_URL')
+    
+    if not redis_url:
+        logger.info('No Redis URL configured, using in-memory cache')
+        return None
+    
+    try:
+        import redis
+        _redis_client = redis.from_url(
+            redis_url,
+            decode_responses=True,
+            socket_timeout=5,
+            socket_connect_timeout=5,
+            retry_on_timeout=True
+        )
+        _redis_client.ping()
+        logger.info('Redis connection established')
+        return _redis_client
+    except Exception as e:
+        logger.warning(f'Redis connection failed: {e}. Using in-memory cache.')
+        _redis_client = None
+        return None
+
+
+class CacheService:
+    """Unified caching service with Redis and in-memory fallback"""
+    
+    DEFAULT_TTL = 300  # 5 minutes
+    
+    # Cache key prefixes for different data types
+    PREFIX_USER = 'user:'
+    PREFIX_POST = 'post:'
+    PREFIX_FEED = 'feed:'
+    PREFIX_NEWS = 'news:'
+    PREFIX_YOUTUBE = 'youtube:'
+    PREFIX_DEALS = 'deals:'
+    PREFIX_STATS = 'stats:'
+    PREFIX_SESSION = 'session:'
+    
+    @classmethod
+    def _get_client(cls):
+        """Get Redis client or None for memory fallback"""
+        return get_redis_client()
+    
+    @classmethod
+    def _clean_expired_memory_cache(cls):
+        """Remove expired entries from memory cache (must be called with lock held)"""
+        global _memory_cache, _memory_cache_expiry
+        now = datetime.utcnow()
+        expired_keys = [
+            k for k, exp in list(_memory_cache_expiry.items()) 
+            if exp < now
+        ]
+        for key in expired_keys:
+            _memory_cache.pop(key, None)
+            _memory_cache_expiry.pop(key, None)
+    
+    @classmethod
+    def get(cls, key: str) -> Optional[Any]:
+        """Get value from cache"""
+        client = cls._get_client()
+        
+        if client:
+            try:
+                value = client.get(key)
+                if value:
+                    return json.loads(value)
+            except Exception as e:
+                logger.error(f'Cache get error: {e}')
+        else:
+            with _memory_lock:
+                cls._clean_expired_memory_cache()
+                if key in _memory_cache:
+                    return _memory_cache[key]
+        
+        return None
+    
+    @classmethod
+    def set(cls, key: str, value: Any, ttl: int = None) -> bool:
+        """Set value in cache with optional TTL"""
+        if ttl is None:
+            ttl = cls.DEFAULT_TTL
+        
+        client = cls._get_client()
+        
+        if client:
+            try:
+                client.setex(key, ttl, json.dumps(value, default=str))
+                return True
+            except Exception as e:
+                logger.error(f'Cache set error: {e}')
+                return False
+        else:
+            global _memory_cache, _memory_cache_expiry
+            with _memory_lock:
+                _memory_cache[key] = value
+                _memory_cache_expiry[key] = datetime.utcnow() + timedelta(seconds=ttl)
+            return True
+    
+    @classmethod
+    def delete(cls, key: str) -> bool:
+        """Delete key from cache"""
+        client = cls._get_client()
+        
+        if client:
+            try:
+                client.delete(key)
+                return True
+            except Exception as e:
+                logger.error(f'Cache delete error: {e}')
+                return False
+        else:
+            global _memory_cache, _memory_cache_expiry
+            with _memory_lock:
+                _memory_cache.pop(key, None)
+                _memory_cache_expiry.pop(key, None)
+            return True
+    
+    @classmethod
+    def delete_pattern(cls, pattern: str) -> int:
+        """Delete all keys matching pattern"""
+        client = cls._get_client()
+        
+        if client:
+            try:
+                keys = list(client.scan_iter(match=pattern))
+                if keys:
+                    return client.delete(*keys)
+            except Exception as e:
+                logger.error(f'Cache delete pattern error: {e}')
+        else:
+            global _memory_cache, _memory_cache_expiry
+            import fnmatch
+            with _memory_lock:
+                keys_to_delete = [
+                    k for k in list(_memory_cache.keys()) 
+                    if fnmatch.fnmatch(k, pattern)
+                ]
+                for key in keys_to_delete:
+                    _memory_cache.pop(key, None)
+                    _memory_cache_expiry.pop(key, None)
+                return len(keys_to_delete)
+        
+        return 0
+    
+    @classmethod
+    def exists(cls, key: str) -> bool:
+        """Check if key exists in cache"""
+        client = cls._get_client()
+        
+        if client:
+            try:
+                return client.exists(key) > 0
+            except Exception as e:
+                logger.error(f'Cache exists error: {e}')
+                return False
+        else:
+            with _memory_lock:
+                cls._clean_expired_memory_cache()
+                return key in _memory_cache
+    
+    @classmethod
+    def increment(cls, key: str, amount: int = 1) -> Optional[int]:
+        """Increment a counter in cache"""
+        client = cls._get_client()
+        
+        if client:
+            try:
+                return client.incrby(key, amount)
+            except Exception as e:
+                logger.error(f'Cache increment error: {e}')
+                return None
+        else:
+            global _memory_cache
+            with _memory_lock:
+                current = _memory_cache.get(key, 0)
+                _memory_cache[key] = current + amount
+                return _memory_cache[key]
+    
+    @classmethod
+    def get_many(cls, keys: list) -> dict:
+        """Get multiple values from cache"""
+        client = cls._get_client()
+        result = {}
+        
+        if client:
+            try:
+                values = client.mget(keys)
+                for key, value in zip(keys, values):
+                    if value:
+                        result[key] = json.loads(value)
+            except Exception as e:
+                logger.error(f'Cache get_many error: {e}')
+        else:
+            with _memory_lock:
+                cls._clean_expired_memory_cache()
+                for key in keys:
+                    if key in _memory_cache:
+                        result[key] = _memory_cache[key]
+        
+        return result
+    
+    @classmethod
+    def set_many(cls, mapping: dict, ttl: int = None) -> bool:
+        """Set multiple values in cache"""
+        if ttl is None:
+            ttl = cls.DEFAULT_TTL
+        
+        client = cls._get_client()
+        
+        if client:
+            try:
+                pipe = client.pipeline()
+                for key, value in mapping.items():
+                    pipe.setex(key, ttl, json.dumps(value, default=str))
+                pipe.execute()
+                return True
+            except Exception as e:
+                logger.error(f'Cache set_many error: {e}')
+                return False
+        else:
+            global _memory_cache, _memory_cache_expiry
+            with _memory_lock:
+                expiry = datetime.utcnow() + timedelta(seconds=ttl)
+                for key, value in mapping.items():
+                    _memory_cache[key] = value
+                    _memory_cache_expiry[key] = expiry
+            return True
+    
+    @classmethod
+    def clear_all(cls) -> bool:
+        """Clear all cache (use with caution)"""
+        client = cls._get_client()
+        
+        if client:
+            try:
+                client.flushdb()
+                return True
+            except Exception as e:
+                logger.error(f'Cache clear error: {e}')
+                return False
+        else:
+            global _memory_cache, _memory_cache_expiry
+            with _memory_lock:
+                _memory_cache.clear()
+                _memory_cache_expiry.clear()
+            return True
+    
+    @classmethod
+    def get_stats(cls) -> dict:
+        """Get cache statistics"""
+        client = cls._get_client()
+        
+        if client:
+            try:
+                info = client.info()
+                return {
+                    'backend': 'redis',
+                    'connected': True,
+                    'used_memory': info.get('used_memory_human', 'N/A'),
+                    'keys': client.dbsize(),
+                    'hits': info.get('keyspace_hits', 0),
+                    'misses': info.get('keyspace_misses', 0)
+                }
+            except Exception as e:
+                return {'backend': 'redis', 'connected': False, 'error': str(e)}
+        else:
+            with _memory_lock:
+                return {
+                    'backend': 'memory',
+                    'connected': True,
+                    'keys': len(_memory_cache),
+                    'memory_entries': len(_memory_cache)
+                }
+
+
+def cached(ttl: int = 300, prefix: str = '', key_builder: Callable = None):
+    """
+    Decorator for caching function results
+    
+    Args:
+        ttl: Time to live in seconds
+        prefix: Cache key prefix
+        key_builder: Optional function to build cache key from args/kwargs
+    
+    Usage:
+        @cached(ttl=600, prefix='user_profile:')
+        def get_user_profile(user_id):
+            return db.query(User).get(user_id)
+    """
+    def decorator(func: Callable):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            if key_builder:
+                cache_key = key_builder(*args, **kwargs)
+            else:
+                key_parts = [func.__name__]
+                key_parts.extend(str(arg) for arg in args)
+                key_parts.extend(f'{k}={v}' for k, v in sorted(kwargs.items()))
+                raw_key = ':'.join(key_parts)
+                cache_key = hashlib.md5(raw_key.encode()).hexdigest()
+            
+            full_key = f'{prefix}{cache_key}'
+            
+            cached_value = CacheService.get(full_key)
+            if cached_value is not None:
+                return cached_value
+            
+            result = func(*args, **kwargs)
+            
+            if result is not None:
+                CacheService.set(full_key, result, ttl)
+            
+            return result
+        
+        wrapper.cache_clear = lambda: CacheService.delete_pattern(f'{prefix}*')
+        return wrapper
+    
+    return decorator
+
+
+def cache_user_data(user_id: int, data: dict, ttl: int = 600):
+    """Cache user-related data"""
+    key = f'{CacheService.PREFIX_USER}{user_id}'
+    return CacheService.set(key, data, ttl)
+
+
+def get_cached_user_data(user_id: int) -> Optional[dict]:
+    """Get cached user data"""
+    key = f'{CacheService.PREFIX_USER}{user_id}'
+    return CacheService.get(key)
+
+
+def invalidate_user_cache(user_id: int):
+    """Invalidate all cache for a specific user"""
+    CacheService.delete_pattern(f'{CacheService.PREFIX_USER}{user_id}*')
+    CacheService.delete_pattern(f'{CacheService.PREFIX_FEED}*user:{user_id}*')
+
+
+def cache_feed_page(user_id: int, page: int, feed_type: str, data: list, ttl: int = 120):
+    """Cache a feed page for a user"""
+    key = f'{CacheService.PREFIX_FEED}user:{user_id}:type:{feed_type}:page:{page}'
+    return CacheService.set(key, data, ttl)
+
+
+def get_cached_feed_page(user_id: int, page: int, feed_type: str) -> Optional[list]:
+    """Get cached feed page"""
+    key = f'{CacheService.PREFIX_FEED}user:{user_id}:type:{feed_type}:page:{page}'
+    return CacheService.get(key)
+
+
+def invalidate_feed_cache(user_id: int = None):
+    """Invalidate feed cache for a user or all users"""
+    if user_id:
+        CacheService.delete_pattern(f'{CacheService.PREFIX_FEED}user:{user_id}*')
+    else:
+        CacheService.delete_pattern(f'{CacheService.PREFIX_FEED}*')
+
+
+def cache_news(category: str, articles: list, ttl: int = 900):
+    """Cache news articles by category (15 min default)"""
+    key = f'{CacheService.PREFIX_NEWS}{category}'
+    return CacheService.set(key, articles, ttl)
+
+
+def get_cached_news(category: str) -> Optional[list]:
+    """Get cached news for category"""
+    key = f'{CacheService.PREFIX_NEWS}{category}'
+    return CacheService.get(key)
+
+
+def cache_youtube_content(content_type: str, data: Any, ttl: int = 600):
+    """Cache YouTube content (shorts, videos, live status)"""
+    key = f'{CacheService.PREFIX_YOUTUBE}{content_type}'
+    return CacheService.set(key, data, ttl)
+
+
+def get_cached_youtube_content(content_type: str) -> Optional[Any]:
+    """Get cached YouTube content"""
+    key = f'{CacheService.PREFIX_YOUTUBE}{content_type}'
+    return CacheService.get(key)
+
+
+def cache_platform_stats(stats: dict, ttl: int = 300):
+    """Cache platform-wide statistics"""
+    key = f'{CacheService.PREFIX_STATS}platform'
+    return CacheService.set(key, stats, ttl)
+
+
+def get_cached_platform_stats() -> Optional[dict]:
+    """Get cached platform statistics"""
+    key = f'{CacheService.PREFIX_STATS}platform'
+    return CacheService.get(key)

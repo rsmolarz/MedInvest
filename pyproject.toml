@@ -29,4 +29,6 @@ dependencies = [
     "flask-jwt-extended>=4.4.0",
     "apscheduler>=3.11.2",
     "stripe>=14.2.0",
+    "pytest>=9.0.2",
+    "redis>=7.1.0",
 ]
