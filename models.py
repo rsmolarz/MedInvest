@@ -142,6 +142,12 @@ class User(UserMixin, db.Model):
     license_document_uploaded_at = db.Column(db.DateTime)
     license_verified = db.Column(db.Boolean, default=False)
     
+    # Moderation fields
+    warning_count = db.Column(db.Integer, default=0)
+    is_banned = db.Column(db.Boolean, default=False)
+    banned_at = db.Column(db.DateTime)
+    ban_reason = db.Column(db.String(500))
+    
     # Relationships
     progress = db.relationship('UserProgress', back_populates='user', lazy='dynamic')
     forum_posts = db.relationship('ForumPost', back_populates='author', lazy='dynamic')
@@ -2619,3 +2625,18 @@ class CustomRole(db.Model):
     color = db.Column(db.String(20), default='#6c757d')
     priority = db.Column(db.Integer, default=1)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class BlockedKeyword(db.Model):
+    """Content filtering keywords for moderation"""
+    __tablename__ = 'blocked_keywords'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    keyword = db.Column(db.String(100), unique=True, nullable=False)
+    severity = db.Column(db.String(20), default='low')  # low, medium, high, critical
+    action = db.Column(db.String(20), default='flag')  # flag, hide, block
+    is_active = db.Column(db.Boolean, default=True)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    created_by = db.relationship('User', backref='created_keywords')
