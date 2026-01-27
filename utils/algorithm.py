@@ -5,6 +5,7 @@ Optimized for professional physician investment community
 import math
 from datetime import datetime, timedelta
 from collections import defaultdict
+from utils.cache_service import CacheService
 
 
 # =============================================================================
@@ -302,7 +303,7 @@ def get_user_interests(user, db):
 
 def generate_feed(user, db, page=1, per_page=20, include_discovery=True):
     """
-    Generate personalized feed for user using the algorithm
+    Generate personalized feed for user using the algorithm (cached 2 min)
     
     Mix:
     - 70% algorithmic (scored by engagement + quality + personalization)
@@ -312,6 +313,15 @@ def generate_feed(user, db, page=1, per_page=20, include_discovery=True):
     Returns: list of posts
     """
     from models import Post, Follow
+    
+    cache_key = f'feed:user:{user.id}:page:{page}:per_page:{per_page}'
+    cached_ids = CacheService.get(cache_key)
+    if cached_ids is not None:
+        if cached_ids:
+            posts = Post.query.filter(Post.id.in_(cached_ids)).all()
+            post_dict = {p.id: p for p in posts}
+            return [post_dict[pid] for pid in cached_ids if pid in post_dict]
+        return []
     
     # Get user interests for personalization
     user_interests = get_user_interests(user, db)
@@ -387,10 +397,10 @@ def generate_feed(user, db, page=1, per_page=20, include_discovery=True):
             algo_idx += 1
     
     # Pagination (simplified - in production, use cursor-based)
-    start = (page - 1) * per_page
-    end = start + per_page
+    result = feed[:per_page]
     
-    return feed[:per_page]
+    CacheService.set(cache_key, [p.id for p in result], ttl=120)
+    return result
 
 
 # =============================================================================
@@ -471,7 +481,7 @@ def get_posts_for_specialty(specialty, db, limit=20):
 
 def get_people_you_may_know(user, limit=6):
     """
-    Recommend users to follow based on:
+    Recommend users to follow based on (cached 10 min):
     1. Same specialty (highest priority)
     2. Same location (state)
     3. Followed by people you follow (mutual connections)
@@ -481,6 +491,15 @@ def get_people_you_may_know(user, limit=6):
     """
     from models import User, Follow, Post, Connection
     from sqlalchemy import func, and_, or_
+    
+    cache_key = f'people_you_may_know:user:{user.id}:limit:{limit}'
+    cached_ids = CacheService.get(cache_key)
+    if cached_ids is not None:
+        if cached_ids:
+            users = User.query.filter(User.id.in_(cached_ids)).all()
+            user_dict = {u.id: u for u in users}
+            return [user_dict[uid] for uid in cached_ids if uid in user_dict]
+        return []
     
     # Get list of users already being followed
     following_ids = [f.following_id for f in 

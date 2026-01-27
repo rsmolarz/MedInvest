@@ -6,6 +6,7 @@ import html
 from datetime import datetime
 from flask import url_for
 from markupsafe import Markup
+from utils.cache_service import CacheService
 
 
 # Regex patterns
@@ -179,15 +180,26 @@ def render_content_with_links(text):
 
 
 def get_trending_hashtags(limit=10):
-    """Get trending hashtags based on recent usage"""
+    """Get trending hashtags based on recent usage (cached 5 min)"""
     from models import Hashtag
     
-    return Hashtag.query.filter(
+    cache_key = f'trending:hashtags:limit:{limit}'
+    cached = CacheService.get(cache_key)
+    if cached is not None:
+        hashtag_ids = cached
+        if hashtag_ids:
+            return Hashtag.query.filter(Hashtag.id.in_(hashtag_ids)).all()
+        return []
+    
+    hashtags = Hashtag.query.filter(
         Hashtag.posts_this_week > 0
     ).order_by(
         Hashtag.posts_this_week.desc(),
         Hashtag.post_count.desc()
     ).limit(limit).all()
+    
+    CacheService.set(cache_key, [h.id for h in hashtags], ttl=300)
+    return hashtags
 
 
 def search_users_for_mention(query, limit=10):
