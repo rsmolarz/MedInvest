@@ -537,3 +537,311 @@ def get_cached_trending(data_type: str) -> Optional[Any]:
 def invalidate_trending_cache():
     """Invalidate all trending content cache"""
     CacheService.delete_pattern(f'{CacheService.PREFIX_TRENDING}*')
+
+
+# =============================================================================
+# SPECIALIZED CACHE DECORATORS
+# =============================================================================
+
+def cache_feed(user_id_arg: int = 0, feed_type: str = 'main'):
+    """
+    Decorator for caching feed data (5 min TTL)
+    
+    Args:
+        user_id_arg: Position of user_id in function args (0 = first arg)
+        feed_type: Type of feed ('main', 'following', 'trending', 'deals')
+    
+    Usage:
+        @cache_feed(user_id_arg=0, feed_type='main')
+        def get_user_feed(user_id, page=1, per_page=20): ...
+    """
+    def decorator(func: Callable):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            user_id = args[user_id_arg] if len(args) > user_id_arg else kwargs.get('user_id')
+            page = kwargs.get('page', 1)
+            per_page = kwargs.get('per_page', 20)
+            
+            cache_key = f'{CacheService.PREFIX_FEED}{feed_type}:user:{user_id}:page:{page}:per_page:{per_page}'
+            
+            cached_value = CacheService.get(cache_key)
+            if cached_value is not None:
+                logger.debug(f'Cache hit: {cache_key}')
+                return cached_value
+            
+            result = func(*args, **kwargs)
+            
+            if result is not None:
+                CacheService.set(cache_key, result, CacheService.TTL_FEED)
+                logger.debug(f'Cache set: {cache_key}')
+            
+            return result
+        
+        wrapper.invalidate = lambda user_id: CacheService.delete_pattern(
+            f'{CacheService.PREFIX_FEED}{feed_type}:user:{user_id}*'
+        )
+        wrapper.invalidate_all = lambda: CacheService.delete_pattern(
+            f'{CacheService.PREFIX_FEED}{feed_type}:*'
+        )
+        return wrapper
+    
+    return decorator
+
+
+def cache_profile_data(user_id_arg: int = 0):
+    """
+    Decorator for caching user profile data (15 min TTL)
+    
+    Args:
+        user_id_arg: Position of user_id in function args
+    
+    Usage:
+        @cache_profile_data(user_id_arg=0)
+        def get_user_profile(user_id): ...
+    """
+    def decorator(func: Callable):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            user_id = args[user_id_arg] if len(args) > user_id_arg else kwargs.get('user_id')
+            
+            cache_key = f'{CacheService.PREFIX_PROFILE}{func.__name__}:{user_id}'
+            
+            cached_value = CacheService.get(cache_key)
+            if cached_value is not None:
+                logger.debug(f'Cache hit: {cache_key}')
+                return cached_value
+            
+            result = func(*args, **kwargs)
+            
+            if result is not None:
+                CacheService.set(cache_key, result, CacheService.TTL_PROFILE)
+                logger.debug(f'Cache set: {cache_key}')
+            
+            return result
+        
+        wrapper.invalidate = lambda user_id: CacheService.delete_pattern(
+            f'{CacheService.PREFIX_PROFILE}{func.__name__}:{user_id}*'
+        )
+        wrapper.invalidate_all = lambda: CacheService.delete_pattern(
+            f'{CacheService.PREFIX_PROFILE}{func.__name__}:*'
+        )
+        return wrapper
+    
+    return decorator
+
+
+def cache_trending_data(data_type: str = 'posts'):
+    """
+    Decorator for caching trending data (1 hour TTL)
+    
+    Args:
+        data_type: Type of trending data ('posts', 'hashtags', 'users', 'deals')
+    
+    Usage:
+        @cache_trending_data(data_type='posts')
+        def get_trending_posts(limit=20): ...
+    """
+    def decorator(func: Callable):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            limit = kwargs.get('limit', 20)
+            timeframe = kwargs.get('timeframe', '24h')
+            
+            cache_key = f'{CacheService.PREFIX_TRENDING}{data_type}:limit:{limit}:timeframe:{timeframe}'
+            
+            cached_value = CacheService.get(cache_key)
+            if cached_value is not None:
+                logger.debug(f'Cache hit: {cache_key}')
+                return cached_value
+            
+            result = func(*args, **kwargs)
+            
+            if result is not None:
+                CacheService.set(cache_key, result, CacheService.TTL_TRENDING)
+                logger.debug(f'Cache set: {cache_key}')
+            
+            return result
+        
+        wrapper.invalidate = lambda: CacheService.delete_pattern(
+            f'{CacheService.PREFIX_TRENDING}{data_type}:*'
+        )
+        return wrapper
+    
+    return decorator
+
+
+# =============================================================================
+# POST UPDATE CACHE INVALIDATION STRATEGY
+# =============================================================================
+
+class PostCacheInvalidator:
+    """
+    Comprehensive cache invalidation for post-related updates.
+    Ensures all related caches are properly invalidated when posts change.
+    """
+    
+    @classmethod
+    def on_post_created(cls, post_id: int, author_id: int, hashtags: list = None):
+        """
+        Invalidate caches when a new post is created.
+        
+        Affected caches:
+        - Author's feed caches (they might see their own post)
+        - Followers' feed caches (they should see the new post)
+        - Trending caches (new post might affect trending)
+        - Hashtag caches (if post has hashtags)
+        """
+        logger.info(f'Invalidating caches for new post {post_id} by user {author_id}')
+        
+        # Invalidate author's feeds
+        CacheService.delete_pattern(f'{CacheService.PREFIX_FEED}*user:{author_id}*')
+        
+        # Invalidate 'following' feeds for all users (followers will see this)
+        CacheService.delete_pattern(f'{CacheService.PREFIX_FEED}following:*')
+        
+        # Invalidate 'main' feeds (general feed might show this)
+        CacheService.delete_pattern(f'{CacheService.PREFIX_FEED}main:*')
+        
+        # Invalidate trending if hashtags used
+        if hashtags:
+            CacheService.delete_pattern(f'{CacheService.PREFIX_TRENDING}hashtags:*')
+            CacheService.delete_pattern(f'{CacheService.PREFIX_TRENDING}posts:*')
+        
+        # Invalidate platform stats
+        CacheService.delete(f'{CacheService.PREFIX_STATS}platform')
+    
+    @classmethod
+    def on_post_updated(cls, post_id: int, author_id: int):
+        """
+        Invalidate caches when a post is edited.
+        
+        Affected caches:
+        - Specific post cache
+        - Author's profile (post count might change display)
+        - Feeds containing this post
+        """
+        logger.info(f'Invalidating caches for updated post {post_id}')
+        
+        # Invalidate specific post cache
+        CacheService.delete(f'{CacheService.PREFIX_POST}{post_id}')
+        
+        # Invalidate author's feeds and profile
+        CacheService.delete_pattern(f'{CacheService.PREFIX_FEED}*user:{author_id}*')
+        CacheService.delete_pattern(f'{CacheService.PREFIX_PROFILE}*:{author_id}*')
+        
+        # Invalidate general feeds that might contain this post
+        CacheService.delete_pattern(f'{CacheService.PREFIX_FEED}main:*')
+    
+    @classmethod
+    def on_post_deleted(cls, post_id: int, author_id: int):
+        """
+        Invalidate caches when a post is deleted.
+        
+        Affected caches:
+        - All caches affected by post_updated
+        - Trending caches (post removal affects rankings)
+        - Stats caches
+        """
+        logger.info(f'Invalidating caches for deleted post {post_id}')
+        
+        # Delete specific post cache
+        CacheService.delete(f'{CacheService.PREFIX_POST}{post_id}')
+        
+        # Invalidate all feeds (post removal affects many feeds)
+        CacheService.delete_pattern(f'{CacheService.PREFIX_FEED}*')
+        
+        # Invalidate author's profile
+        CacheService.delete_pattern(f'{CacheService.PREFIX_PROFILE}*:{author_id}*')
+        
+        # Invalidate trending (rankings change)
+        CacheService.delete_pattern(f'{CacheService.PREFIX_TRENDING}*')
+        
+        # Invalidate platform stats
+        CacheService.delete(f'{CacheService.PREFIX_STATS}platform')
+    
+    @classmethod
+    def on_post_liked(cls, post_id: int, post_author_id: int, liker_id: int):
+        """
+        Invalidate caches when a post is liked.
+        
+        Affected caches:
+        - Specific post cache (like count changed)
+        - Trending posts (engagement affects ranking)
+        - Liker's activity cache
+        """
+        logger.debug(f'Invalidating caches for liked post {post_id}')
+        
+        # Invalidate specific post cache
+        CacheService.delete(f'{CacheService.PREFIX_POST}{post_id}')
+        
+        # Invalidate trending (engagement changed)
+        CacheService.delete_pattern(f'{CacheService.PREFIX_TRENDING}posts:*')
+        
+        # Invalidate liker's activity
+        CacheService.delete_pattern(f'{CacheService.PREFIX_USER}{liker_id}:activity*')
+    
+    @classmethod
+    def on_post_commented(cls, post_id: int, post_author_id: int, commenter_id: int):
+        """
+        Invalidate caches when a comment is added to a post.
+        
+        Affected caches:
+        - Specific post cache (comment count changed)
+        - Trending posts (engagement affects ranking)
+        - Commenter's activity cache
+        """
+        logger.debug(f'Invalidating caches for commented post {post_id}')
+        
+        # Invalidate specific post cache
+        CacheService.delete(f'{CacheService.PREFIX_POST}{post_id}')
+        
+        # Invalidate trending (engagement changed)
+        CacheService.delete_pattern(f'{CacheService.PREFIX_TRENDING}posts:*')
+        
+        # Invalidate commenter's activity
+        CacheService.delete_pattern(f'{CacheService.PREFIX_USER}{commenter_id}:activity*')
+    
+    @classmethod
+    def on_user_followed(cls, follower_id: int, followed_id: int):
+        """
+        Invalidate caches when a user follows another.
+        
+        Affected caches:
+        - Follower's 'following' feed (they now see new content)
+        - Both users' profile caches (follower counts changed)
+        - Suggestions cache for follower
+        """
+        logger.debug(f'Invalidating caches for follow: {follower_id} -> {followed_id}')
+        
+        # Invalidate follower's 'following' feed
+        CacheService.delete_pattern(f'{CacheService.PREFIX_FEED}following:user:{follower_id}*')
+        
+        # Invalidate both profiles
+        CacheService.delete_pattern(f'{CacheService.PREFIX_PROFILE}*:{follower_id}*')
+        CacheService.delete_pattern(f'{CacheService.PREFIX_PROFILE}*:{followed_id}*')
+        
+        # Invalidate suggestions for follower
+        CacheService.delete_pattern(f'{CacheService.PREFIX_USER}{follower_id}:suggestions*')
+    
+    @classmethod
+    def on_bulk_operation(cls, operation_type: str = 'full'):
+        """
+        Invalidate caches for bulk operations.
+        
+        Args:
+            operation_type: 'full' clears everything, 'feeds' clears feed caches only
+        """
+        logger.info(f'Bulk cache invalidation: {operation_type}')
+        
+        if operation_type == 'full':
+            CacheService.clear_all()
+        elif operation_type == 'feeds':
+            CacheService.delete_pattern(f'{CacheService.PREFIX_FEED}*')
+        elif operation_type == 'trending':
+            CacheService.delete_pattern(f'{CacheService.PREFIX_TRENDING}*')
+        elif operation_type == 'profiles':
+            CacheService.delete_pattern(f'{CacheService.PREFIX_PROFILE}*')
+
+
+# Convenience instance
+post_cache = PostCacheInvalidator()
