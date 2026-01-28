@@ -254,8 +254,40 @@ def logout():
 def dashboard():
     """Social media feed for medical professionals learning investing"""
     try:
-        # Get all posts ordered by creation time (optimized with limit)
-        feed_posts = Post.query.order_by(Post.created_at.desc()).limit(10).all()
+        from utils.feed_ranking import get_feed_ranking_service
+        
+        # Get recent posts (fetch more for ranking, then limit after)
+        recent_posts = Post.query.order_by(Post.created_at.desc()).limit(50).all()
+        
+        # Convert posts to dictionaries for ranking
+        posts_data = []
+        for post in recent_posts:
+            post_dict = {
+                'id': post.id,
+                'author_id': post.user_id,
+                'created_at': post.created_at,
+                'like_count': post.likes.count() if hasattr(post, 'likes') else 0,
+                'comment_count': post.comments.count() if hasattr(post, 'comments') else 0,
+                'share_count': getattr(post, 'share_count', 0) or 0,
+                'save_count': getattr(post, 'bookmark_count', 0) or 0,
+                'hashtags': [h.name for h in post.hashtags] if hasattr(post, 'hashtags') else [],
+                'author_specialty': post.author.specialty if post.author else None,
+                'author_verified': post.author.is_verified if post.author else False,
+                '_post_obj': post  # Keep reference to original post object
+            }
+            posts_data.append(post_dict)
+        
+        # Rank posts using the feed ranking algorithm
+        ranking_service = get_feed_ranking_service()
+        ranked_posts = ranking_service.rank_posts(
+            user_id=current_user.id,
+            posts=posts_data,
+            user_specialty=current_user.specialty,
+            limit=10
+        )
+        
+        # Extract original post objects in ranked order
+        feed_posts = [p['_post_obj'] for p in ranked_posts]
         
         # Get suggested users to follow (verified medical professionals) - simplified query
         suggested_users = User.query.filter(
