@@ -403,11 +403,16 @@ def get_aggregated_news(
             except Exception as e:
                 logger.error(f"Error fetching from source: {e}")
     
-    # Deduplicate by title similarity
+    # Deduplicate by title similarity (use more characters for better matching)
     seen_titles = set()
     unique_articles = []
     for article in all_articles:
-        title_key = article.get("title", "").lower()[:50]
+        title = article.get("title", "").lower().strip()
+        # Use first 30 chars + last 20 chars to create a more unique fingerprint
+        if len(title) > 60:
+            title_key = title[:30] + title[-20:]
+        else:
+            title_key = title[:40]  # For shorter titles, use first 40 chars
         if title_key and title_key not in seen_titles:
             seen_titles.add(title_key)
             unique_articles.append(article)
@@ -440,7 +445,11 @@ def get_medical_investment_news(limit: int = 15) -> List[Dict[str, Any]]:
     seen = set()
     unique = []
     for article in all_news:
-        key = article.get("title", "").lower()[:50]
+        title = article.get("title", "").lower().strip()
+        if len(title) > 60:
+            key = title[:30] + title[-20:]
+        else:
+            key = title[:40]
         if key and key not in seen:
             seen.add(key)
             unique.append(article)
