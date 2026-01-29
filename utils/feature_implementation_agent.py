@@ -580,6 +580,7 @@ class FeatureImplementationAgent:
             'estimated_lines': self._estimate_lines_of_code(analysis),
             'risk_level': self._assess_risk(analysis),
             'dependencies': self._identify_dependencies(analysis),
+            'affected_tests': self._find_affected_tests(analysis),
             'confidence': self._calculate_confidence(analysis),
             'breakdown': self._get_cost_breakdown(analysis)
         }
@@ -728,6 +729,67 @@ class FeatureImplementationAgent:
                 'description': 'Code review and deployment'
             },
             'complexity_factor': COMPLEXITY_WEIGHTS.get(complexity, 2.5)
+        }
+    
+    def _find_affected_tests(self, analysis: Dict) -> Dict:
+        """Find test files that may be affected by the implementation
+        
+        Args:
+            analysis: Feature analysis containing files to modify
+            
+        Returns:
+            Dict with affected test files and new tests needed
+        """
+        affected_tests = []
+        new_tests_needed = []
+        
+        files_to_modify = analysis.get('files_to_modify', [])
+        files_to_create = analysis.get('files_to_create', [])
+        
+        test_dir = os.path.join(os.getcwd(), 'tests')
+        test_patterns = {
+            'models.py': 'test_models.py',
+            'routes.py': 'test_routes.py',
+            'auth.py': 'test_auth.py',
+            'forms.py': 'test_forms.py',
+            'api.py': 'test_api.py'
+        }
+        
+        for file_path in files_to_modify:
+            basename = os.path.basename(file_path)
+            
+            if basename in test_patterns:
+                test_file = test_patterns[basename]
+                test_path = os.path.join(test_dir, test_file)
+                if os.path.exists(test_path):
+                    affected_tests.append(test_file)
+                else:
+                    new_tests_needed.append(test_file)
+            
+            if 'utils/' in file_path:
+                util_name = os.path.splitext(basename)[0]
+                test_file = f'test_{util_name}.py'
+                test_path = os.path.join(test_dir, test_file)
+                if os.path.exists(test_path):
+                    affected_tests.append(test_file)
+                else:
+                    new_tests_needed.append(test_file)
+            
+            if 'blueprints/' in file_path:
+                bp_name = os.path.splitext(basename)[0]
+                test_file = f'test_{bp_name}_bp.py'
+                new_tests_needed.append(test_file)
+        
+        for file_path in files_to_create:
+            basename = os.path.basename(file_path)
+            module_name = os.path.splitext(basename)[0]
+            new_tests_needed.append(f'test_{module_name}.py')
+        
+        return {
+            'affected_tests': list(set(affected_tests)),
+            'new_tests_needed': list(set(new_tests_needed)),
+            'total_affected': len(set(affected_tests)),
+            'total_new_needed': len(set(new_tests_needed))
         }
     
     def get_feature_recommendations(self) -> list:
