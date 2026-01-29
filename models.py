@@ -2402,6 +2402,13 @@ class CodeQualityIssue(db.Model):
     # Tracking
     review_run_id = db.Column(db.String(50))  # Groups issues from same review run
     
+    # Database indexes for query optimization
+    __table_args__ = (
+        db.Index('idx_issue_status_severity', 'status', 'severity'),
+        db.Index('idx_issue_file_path', 'file_path'),
+        db.Index('idx_issue_review_run', 'review_run_id'),
+    )
+    
     def to_dict(self):
         return {
             'id': self.id,
@@ -2440,6 +2447,64 @@ class CodeReviewRun(db.Model):
     
     # Config used for this run
     config_snapshot = db.Column(db.Text)  # JSON of settings used
+
+
+class AIAuditLog(db.Model):
+    """Track all AI operations for auditing and debugging"""
+    __tablename__ = 'ai_audit_logs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # User association (optional - may be system operations)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True, index=True)
+    
+    # Operation details
+    action_type = db.Column(db.String(100), nullable=False)  # code_review, chat, content_moderation, etc.
+    model_name = db.Column(db.String(100))  # gemini-2.0-flash, gpt-4, etc.
+    
+    # Input tracking (hash for privacy)
+    input_hash = db.Column(db.String(64))  # SHA256 hash of input
+    input_length = db.Column(db.Integer)  # Character count of input
+    input_file_path = db.Column(db.String(500))  # For file-based operations
+    
+    # Output tracking
+    output_summary = db.Column(db.Text)  # Brief summary of output
+    output_length = db.Column(db.Integer)  # Character count of output
+    issues_detected = db.Column(db.Integer, default=0)  # For code review
+    
+    # Token usage
+    tokens_used = db.Column(db.Integer)
+    prompt_tokens = db.Column(db.Integer)
+    completion_tokens = db.Column(db.Integer)
+    
+    # Performance
+    latency_ms = db.Column(db.Integer)  # Response time in milliseconds
+    
+    # Status
+    status = db.Column(db.String(20), default='success')  # success, error, timeout
+    error_message = db.Column(db.Text)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    
+    # Relationships
+    user = db.relationship('User', backref=db.backref('ai_audit_logs', lazy='dynamic'))
+    
+    __table_args__ = (
+        db.Index('idx_ai_audit_action_date', 'action_type', 'created_at'),
+    )
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'action_type': self.action_type,
+            'model_name': self.model_name,
+            'tokens_used': self.tokens_used,
+            'latency_ms': self.latency_ms,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
 
 
 # =============================================================================

@@ -126,7 +126,12 @@ ISSUE_TYPES = {
     'security': 'Security vulnerability or risk',
     'performance': 'Performance issue or optimization opportunity',
     'style': 'Code style or maintainability issue',
-    'feature_suggestion': 'New feature recommendation'
+    'feature_suggestion': 'New feature recommendation',
+    'maintainability': 'Code maintainability or technical debt issue',
+    'accessibility': 'Accessibility (a11y) issue in UI/templates',
+    'documentation': 'Missing or incorrect documentation',
+    'deprecated_api': 'Usage of deprecated API or library',
+    'test_coverage': 'Missing or insufficient test coverage'
 }
 
 SEVERITY_LEVELS = ['critical', 'high', 'medium', 'low', 'info']
@@ -138,10 +143,15 @@ Analyze the following code file and identify:
 2. SECURITY: SQL injection, XSS, CSRF, authentication bypasses, sensitive data exposure
 3. PERFORMANCE: N+1 queries, inefficient loops, missing caching opportunities
 4. STYLE: Dead code, code duplication, complex functions that should be refactored
-5. FEATURE_SUGGESTIONS: Missing functionality, improvements based on code patterns
+5. MAINTAINABILITY: Technical debt, tight coupling, missing abstractions, hard-coded values
+6. ACCESSIBILITY: Missing ARIA labels, improper semantic HTML, color contrast issues (for templates)
+7. DOCUMENTATION: Missing docstrings, outdated comments, unclear function signatures
+8. DEPRECATED_API: Usage of deprecated libraries, functions, or patterns
+9. TEST_COVERAGE: Missing tests for critical functions, untested edge cases
+10. FEATURE_SUGGESTIONS: Missing functionality, improvements based on code patterns
 
 For each issue found, provide:
-- issue_type: bug|security|performance|style|feature_suggestion
+- issue_type: bug|security|performance|style|maintainability|accessibility|documentation|deprecated_api|test_coverage|feature_suggestion
 - severity: critical|high|medium|low|info
 - line_number: approximate line number
 - title: brief title (max 100 chars)
@@ -231,12 +241,114 @@ class CodeQualityGuardian:
             logger.debug(f'Cache save failed: {e}')
     
     def _get_file_hash(self, file_path: str) -> str:
-        """Calculate MD5 hash of file contents"""
+        """Calculate SHA256 hash of file contents for change detection"""
         try:
             with open(file_path, 'rb') as f:
-                return hashlib.md5(f.read()).hexdigest()
+                return hashlib.sha256(f.read()).hexdigest()
         except Exception:
             return ''
+    
+    def get_changed_files(self, base_ref: str = 'HEAD~1') -> List[str]:
+        """Get list of files changed since base_ref using git diff
+        
+        Args:
+            base_ref: Git reference to compare against (default: HEAD~1)
+        
+        Returns:
+            List of changed file paths that match review patterns
+        """
+        try:
+            result = subprocess.run(
+                ['git', 'diff', '--name-only', base_ref],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            if result.returncode != 0:
+                logger.warning(f'Git diff failed: {result.stderr}')
+                return []
+            
+            changed_files = [f.strip() for f in result.stdout.split('\n') if f.strip()]
+            
+            # Filter to only include files that match our review patterns
+            reviewable = set(self.get_python_files())
+            return [f for f in changed_files if f in reviewable]
+            
+        except Exception as e:
+            logger.error(f'Failed to get changed files: {e}')
+            return []
+    
+    def notify_critical_issues(self, issues: List[Dict]) -> int:
+        """Send notifications for critical and high severity issues
+        
+        Args:
+            issues: List of issue dictionaries
+            
+        Returns:
+            Number of notifications sent
+        """
+        critical_issues = [
+            issue for issue in issues 
+            if issue.get('severity') in ('critical', 'high')
+        ]
+        
+        if not critical_issues:
+            return 0
+        
+        notifications_sent = 0
+        
+        try:
+            # Try to use push service if available
+            from utils.push_service import send_push_notification
+            
+            for issue in critical_issues:
+                try:
+                    send_push_notification(
+                        title=f"[{issue.get('severity', 'HIGH').upper()}] Code Quality Issue",
+                        body=f"{issue.get('title', 'Unknown issue')} in {issue.get('file_path', 'unknown file')}",
+                        data={'issue_type': 'code_quality', 'severity': issue.get('severity')}
+                    )
+                    notifications_sent += 1
+                except Exception as e:
+                    logger.debug(f'Push notification failed: {e}')
+                    
+        except ImportError:
+            # Fall back to email notification if push service not available
+            try:
+                from utils.mailer import send_email
+                
+                # Build summary email
+                subject = f"Code Quality Alert: {len(critical_issues)} Critical/High Issues Found"
+                body_lines = ["The following critical issues were detected:\n"]
+                
+                for issue in critical_issues:
+                    body_lines.append(
+                        f"• [{issue.get('severity', 'HIGH').upper()}] {issue.get('title', 'Unknown')}\n"
+                        f"  File: {issue.get('file_path', 'unknown')}\n"
+                        f"  {issue.get('description', '')[:200]}\n"
+                    )
+                
+                # Get admin emails (is_admin is a property, so filter by role='admin')
+                from models import User
+                admins = User.query.filter_by(role='admin').all()
+                
+                for admin in admins:
+                    if admin.email:
+                        send_email(admin.email, subject, '\n'.join(body_lines))
+                        notifications_sent += 1
+                        
+            except Exception as e:
+                logger.warning(f'Email notification failed: {e}')
+                # Log as fallback
+                for issue in critical_issues:
+                    logger.critical(
+                        f"CODE QUALITY ALERT: [{issue.get('severity')}] "
+                        f"{issue.get('title')} in {issue.get('file_path')}"
+                    )
+                    notifications_sent += 1
+        
+        logger.info(f'Sent {notifications_sent} notifications for {len(critical_issues)} critical issues')
+        return notifications_sent
     
     def _is_file_changed(self, file_path: str) -> bool:
         """Check if file has changed since last review"""
@@ -310,7 +422,7 @@ class CodeQualityGuardian:
     @retry(**RETRY_CONFIG)
     def _call_gemini_api(self, file_path: str, code_content: str) -> List[Dict]:
         """Call Gemini API with retry logic and exponential backoff"""
-        import json
+        start_time = time.time()
         
         genai.configure(api_key=self.api_key)
         model = genai.GenerativeModel(self.model_name)
@@ -329,7 +441,61 @@ class CodeQualityGuardian:
         )
         
         result = json.loads(response.text)
-        return result.get('issues', [])
+        issues = result.get('issues', [])
+        
+        # Log AI operation for audit (hash actual prompt content for privacy)
+        self._log_ai_operation(
+            file_path=file_path,
+            input_length=len(prompt),
+            output_length=len(response.text),
+            issues_count=len(issues),
+            latency_ms=int((time.time() - start_time) * 1000),
+            status='success',
+            input_content=prompt  # Pass actual prompt for accurate hash
+        )
+        
+        return issues
+    
+    def _log_ai_operation(self, file_path: str, input_length: int, output_length: int,
+                          issues_count: int, latency_ms: int, status: str, 
+                          error: str = None, input_content: str = None):
+        """Log AI operation to audit log
+        
+        Args:
+            file_path: Path to file being analyzed
+            input_length: Length of input prompt
+            output_length: Length of AI response
+            issues_count: Number of issues detected
+            latency_ms: Response time in milliseconds
+            status: success, error, or timeout
+            error: Error message if failed
+            input_content: Actual input content to hash (for privacy audit)
+        """
+        try:
+            from app import db
+            from models import AIAuditLog
+            
+            # Hash actual input content for privacy audit (not just file path)
+            content_to_hash = input_content if input_content else file_path
+            input_hash = hashlib.sha256(content_to_hash.encode()).hexdigest()
+            
+            audit_log = AIAuditLog(
+                action_type='code_review',
+                model_name=self.model_name,
+                input_hash=input_hash,
+                input_length=input_length,
+                input_file_path=file_path,
+                output_length=output_length,
+                output_summary=f'{issues_count} issues detected' if issues_count else 'No issues',
+                issues_detected=issues_count,
+                latency_ms=latency_ms,
+                status=status,
+                error_message=error
+            )
+            db.session.add(audit_log)
+            db.session.commit()
+        except Exception as e:
+            logger.debug(f'Failed to log AI operation: {e}')
     
     def run_static_analysis(self) -> List[Dict]:
         """Run static analysis tools (pylint, etc.)"""
