@@ -1,14 +1,24 @@
 """
 CodeQualityGuardian - Automated code review and quality analysis
 Runs hourly to detect issues, suggest fixes, and recommend features
+
+Features:
+- Retry logic with exponential backoff for API resilience
+- Parallel file processing for faster reviews
+- File hash caching to skip unchanged files
+- Enhanced metrics and performance tracking
 """
 import os
 import re
 import uuid
+import json
+import hashlib
 import logging
 import subprocess
+import time
 from datetime import datetime
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import google.generativeai as genai
 from tenacity import (
     retry,
@@ -20,6 +30,10 @@ from tenacity import (
 from google.api_core.exceptions import ResourceExhausted, ServiceUnavailable
 
 logger = logging.getLogger(__name__)
+
+# Configuration constants
+MAX_WORKERS = 3  # Parallel file analysis threads
+CACHE_FILE = '.code_quality_cache.json'
 
 # Retry configuration for Gemini API calls
 RETRY_CONFIG = {
@@ -89,7 +103,7 @@ FILE: {file_path}
 
 
 class CodeQualityGuardian:
-    """Main code quality review engine"""
+    """Main code quality review engine with parallel processing and caching"""
     
     def __init__(self):
         self.api_key = os.environ.get('GEMINI_API_KEY') or os.environ.get('AI_INTEGRATIONS_GEMINI_API_KEY')
@@ -113,6 +127,58 @@ class CodeQualityGuardian:
             '_test.py',
             'attached_assets/'
         ]
+        self._file_cache = self._load_cache()
+        self._metrics = {
+            'files_analyzed': 0,
+            'files_skipped_cache': 0,
+            'api_calls': 0,
+            'api_errors': 0,
+            'total_time_seconds': 0
+        }
+    
+    def _load_cache(self) -> Dict:
+        """Load file hash cache from disk"""
+        try:
+            if os.path.exists(CACHE_FILE):
+                with open(CACHE_FILE, 'r') as f:
+                    return json.load(f)
+        except Exception as e:
+            logger.debug(f'Cache load failed: {e}')
+        return {}
+    
+    def _save_cache(self):
+        """Save file hash cache to disk"""
+        try:
+            with open(CACHE_FILE, 'w') as f:
+                json.dump(self._file_cache, f)
+        except Exception as e:
+            logger.debug(f'Cache save failed: {e}')
+    
+    def _get_file_hash(self, file_path: str) -> str:
+        """Calculate MD5 hash of file contents"""
+        try:
+            with open(file_path, 'rb') as f:
+                return hashlib.md5(f.read()).hexdigest()
+        except Exception:
+            return ''
+    
+    def _is_file_changed(self, file_path: str) -> bool:
+        """Check if file has changed since last review"""
+        current_hash = self._get_file_hash(file_path)
+        cached_hash = self._file_cache.get(file_path, {}).get('hash', '')
+        return current_hash != cached_hash
+    
+    def _update_file_cache(self, file_path: str, issues_count: int):
+        """Update cache with file hash and review timestamp"""
+        self._file_cache[file_path] = {
+            'hash': self._get_file_hash(file_path),
+            'reviewed_at': datetime.utcnow().isoformat(),
+            'issues_count': issues_count
+        }
+    
+    def get_metrics(self) -> Dict:
+        """Get review metrics"""
+        return self._metrics.copy()
         
     def get_python_files(self) -> List[str]:
         """Get list of Python files to review"""
@@ -215,12 +281,39 @@ class CodeQualityGuardian:
         
         return issues
     
-    def run_review(self) -> Dict:
-        """Run a complete code review"""
+    def _analyze_file_with_cache(self, file_path: str, force: bool = False) -> Tuple[str, List[Dict]]:
+        """Analyze a file, using cache to skip unchanged files"""
+        if not force and not self._is_file_changed(file_path):
+            self._metrics['files_skipped_cache'] += 1
+            logger.debug(f'Skipping {file_path} - unchanged since last review')
+            return file_path, []
+        
+        self._metrics['files_analyzed'] += 1
+        issues = self.analyze_file(file_path)
+        self._update_file_cache(file_path, len(issues))
+        return file_path, issues
+    
+    def run_review(self, force_all: bool = False, max_workers: int = MAX_WORKERS) -> Dict:
+        """Run a complete code review with parallel processing
+        
+        Args:
+            force_all: If True, review all files regardless of cache
+            max_workers: Number of parallel workers for file analysis
+        """
         from app import db
         from models import CodeQualityIssue, CodeReviewRun
         
+        start_time = time.time()
         run_id = str(uuid.uuid4())[:8]
+        
+        # Reset metrics
+        self._metrics = {
+            'files_analyzed': 0,
+            'files_skipped_cache': 0,
+            'api_calls': 0,
+            'api_errors': 0,
+            'total_time_seconds': 0
+        }
         
         review_run = CodeReviewRun(
             run_id=run_id,
@@ -234,13 +327,28 @@ class CodeQualityGuardian:
             files = self.get_python_files()
             all_issues = []
             
+            # Run static analysis first
             static_issues = self.run_static_analysis()
             all_issues.extend(static_issues)
             
-            for file_path in files:
-                logger.info(f'Reviewing {file_path}...')
-                file_issues = self.analyze_file(file_path)
-                all_issues.extend(file_issues)
+            # Parallel file analysis with ThreadPoolExecutor
+            logger.info(f'Analyzing {len(files)} files with {max_workers} workers...')
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = {
+                    executor.submit(self._analyze_file_with_cache, f, force_all): f 
+                    for f in files
+                }
+                
+                for future in as_completed(futures):
+                    file_path = futures[future]
+                    try:
+                        _, file_issues = future.result()
+                        if file_issues:
+                            all_issues.extend(file_issues)
+                            logger.info(f'Found {len(file_issues)} issues in {file_path}')
+                    except Exception as e:
+                        self._metrics['api_errors'] += 1
+                        logger.error(f'Failed to analyze {file_path}: {e}')
             
             issues_created = 0
             for issue_data in all_issues:
@@ -271,11 +379,20 @@ class CodeQualityGuardian:
                 db.session.add(issue)
                 issues_created += 1
             
+            # Save cache and calculate metrics
+            self._save_cache()
+            elapsed_time = time.time() - start_time
+            self._metrics['total_time_seconds'] = round(elapsed_time, 2)
+            
             review_run.completed_at = datetime.utcnow()
             review_run.status = 'completed'
-            review_run.files_analyzed = len(files)
+            review_run.files_analyzed = self._metrics['files_analyzed']
             review_run.issues_found = issues_created
-            review_run.summary = f'Analyzed {len(files)} files, found {issues_created} new issues'
+            review_run.summary = (
+                f"Analyzed {self._metrics['files_analyzed']} files "
+                f"(skipped {self._metrics['files_skipped_cache']} cached), "
+                f"found {issues_created} new issues in {elapsed_time:.1f}s"
+            )
             
             db.session.commit()
             
@@ -283,8 +400,11 @@ class CodeQualityGuardian:
             
             return {
                 'run_id': run_id,
-                'files_analyzed': len(files),
+                'files_analyzed': self._metrics['files_analyzed'],
+                'files_skipped_cache': self._metrics['files_skipped_cache'],
                 'issues_found': issues_created,
+                'api_errors': self._metrics['api_errors'],
+                'total_time_seconds': self._metrics['total_time_seconds'],
                 'status': 'completed'
             }
             
@@ -294,11 +414,13 @@ class CodeQualityGuardian:
             review_run.error_message = str(e)
             review_run.completed_at = datetime.utcnow()
             db.session.commit()
+            self._save_cache()  # Save cache even on failure
             
             return {
                 'run_id': run_id,
                 'status': 'failed',
-                'error': str(e)
+                'error': str(e),
+                'metrics': self._metrics
             }
     
     def get_open_issues(self, issue_type: str = None, severity: str = None) -> List[Dict]:
