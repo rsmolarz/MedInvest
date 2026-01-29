@@ -5,11 +5,332 @@ Works with CodeQualityGuardian to auto-implement features after admin approval
 import os
 import logging
 import json
+import shutil
+import tempfile
+import subprocess
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 import google.generativeai as genai
 
 logger = logging.getLogger(__name__)
+
+# Complexity factors for cost estimation
+COMPLEXITY_WEIGHTS = {
+    'low': 1.0,
+    'medium': 2.5,
+    'high': 5.0
+}
+
+LINES_PER_HOUR = 50  # Average lines of code per hour for estimation
+RISK_FACTORS = {
+    'database_changes': 1.5,
+    'security_sensitive': 2.0,
+    'api_changes': 1.3,
+    'ui_changes': 1.2,
+    'new_dependencies': 1.4
+}
+
+class SandboxEnvironment:
+    """Isolated sandbox environment for testing proposed changes safely"""
+    
+    def __init__(self, base_dir: str = None):
+        self.base_dir = base_dir or os.getcwd()
+        self.sandbox_dir = None
+        self.test_results = []
+        
+    def create_sandbox(self) -> str:
+        """Create an isolated sandbox directory with project copy"""
+        self.sandbox_dir = tempfile.mkdtemp(prefix='medinvest_sandbox_')
+        logger.info(f'Created sandbox environment at {self.sandbox_dir}')
+        return self.sandbox_dir
+    
+    def copy_file_to_sandbox(self, file_path: str) -> str:
+        """Copy a file to the sandbox for testing"""
+        if not self.sandbox_dir:
+            self.create_sandbox()
+            
+        rel_path = os.path.relpath(file_path, self.base_dir)
+        sandbox_path = os.path.join(self.sandbox_dir, rel_path)
+        
+        os.makedirs(os.path.dirname(sandbox_path), exist_ok=True)
+        shutil.copy2(file_path, sandbox_path)
+        
+        return sandbox_path
+    
+    def apply_changes(self, file_path: str, new_content: str) -> bool:
+        """Apply proposed changes to a file in the sandbox"""
+        try:
+            sandbox_path = self.copy_file_to_sandbox(file_path)
+            with open(sandbox_path, 'w', encoding='utf-8') as f:
+                f.write(new_content)
+            return True
+        except Exception as e:
+            logger.error(f'Failed to apply changes in sandbox: {e}')
+            return False
+    
+    def run_syntax_check(self, file_path: str) -> Dict:
+        """Run Python syntax check on a file"""
+        try:
+            result = subprocess.run(
+                ['python3', '-m', 'py_compile', file_path],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            return {
+                'passed': result.returncode == 0,
+                'errors': result.stderr if result.returncode != 0 else None
+            }
+        except subprocess.TimeoutExpired:
+            return {'passed': False, 'errors': 'Syntax check timed out'}
+        except Exception as e:
+            return {'passed': False, 'errors': str(e)}
+    
+    def run_import_check(self, file_path: str) -> Dict:
+        """Check if file can be imported without errors"""
+        try:
+            rel_path = os.path.relpath(file_path, self.sandbox_dir) if self.sandbox_dir else file_path
+            module_name = rel_path.replace('/', '.').replace('.py', '')
+            
+            result = subprocess.run(
+                ['python3', '-c', f'import sys; sys.path.insert(0, "{self.sandbox_dir}"); import {module_name}'],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                cwd=self.sandbox_dir
+            )
+            return {
+                'passed': result.returncode == 0,
+                'errors': result.stderr if result.returncode != 0 else None
+            }
+        except Exception as e:
+            return {'passed': False, 'errors': str(e)}
+    
+    def execute_and_test(self, changes: List[Dict]) -> Dict:
+        """Execute proposed changes and run tests in sandbox
+        
+        Args:
+            changes: List of {'file': path, 'content': new_content} dicts
+            
+        Returns:
+            Dict with test results and overall status
+        """
+        if not self.sandbox_dir:
+            self.create_sandbox()
+            
+        results = {
+            'success': True,
+            'files_tested': 0,
+            'syntax_passed': 0,
+            'import_passed': 0,
+            'details': []
+        }
+        
+        for change in changes:
+            file_path = change.get('file')
+            new_content = change.get('content')
+            
+            if not file_path or not new_content:
+                continue
+                
+            file_result = {
+                'file': file_path,
+                'syntax_check': None,
+                'import_check': None,
+                'passed': False
+            }
+            
+            if self.apply_changes(file_path, new_content):
+                sandbox_path = os.path.join(
+                    self.sandbox_dir, 
+                    os.path.relpath(file_path, self.base_dir)
+                )
+                
+                file_result['syntax_check'] = self.run_syntax_check(sandbox_path)
+                if file_result['syntax_check']['passed']:
+                    results['syntax_passed'] += 1
+                    file_result['import_check'] = self.run_import_check(sandbox_path)
+                    if file_result['import_check']['passed']:
+                        results['import_passed'] += 1
+                        file_result['passed'] = True
+                
+                if not file_result['passed']:
+                    results['success'] = False
+                    
+            results['files_tested'] += 1
+            results['details'].append(file_result)
+        
+        return results
+    
+    def cleanup(self):
+        """Remove sandbox directory"""
+        if self.sandbox_dir and os.path.exists(self.sandbox_dir):
+            shutil.rmtree(self.sandbox_dir)
+            logger.info(f'Cleaned up sandbox at {self.sandbox_dir}')
+            self.sandbox_dir = None
+
+
+class FeatureRollback:
+    """Manages checkpoints and rollbacks for feature implementations"""
+    
+    CHECKPOINT_DIR = '.feature_checkpoints'
+    
+    def __init__(self):
+        self.checkpoint_base = os.path.join(os.getcwd(), self.CHECKPOINT_DIR)
+        os.makedirs(self.checkpoint_base, exist_ok=True)
+        
+    def create_checkpoint(self, feature_id: int, files: List[str] = None) -> Dict:
+        """Create rollback point before implementation
+        
+        Args:
+            feature_id: ID of the feature being implemented
+            files: List of files to backup (defaults to common project files)
+            
+        Returns:
+            Dict with checkpoint info
+        """
+        checkpoint_id = f'{feature_id}_{datetime.now().strftime("%Y%m%d_%H%M%S")}'
+        checkpoint_dir = os.path.join(self.checkpoint_base, checkpoint_id)
+        os.makedirs(checkpoint_dir, exist_ok=True)
+        
+        if files is None:
+            files = self._get_project_files()
+        
+        backed_up = []
+        for file_path in files:
+            if os.path.exists(file_path):
+                try:
+                    rel_path = os.path.relpath(file_path, os.getcwd())
+                    backup_path = os.path.join(checkpoint_dir, rel_path)
+                    os.makedirs(os.path.dirname(backup_path), exist_ok=True)
+                    shutil.copy2(file_path, backup_path)
+                    backed_up.append(rel_path)
+                except Exception as e:
+                    logger.warning(f'Failed to backup {file_path}: {e}')
+        
+        manifest = {
+            'feature_id': feature_id,
+            'checkpoint_id': checkpoint_id,
+            'created_at': datetime.now().isoformat(),
+            'files': backed_up
+        }
+        
+        manifest_path = os.path.join(checkpoint_dir, 'manifest.json')
+        with open(manifest_path, 'w') as f:
+            json.dump(manifest, f, indent=2)
+            
+        logger.info(f'Created checkpoint {checkpoint_id} with {len(backed_up)} files')
+        
+        return {
+            'success': True,
+            'checkpoint_id': checkpoint_id,
+            'files_backed_up': len(backed_up),
+            'path': checkpoint_dir
+        }
+    
+    def rollback_feature(self, feature_id: int, checkpoint_id: str = None) -> Dict:
+        """Revert all changes from a feature implementation
+        
+        Args:
+            feature_id: ID of the feature to rollback
+            checkpoint_id: Specific checkpoint ID (uses latest if not provided)
+            
+        Returns:
+            Dict with rollback results
+        """
+        if checkpoint_id:
+            checkpoint_dir = os.path.join(self.checkpoint_base, checkpoint_id)
+        else:
+            checkpoint_dir = self._get_latest_checkpoint(feature_id)
+            
+        if not checkpoint_dir or not os.path.exists(checkpoint_dir):
+            return {'success': False, 'error': 'Checkpoint not found'}
+        
+        manifest_path = os.path.join(checkpoint_dir, 'manifest.json')
+        if not os.path.exists(manifest_path):
+            return {'success': False, 'error': 'Checkpoint manifest not found'}
+            
+        with open(manifest_path, 'r') as f:
+            manifest = json.load(f)
+        
+        restored = []
+        errors = []
+        
+        for rel_path in manifest.get('files', []):
+            backup_path = os.path.join(checkpoint_dir, rel_path)
+            target_path = os.path.join(os.getcwd(), rel_path)
+            
+            if os.path.exists(backup_path):
+                try:
+                    os.makedirs(os.path.dirname(target_path), exist_ok=True)
+                    shutil.copy2(backup_path, target_path)
+                    restored.append(rel_path)
+                except Exception as e:
+                    errors.append({'file': rel_path, 'error': str(e)})
+            else:
+                errors.append({'file': rel_path, 'error': 'Backup file not found'})
+        
+        logger.info(f'Rolled back feature {feature_id}: {len(restored)} files restored')
+        
+        return {
+            'success': len(errors) == 0,
+            'checkpoint_id': manifest.get('checkpoint_id'),
+            'files_restored': len(restored),
+            'restored': restored,
+            'errors': errors if errors else None
+        }
+    
+    def list_checkpoints(self, feature_id: int = None) -> List[Dict]:
+        """List available checkpoints, optionally filtered by feature ID"""
+        checkpoints = []
+        
+        if not os.path.exists(self.checkpoint_base):
+            return checkpoints
+            
+        for entry in os.listdir(self.checkpoint_base):
+            checkpoint_dir = os.path.join(self.checkpoint_base, entry)
+            manifest_path = os.path.join(checkpoint_dir, 'manifest.json')
+            
+            if os.path.isdir(checkpoint_dir) and os.path.exists(manifest_path):
+                with open(manifest_path, 'r') as f:
+                    manifest = json.load(f)
+                    
+                if feature_id is None or manifest.get('feature_id') == feature_id:
+                    checkpoints.append(manifest)
+        
+        return sorted(checkpoints, key=lambda x: x.get('created_at', ''), reverse=True)
+    
+    def delete_checkpoint(self, checkpoint_id: str) -> bool:
+        """Delete a checkpoint to free up space"""
+        checkpoint_dir = os.path.join(self.checkpoint_base, checkpoint_id)
+        if os.path.exists(checkpoint_dir):
+            shutil.rmtree(checkpoint_dir)
+            logger.info(f'Deleted checkpoint {checkpoint_id}')
+            return True
+        return False
+    
+    def _get_latest_checkpoint(self, feature_id: int) -> Optional[str]:
+        """Get the most recent checkpoint for a feature"""
+        checkpoints = self.list_checkpoints(feature_id)
+        if checkpoints:
+            return os.path.join(self.checkpoint_base, checkpoints[0]['checkpoint_id'])
+        return None
+    
+    def _get_project_files(self) -> List[str]:
+        """Get list of common project files to backup"""
+        files = []
+        extensions = {'.py', '.html', '.css', '.js'}
+        exclude_dirs = {'__pycache__', '.git', 'node_modules', 'venv', '.feature_checkpoints'}
+        
+        for root, dirs, filenames in os.walk(os.getcwd()):
+            dirs[:] = [d for d in dirs if d not in exclude_dirs]
+            
+            for filename in filenames:
+                if any(filename.endswith(ext) for ext in extensions):
+                    files.append(os.path.join(root, filename))
+        
+        return files[:100]  # Limit to prevent excessive backups
+
 
 FEATURE_ANALYSIS_PROMPT = """You are a senior software architect analyzing a feature request for MedInvest, a Flask/Python social media platform for medical professionals.
 
