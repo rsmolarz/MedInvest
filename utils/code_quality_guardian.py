@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 # Retry configuration for Gemini API calls
 RETRY_CONFIG = {
     'stop': stop_after_attempt(3),
-    'wait': wait_exponential(multiplier=1, min=2, max=30),
+    'wait': wait_exponential(multiplier=1, min=2, max=10),
     'retry': retry_if_exception_type((ResourceExhausted, ServiceUnavailable, ConnectionError, TimeoutError)),
     'before_sleep': before_sleep_log(logger, logging.WARNING),
     'reraise': True
