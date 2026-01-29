@@ -10,8 +10,25 @@ import subprocess
 from datetime import datetime
 from typing import List, Dict, Optional
 import google.generativeai as genai
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+    before_sleep_log
+)
+from google.api_core.exceptions import ResourceExhausted, ServiceUnavailable
 
 logger = logging.getLogger(__name__)
+
+# Retry configuration for Gemini API calls
+RETRY_CONFIG = {
+    'stop': stop_after_attempt(3),
+    'wait': wait_exponential(multiplier=1, min=2, max=30),
+    'retry': retry_if_exception_type((ResourceExhausted, ServiceUnavailable, ConnectionError, TimeoutError)),
+    'before_sleep': before_sleep_log(logger, logging.WARNING),
+    'reraise': True
+}
 
 ISSUE_TYPES = {
     'bug': 'Potential bug or logic error',
@@ -139,34 +156,38 @@ class CodeQualityGuardian:
             return []
         
         try:
-            genai.configure(api_key=self.api_key)
-            model = genai.GenerativeModel(self.model_name)
-            
-            prompt = REVIEW_PROMPT.format(
-                file_path=file_path,
-                code_content=code_content
-            )
-            
-            response = model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
-                    response_mime_type='application/json',
-                    temperature=0.1
-                )
-            )
-            
-            import json
-            result = json.loads(response.text)
-            issues = result.get('issues', [])
-            
+            issues = self._call_gemini_api(file_path, code_content)
             for issue in issues:
                 issue['file_path'] = file_path
-            
             return issues
             
         except Exception as e:
-            logger.error(f'AI analysis failed for {file_path}: {e}')
+            logger.error(f'AI analysis failed for {file_path} after retries: {e}')
             return []
+    
+    @retry(**RETRY_CONFIG)
+    def _call_gemini_api(self, file_path: str, code_content: str) -> List[Dict]:
+        """Call Gemini API with retry logic and exponential backoff"""
+        import json
+        
+        genai.configure(api_key=self.api_key)
+        model = genai.GenerativeModel(self.model_name)
+        
+        prompt = REVIEW_PROMPT.format(
+            file_path=file_path,
+            code_content=code_content
+        )
+        
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(
+                response_mime_type='application/json',
+                temperature=0.1
+            )
+        )
+        
+        result = json.loads(response.text)
+        return result.get('issues', [])
     
     def run_static_analysis(self) -> List[Dict]:
         """Run static analysis tools (pylint, etc.)"""
