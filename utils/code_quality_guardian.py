@@ -46,7 +46,7 @@ class GuardianConfig:
     
     def __init__(self):
         # API Configuration
-        self.api_key = os.environ.get('GEMINI_API_KEY') or os.environ.get('AI_INTEGRATIONS_GEMINI_API_KEY')
+        self.api_key = os.environ.get('GEMINI_MEDINVEST_API_KEY') or os.environ.get('GEMINI_API_KEY') or os.environ.get('AI_INTEGRATIONS_GEMINI_API_KEY')
         self.model_name = os.environ.get('GUARDIAN_MODEL', 'gemini-2.0-flash')
         
         # Processing Configuration

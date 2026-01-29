@@ -420,13 +420,13 @@ class AIServiceManager:
     DEFAULT_PROVIDERS = {
         AIProvider.GEMINI: ProviderConfig(
             name=AIProvider.GEMINI,
-            api_key_env="AI_INTEGRATIONS_GEMINI_API_KEY",
+            api_key_env="GEMINI_MEDINVEST_API_KEY",
             max_requests_per_minute=60,
             max_tokens_per_minute=100000,
             cost_per_1k_tokens=0.00025,
             timeout_seconds=30,
             priority=1,
-            models=["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"]
+            models=["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
         ),
         AIProvider.OPENAI: ProviderConfig(
             name=AIProvider.OPENAI,
