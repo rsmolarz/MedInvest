@@ -31,18 +31,95 @@ from google.api_core.exceptions import ResourceExhausted, ServiceUnavailable
 
 logger = logging.getLogger(__name__)
 
-# Configuration constants
-MAX_WORKERS = 3  # Parallel file analysis threads
-CACHE_FILE = '.code_quality_cache.json'
+# Default configuration constants
+DEFAULT_MAX_WORKERS = 3
+DEFAULT_CACHE_FILE = '.code_quality_cache.json'
+DEFAULT_MAX_FILE_SIZE = 50000
+DEFAULT_MIN_FILE_SIZE = 50
+DEFAULT_RETRY_ATTEMPTS = 3
+DEFAULT_RETRY_MIN_WAIT = 2
+DEFAULT_RETRY_MAX_WAIT = 10
 
-# Retry configuration for Gemini API calls
-RETRY_CONFIG = {
-    'stop': stop_after_attempt(3),
-    'wait': wait_exponential(multiplier=1, min=2, max=10),
-    'retry': retry_if_exception_type((ResourceExhausted, ServiceUnavailable, ConnectionError, TimeoutError)),
-    'before_sleep': before_sleep_log(logger, logging.WARNING),
-    'reraise': True
-}
+
+class GuardianConfig:
+    """Configuration management for CodeQualityGuardian via environment variables"""
+    
+    def __init__(self):
+        # API Configuration
+        self.api_key = os.environ.get('GEMINI_API_KEY') or os.environ.get('AI_INTEGRATIONS_GEMINI_API_KEY')
+        self.model_name = os.environ.get('GUARDIAN_MODEL', 'gemini-2.0-flash')
+        
+        # Processing Configuration
+        self.max_workers = int(os.environ.get('GUARDIAN_MAX_WORKERS', DEFAULT_MAX_WORKERS))
+        self.cache_file = os.environ.get('GUARDIAN_CACHE_FILE', DEFAULT_CACHE_FILE)
+        self.max_file_size = int(os.environ.get('GUARDIAN_MAX_FILE_SIZE', DEFAULT_MAX_FILE_SIZE))
+        self.min_file_size = int(os.environ.get('GUARDIAN_MIN_FILE_SIZE', DEFAULT_MIN_FILE_SIZE))
+        
+        # Retry Configuration
+        self.retry_attempts = int(os.environ.get('GUARDIAN_RETRY_ATTEMPTS', DEFAULT_RETRY_ATTEMPTS))
+        self.retry_min_wait = int(os.environ.get('GUARDIAN_RETRY_MIN_WAIT', DEFAULT_RETRY_MIN_WAIT))
+        self.retry_max_wait = int(os.environ.get('GUARDIAN_RETRY_MAX_WAIT', DEFAULT_RETRY_MAX_WAIT))
+        
+        # Feature Flags
+        self.enable_caching = os.environ.get('GUARDIAN_ENABLE_CACHING', 'true').lower() == 'true'
+        self.enable_parallel = os.environ.get('GUARDIAN_ENABLE_PARALLEL', 'true').lower() == 'true'
+        self.verbose_logging = os.environ.get('GUARDIAN_VERBOSE', 'false').lower() == 'true'
+        
+        # Review Scope
+        self.files_to_review = self._parse_list_env(
+            'GUARDIAN_FILES_TO_REVIEW',
+            ['routes/*.py', 'utils/*.py', 'models.py', 'app.py', 'main.py',
+             'templates/*.html', 'templates/**/*.html', 'static/css/*.css', 'static/js/*.js']
+        )
+        self.exclude_patterns = self._parse_list_env(
+            'GUARDIAN_EXCLUDE_PATTERNS',
+            ['__pycache__', '.pyc', 'migrations/', 'test_', '_test.py', 'attached_assets/']
+        )
+    
+    def _parse_list_env(self, key: str, default: List[str]) -> List[str]:
+        """Parse comma-separated environment variable into list"""
+        value = os.environ.get(key)
+        if value:
+            return [item.strip() for item in value.split(',') if item.strip()]
+        return default
+    
+    def to_dict(self) -> Dict:
+        """Return configuration as dictionary"""
+        return {
+            'model_name': self.model_name,
+            'max_workers': self.max_workers,
+            'cache_file': self.cache_file,
+            'max_file_size': self.max_file_size,
+            'min_file_size': self.min_file_size,
+            'retry_attempts': self.retry_attempts,
+            'retry_min_wait': self.retry_min_wait,
+            'retry_max_wait': self.retry_max_wait,
+            'enable_caching': self.enable_caching,
+            'enable_parallel': self.enable_parallel,
+            'verbose_logging': self.verbose_logging,
+            'files_to_review': self.files_to_review,
+            'exclude_patterns': self.exclude_patterns,
+            'has_api_key': bool(self.api_key)
+        }
+    
+    def get_retry_config(self) -> Dict:
+        """Get tenacity retry configuration based on settings"""
+        return {
+            'stop': stop_after_attempt(self.retry_attempts),
+            'wait': wait_exponential(multiplier=1, min=self.retry_min_wait, max=self.retry_max_wait),
+            'retry': retry_if_exception_type((ResourceExhausted, ServiceUnavailable, ConnectionError, TimeoutError)),
+            'before_sleep': before_sleep_log(logger, logging.WARNING),
+            'reraise': True
+        }
+
+
+# Global config instance
+guardian_config = GuardianConfig()
+
+# Backward compatible RETRY_CONFIG using global config
+RETRY_CONFIG = guardian_config.get_retry_config()
+MAX_WORKERS = guardian_config.max_workers
+CACHE_FILE = guardian_config.cache_file
 
 ISSUE_TYPES = {
     'bug': 'Potential bug or logic error',
@@ -105,29 +182,18 @@ FILE: {file_path}
 class CodeQualityGuardian:
     """Main code quality review engine with parallel processing and caching"""
     
-    def __init__(self):
-        self.api_key = os.environ.get('GEMINI_API_KEY') or os.environ.get('AI_INTEGRATIONS_GEMINI_API_KEY')
-        self.model_name = 'gemini-2.0-flash'
-        self.files_to_review = [
-            'routes/*.py',
-            'utils/*.py', 
-            'models.py',
-            'app.py',
-            'main.py',
-            'templates/*.html',
-            'templates/**/*.html',
-            'static/css/*.css',
-            'static/js/*.js'
-        ]
-        self.exclude_patterns = [
-            '__pycache__',
-            '.pyc',
-            'migrations/',
-            'test_',
-            '_test.py',
-            'attached_assets/'
-        ]
-        self._file_cache = self._load_cache()
+    def __init__(self, config: GuardianConfig = None):
+        """Initialize Guardian with optional custom config
+        
+        Args:
+            config: Optional GuardianConfig instance. Uses global guardian_config if not provided.
+        """
+        self.config = config or guardian_config
+        self.api_key = self.config.api_key
+        self.model_name = self.config.model_name
+        self.files_to_review = self.config.files_to_review
+        self.exclude_patterns = self.config.exclude_patterns
+        self._file_cache = self._load_cache() if self.config.enable_caching else {}
         self._metrics = {
             'files_analyzed': 0,
             'files_skipped_cache': 0,
@@ -135,12 +201,20 @@ class CodeQualityGuardian:
             'api_errors': 0,
             'total_time_seconds': 0
         }
+        
+        if self.config.verbose_logging:
+            logger.setLevel(logging.DEBUG)
+    
+    def get_config(self) -> Dict:
+        """Get current configuration"""
+        return self.config.to_dict()
     
     def _load_cache(self) -> Dict:
         """Load file hash cache from disk"""
         try:
-            if os.path.exists(CACHE_FILE):
-                with open(CACHE_FILE, 'r') as f:
+            cache_file = self.config.cache_file
+            if os.path.exists(cache_file):
+                with open(cache_file, 'r') as f:
                     return json.load(f)
         except Exception as e:
             logger.debug(f'Cache load failed: {e}')
@@ -148,8 +222,10 @@ class CodeQualityGuardian:
     
     def _save_cache(self):
         """Save file hash cache to disk"""
+        if not self.config.enable_caching:
+            return
         try:
-            with open(CACHE_FILE, 'w') as f:
+            with open(self.config.cache_file, 'w') as f:
                 json.dump(self._file_cache, f)
         except Exception as e:
             logger.debug(f'Cache save failed: {e}')
@@ -214,11 +290,11 @@ class CodeQualityGuardian:
             logger.error(f'Failed to read file {file_path}: {e}')
             return []
         
-        if len(code_content) > 50000:
-            logger.info(f'Skipping {file_path} - too large for review')
+        if len(code_content) > self.config.max_file_size:
+            logger.info(f'Skipping {file_path} - too large for review ({len(code_content)} > {self.config.max_file_size})')
             return []
         
-        if len(code_content.strip()) < 50:
+        if len(code_content.strip()) < self.config.min_file_size:
             return []
         
         try:
@@ -283,23 +359,31 @@ class CodeQualityGuardian:
     
     def _analyze_file_with_cache(self, file_path: str, force: bool = False) -> Tuple[str, List[Dict]]:
         """Analyze a file, using cache to skip unchanged files"""
-        if not force and not self._is_file_changed(file_path):
+        # Check cache only if caching is enabled and not forcing
+        if self.config.enable_caching and not force and not self._is_file_changed(file_path):
             self._metrics['files_skipped_cache'] += 1
-            logger.debug(f'Skipping {file_path} - unchanged since last review')
+            if self.config.verbose_logging:
+                logger.debug(f'Skipping {file_path} - unchanged since last review')
             return file_path, []
         
         self._metrics['files_analyzed'] += 1
+        self._metrics['api_calls'] += 1
         issues = self.analyze_file(file_path)
-        self._update_file_cache(file_path, len(issues))
+        
+        if self.config.enable_caching:
+            self._update_file_cache(file_path, len(issues))
         return file_path, issues
     
-    def run_review(self, force_all: bool = False, max_workers: int = MAX_WORKERS) -> Dict:
+    def run_review(self, force_all: bool = False, max_workers: int = None) -> Dict:
         """Run a complete code review with parallel processing
         
         Args:
             force_all: If True, review all files regardless of cache
-            max_workers: Number of parallel workers for file analysis
+            max_workers: Number of parallel workers (uses config value if not specified)
         """
+        # Use config defaults if not specified
+        if max_workers is None:
+            max_workers = self.config.max_workers if self.config.enable_parallel else 1
         from app import db
         from models import CodeQualityIssue, CodeReviewRun
         
