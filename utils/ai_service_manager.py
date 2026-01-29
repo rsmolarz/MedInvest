@@ -420,7 +420,7 @@ class AIServiceManager:
     DEFAULT_PROVIDERS = {
         AIProvider.GEMINI: ProviderConfig(
             name=AIProvider.GEMINI,
-            api_key_env="AI_INTEGRATIONS_GOOGLE_API_KEY",
+            api_key_env="AI_INTEGRATIONS_GEMINI_API_KEY",
             max_requests_per_minute=60,
             max_tokens_per_minute=100000,
             cost_per_1k_tokens=0.00025,
