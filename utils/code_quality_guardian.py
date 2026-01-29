@@ -440,7 +440,24 @@ class CodeQualityGuardian:
             )
         )
         
-        result = json.loads(response.text)
+        # Robust JSON extraction - handle markdown blocks and extra text
+        response_text = response.text.strip()
+        
+        # Try direct parse first
+        try:
+            result = json.loads(response_text)
+        except json.JSONDecodeError:
+            # Try to extract JSON from markdown code block
+            import re
+            json_match = re.search(r'```(?:json)?\s*([\s\S]*?)```', response_text)
+            if json_match:
+                response_text = json_match.group(1).strip()
+            else:
+                # Try to find JSON object directly
+                json_match = re.search(r'\{[\s\S]*\}', response_text)
+                if json_match:
+                    response_text = json_match.group(0)
+            result = json.loads(response_text)
         issues = result.get('issues', [])
         
         # Log AI operation for audit (hash actual prompt content for privacy)
