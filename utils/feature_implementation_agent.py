@@ -31,13 +31,95 @@ RISK_FACTORS = {
     'new_dependencies': 1.4
 }
 
+# Multi-file type support configuration
+SUPPORTED_FILE_TYPES = {
+    'python': {
+        'extensions': ['.py'],
+        'syntax_check': 'py_compile',
+        'lint_tool': 'pylint',
+        'test_pattern': 'test_{name}.py'
+    },
+    'javascript': {
+        'extensions': ['.js', '.jsx', '.mjs'],
+        'syntax_check': 'node --check',
+        'lint_tool': 'eslint',
+        'test_pattern': '{name}.test.js'
+    },
+    'typescript': {
+        'extensions': ['.ts', '.tsx'],
+        'syntax_check': 'tsc --noEmit',
+        'lint_tool': 'eslint',
+        'test_pattern': '{name}.test.ts'
+    },
+    'css': {
+        'extensions': ['.css'],
+        'syntax_check': 'stylelint',
+        'lint_tool': 'stylelint',
+        'test_pattern': None
+    },
+    'scss': {
+        'extensions': ['.scss', '.sass'],
+        'syntax_check': 'sass --check',
+        'lint_tool': 'stylelint',
+        'test_pattern': None
+    },
+    'html': {
+        'extensions': ['.html', '.htm', '.jinja2'],
+        'syntax_check': 'htmlhint',
+        'lint_tool': 'htmlhint',
+        'test_pattern': None
+    },
+    'json': {
+        'extensions': ['.json'],
+        'syntax_check': 'json_validate',
+        'lint_tool': None,
+        'test_pattern': None
+    },
+    'yaml': {
+        'extensions': ['.yml', '.yaml'],
+        'syntax_check': 'yaml_validate',
+        'lint_tool': None,
+        'test_pattern': None
+    },
+    'sql': {
+        'extensions': ['.sql'],
+        'syntax_check': 'sql_validate',
+        'lint_tool': None,
+        'test_pattern': None
+    },
+    'markdown': {
+        'extensions': ['.md', '.markdown'],
+        'syntax_check': None,
+        'lint_tool': 'markdownlint',
+        'test_pattern': None
+    }
+}
+
 class SandboxEnvironment:
-    """Isolated sandbox environment for testing proposed changes safely"""
+    """Isolated sandbox environment for testing proposed changes safely
+    
+    Supports multiple file types: Python, JS/TS, CSS/SCSS, SQL migrations, API docs
+    """
     
     def __init__(self, base_dir: str = None):
         self.base_dir = base_dir or os.getcwd()
         self.sandbox_dir = None
         self.test_results = []
+    
+    def get_file_type(self, file_path: str) -> Optional[str]:
+        """Detect file type based on extension"""
+        ext = os.path.splitext(file_path)[1].lower()
+        for file_type, config in SUPPORTED_FILE_TYPES.items():
+            if ext in config['extensions']:
+                return file_type
+        return None
+    
+    def get_file_config(self, file_path: str) -> Optional[Dict]:
+        """Get configuration for a file type"""
+        file_type = self.get_file_type(file_path)
+        if file_type:
+            return SUPPORTED_FILE_TYPES[file_type]
+        return None
         
     def create_sandbox(self) -> str:
         """Create an isolated sandbox directory with project copy"""
@@ -143,6 +225,190 @@ class SandboxEnvironment:
             return {'passed': False, 'errors': f'Syntax error prevents import analysis: {e}'}
         except Exception as e:
             return {'passed': False, 'errors': str(e)}
+    
+    def validate_json(self, file_path: str) -> Dict:
+        """Validate JSON file syntax"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                json.load(f)
+            return {'passed': True, 'errors': None}
+        except json.JSONDecodeError as e:
+            return {'passed': False, 'errors': f'Invalid JSON: {e}'}
+        except Exception as e:
+            return {'passed': False, 'errors': str(e)}
+    
+    def validate_yaml(self, file_path: str) -> Dict:
+        """Validate YAML file syntax"""
+        try:
+            import yaml
+            with open(file_path, 'r', encoding='utf-8') as f:
+                yaml.safe_load(f)
+            return {'passed': True, 'errors': None}
+        except Exception as e:
+            return {'passed': False, 'errors': f'Invalid YAML: {e}'}
+    
+    def validate_sql(self, file_path: str) -> Dict:
+        """Validate SQL migration file with basic syntax checks"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            errors = []
+            lines = content.split('\n')
+            
+            # Basic SQL syntax validation
+            open_parens = content.count('(')
+            close_parens = content.count(')')
+            if open_parens != close_parens:
+                errors.append(f'Unbalanced parentheses: {open_parens} open, {close_parens} close')
+            
+            # Check for common SQL keywords
+            sql_keywords = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'ALTER', 'DROP', 'BEGIN', 'COMMIT']
+            has_sql = any(kw in content.upper() for kw in sql_keywords)
+            
+            if not has_sql and content.strip():
+                errors.append('No recognizable SQL statements found')
+            
+            # Check for unclosed strings
+            single_quotes = content.count("'")
+            if single_quotes % 2 != 0:
+                errors.append('Unclosed single quote detected')
+            
+            return {
+                'passed': len(errors) == 0,
+                'errors': errors if errors else None,
+                'statement_count': len([l for l in lines if l.strip() and not l.strip().startswith('--')])
+            }
+        except Exception as e:
+            return {'passed': False, 'errors': str(e)}
+    
+    def validate_css(self, file_path: str) -> Dict:
+        """Validate CSS/SCSS file with basic syntax checks"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            errors = []
+            
+            # Check balanced braces
+            open_braces = content.count('{')
+            close_braces = content.count('}')
+            if open_braces != close_braces:
+                errors.append(f'Unbalanced braces: {open_braces} open, {close_braces} close')
+            
+            # Check for common issues
+            if ';;' in content:
+                errors.append('Double semicolons detected')
+            
+            # Check balanced brackets (for SCSS functions)
+            open_brackets = content.count('(')
+            close_brackets = content.count(')')
+            if open_brackets != close_brackets:
+                errors.append(f'Unbalanced parentheses: {open_brackets} open, {close_brackets} close')
+            
+            return {
+                'passed': len(errors) == 0,
+                'errors': errors if errors else None,
+                'selector_count': open_braces
+            }
+        except Exception as e:
+            return {'passed': False, 'errors': str(e)}
+    
+    def validate_javascript(self, file_path: str) -> Dict:
+        """Validate JavaScript/TypeScript with basic syntax checks"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            errors = []
+            
+            # Check balanced braces
+            open_braces = content.count('{')
+            close_braces = content.count('}')
+            if open_braces != close_braces:
+                errors.append(f'Unbalanced braces: {open_braces} open, {close_braces} close')
+            
+            # Check balanced brackets
+            open_brackets = content.count('[')
+            close_brackets = content.count(']')
+            if open_brackets != close_brackets:
+                errors.append(f'Unbalanced brackets: {open_brackets} open, {close_brackets} close')
+            
+            # Check balanced parentheses
+            open_parens = content.count('(')
+            close_parens = content.count(')')
+            if open_parens != close_parens:
+                errors.append(f'Unbalanced parentheses: {open_parens} open, {close_parens} close')
+            
+            # Check for common issues
+            if 'console.log' in content:
+                errors.append('Warning: console.log statements found (consider removing for production)')
+            
+            return {
+                'passed': len([e for e in errors if not e.startswith('Warning')]) == 0,
+                'errors': errors if errors else None,
+                'warnings': [e for e in errors if e.startswith('Warning')]
+            }
+        except Exception as e:
+            return {'passed': False, 'errors': str(e)}
+    
+    def validate_html(self, file_path: str) -> Dict:
+        """Validate HTML/Jinja2 template with basic syntax checks"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            errors = []
+            
+            # Check for basic tag balance (simplified)
+            void_elements = {'br', 'hr', 'img', 'input', 'meta', 'link', 'area', 'base', 'col', 'embed', 'source', 'track', 'wbr'}
+            
+            # Check for unclosed Jinja blocks
+            jinja_opens = len(re.findall(r'\{%\s*(?:if|for|block|macro|call)\b', content))
+            jinja_closes = len(re.findall(r'\{%\s*end(?:if|for|block|macro|call)\b', content))
+            if jinja_opens != jinja_closes:
+                errors.append(f'Unbalanced Jinja blocks: {jinja_opens} open, {jinja_closes} close')
+            
+            # Check for unclosed Jinja expressions
+            jinja_expr_opens = content.count('{{')
+            jinja_expr_closes = content.count('}}')
+            if jinja_expr_opens != jinja_expr_closes:
+                errors.append(f'Unbalanced Jinja expressions: {jinja_expr_opens} open, {jinja_expr_closes} close')
+            
+            return {
+                'passed': len(errors) == 0,
+                'errors': errors if errors else None
+            }
+        except Exception as e:
+            return {'passed': False, 'errors': str(e)}
+    
+    def validate_file(self, file_path: str) -> Dict:
+        """Universal file validator - detects type and runs appropriate checks"""
+        file_type = self.get_file_type(file_path)
+        
+        if not file_type:
+            return {'passed': True, 'errors': None, 'message': 'Unknown file type, skipped validation'}
+        
+        validators = {
+            'python': lambda fp: self.run_syntax_check(fp),
+            'javascript': self.validate_javascript,
+            'typescript': self.validate_javascript,
+            'css': self.validate_css,
+            'scss': self.validate_css,
+            'html': self.validate_html,
+            'json': self.validate_json,
+            'yaml': self.validate_yaml,
+            'sql': self.validate_sql,
+            'markdown': lambda fp: {'passed': True, 'errors': None}
+        }
+        
+        validator = validators.get(file_type)
+        if validator:
+            result = validator(file_path)
+            result['file_type'] = file_type
+            return result
+        
+        return {'passed': True, 'errors': None, 'file_type': file_type}
     
     def execute_and_test(self, changes: List[Dict]) -> Dict:
         """Execute proposed changes and run tests in sandbox
