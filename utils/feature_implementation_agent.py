@@ -8,6 +8,7 @@ import json
 import shutil
 import tempfile
 import subprocess
+import ast
 from datetime import datetime
 from typing import Dict, Optional, List
 import google.generativeai as genai
@@ -87,22 +88,59 @@ class SandboxEnvironment:
             return {'passed': False, 'errors': str(e)}
     
     def run_import_check(self, file_path: str) -> Dict:
-        """Check if file can be imported without errors"""
+        """Check if file has valid imports using AST parsing (no code execution)
+        
+        Security: Uses AST parsing instead of actually importing the module
+        to avoid executing potentially malicious or buggy code.
+        """
         try:
-            rel_path = os.path.relpath(file_path, self.sandbox_dir) if self.sandbox_dir else file_path
-            module_name = rel_path.replace('/', '.').replace('.py', '')
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
             
-            result = subprocess.run(
-                ['python3', '-c', f'import sys; sys.path.insert(0, "{self.sandbox_dir}"); import {module_name}'],
-                capture_output=True,
-                text=True,
-                timeout=30,
-                cwd=self.sandbox_dir
-            )
-            return {
-                'passed': result.returncode == 0,
-                'errors': result.stderr if result.returncode != 0 else None
+            tree = ast.parse(content, filename=file_path)
+            
+            imports = []
+            import_errors = []
+            
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        imports.append(alias.name)
+                elif isinstance(node, ast.ImportFrom):
+                    module = node.module or ''
+                    imports.append(module)
+            
+            known_stdlib = {
+                'os', 'sys', 'json', 'datetime', 'logging', 'typing', 're',
+                'collections', 'functools', 'itertools', 'pathlib', 'tempfile',
+                'shutil', 'subprocess', 'hashlib', 'base64', 'uuid', 'time',
+                'threading', 'multiprocessing', 'contextlib', 'dataclasses',
+                'abc', 'copy', 'io', 'math', 'random', 'string', 'textwrap'
             }
+            known_project = {
+                'app', 'models', 'routes', 'utils', 'blueprints', 'forms'
+            }
+            known_third_party = {
+                'flask', 'sqlalchemy', 'werkzeug', 'jinja2', 'google',
+                'stripe', 'sendgrid', 'requests', 'httpx', 'tenacity'
+            }
+            
+            for imp in imports:
+                base_module = imp.split('.')[0]
+                if base_module not in known_stdlib and \
+                   base_module not in known_project and \
+                   base_module not in known_third_party:
+                    import_errors.append(f'Unknown import: {imp}')
+            
+            return {
+                'passed': len(import_errors) == 0,
+                'imports_found': imports,
+                'warnings': import_errors if import_errors else None,
+                'errors': None
+            }
+            
+        except SyntaxError as e:
+            return {'passed': False, 'errors': f'Syntax error prevents import analysis: {e}'}
         except Exception as e:
             return {'passed': False, 'errors': str(e)}
     
@@ -509,6 +547,188 @@ class FeatureImplementationAgent:
             'diff_preview': f'File has {len(original_content)} characters. Manual implementation recommended.'
         }
     
+    def test_proposed_changes(self, changes: List[Dict]) -> Dict:
+        """Run proposed changes in sandbox environment
+        
+        Args:
+            changes: List of {'file': path, 'content': new_content} dicts
+            
+        Returns:
+            Dict with test results including syntax/import checks
+            
+        Security: Uses AST-based import checking (no code execution)
+        """
+        sandbox = SandboxEnvironment()
+        try:
+            result = sandbox.execute_and_test(changes)
+            result['sandbox_used'] = True
+            return result
+        finally:
+            sandbox.cleanup()
+    
+    def estimate_implementation_cost(self, analysis: Dict) -> Dict:
+        """Estimate implementation cost based on feature analysis
+        
+        Args:
+            analysis: Feature analysis from analyze_feature()
+            
+        Returns:
+            Dict with estimated hours, lines of code, risk level, dependencies
+        """
+        return {
+            'estimated_hours': self._calculate_hours(analysis),
+            'estimated_lines': self._estimate_lines_of_code(analysis),
+            'risk_level': self._assess_risk(analysis),
+            'dependencies': self._identify_dependencies(analysis),
+            'confidence': self._calculate_confidence(analysis),
+            'breakdown': self._get_cost_breakdown(analysis)
+        }
+    
+    def _calculate_hours(self, analysis: Dict) -> float:
+        """Calculate estimated hours based on complexity and scope"""
+        base_hours = {
+            'low': 2.0,
+            'medium': 8.0,
+            'high': 24.0
+        }
+        
+        complexity = analysis.get('complexity', 'medium')
+        hours = base_hours.get(complexity, 8.0)
+        
+        files_to_modify = len(analysis.get('files_to_modify', []))
+        files_to_create = len(analysis.get('files_to_create', []))
+        
+        hours += files_to_modify * 0.5
+        hours += files_to_create * 1.5
+        
+        if analysis.get('database_changes') and analysis['database_changes'] != 'None':
+            hours *= RISK_FACTORS['database_changes']
+        
+        return round(hours, 1)
+    
+    def _estimate_lines_of_code(self, analysis: Dict) -> Dict:
+        """Estimate lines of code to be added/modified"""
+        complexity_multiplier = COMPLEXITY_WEIGHTS.get(
+            analysis.get('complexity', 'medium'), 2.5
+        )
+        
+        base_lines = 50
+        files_count = len(analysis.get('files_to_modify', [])) + \
+                      len(analysis.get('files_to_create', []))
+        
+        estimated_lines = int(base_lines * complexity_multiplier * max(files_count, 1))
+        
+        return {
+            'estimated_new': int(estimated_lines * 0.7),
+            'estimated_modified': int(estimated_lines * 0.3),
+            'total': estimated_lines
+        }
+    
+    def _assess_risk(self, analysis: Dict) -> Dict:
+        """Assess risk level of the implementation"""
+        risks = analysis.get('risks', [])
+        risk_score = 0
+        risk_factors = []
+        
+        if analysis.get('database_changes') and analysis['database_changes'] != 'None':
+            risk_score += 3
+            risk_factors.append('database_changes')
+        
+        security_keywords = ['auth', 'password', 'token', 'secret', 'encrypt', 'payment']
+        description = (analysis.get('summary', '') + ' '.join(risks)).lower()
+        
+        if any(kw in description for kw in security_keywords):
+            risk_score += 4
+            risk_factors.append('security_sensitive')
+        
+        if 'api' in description or 'endpoint' in description:
+            risk_score += 2
+            risk_factors.append('api_changes')
+        
+        if any('template' in f or '.html' in f for f in analysis.get('files_to_modify', [])):
+            risk_score += 1
+            risk_factors.append('ui_changes')
+        
+        risk_score += len(risks)
+        
+        if risk_score <= 2:
+            level = 'low'
+        elif risk_score <= 5:
+            level = 'medium'
+        else:
+            level = 'high'
+        
+        return {
+            'level': level,
+            'score': risk_score,
+            'factors': risk_factors,
+            'identified_risks': risks
+        }
+    
+    def _identify_dependencies(self, analysis: Dict) -> List[str]:
+        """Identify external dependencies needed for the feature"""
+        deps = []
+        summary = (analysis.get('summary', '') + 
+                   ' '.join(analysis.get('implementation_steps', []))).lower()
+        
+        dependency_hints = {
+            'email': 'sendgrid or smtp',
+            'payment': 'stripe',
+            'redis': 'redis',
+            'celery': 'celery',
+            'websocket': 'flask-socketio',
+            'pdf': 'reportlab or weasyprint',
+            'excel': 'openpyxl',
+            'image': 'pillow',
+            'oauth': 'flask-oauthlib',
+            'jwt': 'pyjwt',
+            'cache': 'redis or flask-caching'
+        }
+        
+        for keyword, dep in dependency_hints.items():
+            if keyword in summary:
+                deps.append(dep)
+        
+        return list(set(deps))
+    
+    def _calculate_confidence(self, analysis: Dict) -> float:
+        """Calculate confidence level in the estimate"""
+        confidence = 0.8
+        
+        if analysis.get('complexity') == 'high':
+            confidence -= 0.2
+        elif analysis.get('complexity') == 'low':
+            confidence += 0.1
+        
+        if len(analysis.get('risks', [])) > 3:
+            confidence -= 0.1
+        
+        if analysis.get('recommendation') == 'approve':
+            confidence += 0.05
+        elif analysis.get('recommendation') == 'reject':
+            confidence -= 0.15
+        
+        return round(max(0.3, min(0.95, confidence)), 2)
+    
+    def _get_cost_breakdown(self, analysis: Dict) -> Dict:
+        """Get detailed breakdown of cost estimate"""
+        complexity = analysis.get('complexity', 'medium')
+        
+        return {
+            'development': {
+                'hours': self._calculate_hours(analysis) * 0.6,
+                'description': 'Core implementation work'
+            },
+            'testing': {
+                'hours': self._calculate_hours(analysis) * 0.25,
+                'description': 'Unit and integration testing'
+            },
+            'review_and_deployment': {
+                'hours': self._calculate_hours(analysis) * 0.15,
+                'description': 'Code review and deployment'
+            },
+            'complexity_factor': COMPLEXITY_WEIGHTS.get(complexity, 2.5)
+        }
     
     def get_feature_recommendations(self) -> list:
         """Generate new feature recommendations based on popular platforms"""
