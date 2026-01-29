@@ -437,7 +437,7 @@ class AIServiceManager:
         max_tokens: int, temperature: float, **kwargs
     ) -> Dict[str, Any]:
         """Call Gemini API"""
-        import google.generativeai as genai
+        import google.generativeai as genai  # type: ignore
         
         genai.configure(api_key=config.api_key)
         model_name = model or config.models[0] if config.models else "gemini-1.5-flash"
@@ -445,10 +445,10 @@ class AIServiceManager:
         gen_model = genai.GenerativeModel(model_name)
         response = gen_model.generate_content(
             prompt,
-            generation_config=genai.types.GenerationConfig(
-                max_output_tokens=max_tokens,
-                temperature=temperature
-            )
+            generation_config={
+                "max_output_tokens": max_tokens,
+                "temperature": temperature
+            }
         )
         
         return {
@@ -498,12 +498,13 @@ class AIServiceManager:
         import httpx
         
         model_name = model or config.models[0] if config.models else "claude-3-haiku-20240307"
+        api_key = config.api_key or ""
         
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{config.base_url}/messages",
                 headers={
-                    "x-api-key": config.api_key,
+                    "x-api-key": api_key,
                     "anthropic-version": "2023-06-01",
                     "Content-Type": "application/json"
                 },
