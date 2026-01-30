@@ -2,6 +2,21 @@
 
 {% block title %}{{ 'Edit Petition' if petition else 'Create Petition' }} - Admin{% endblock %}
 
+{% block head %}
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<style>
+    #editor-container {
+        height: 300px;
+        background: white;
+    }
+    .ql-editor {
+        min-height: 250px;
+        font-size: 16px;
+        line-height: 1.6;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid py-4">
     <div class="row justify-content-center">
@@ -24,10 +39,9 @@
 
                         <div class="mb-3">
                             <label for="description" class="form-label">Description <span class="text-danger">*</span></label>
-                            <textarea class="form-control" id="description" name="description" 
-                                      rows="6" required
-                                      placeholder="Explain the purpose of this petition and why it matters...">{{ petition.description if petition else '' }}</textarea>
-                            <div class="form-text">This will be shown to users when they view the petition.</div>
+                            <div id="editor-container"></div>
+                            <input type="hidden" id="description" name="description" required>
+                            <div class="form-text">Use the toolbar to format text, add headings, bullet points, and more.</div>
                         </div>
 
                         <div class="mb-3">
@@ -95,4 +109,44 @@
         </div>
     </div>
 </div>
+
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<script>
+var quill = new Quill('#editor-container', {
+    theme: 'snow',
+    placeholder: 'Write your petition description here. Use the toolbar to add headings, bullet points, bold/italic text, and more...',
+    modules: {
+        toolbar: [
+            [{ 'header': [1, 2, 3, false] }],
+            ['bold', 'italic', 'underline', 'strike'],
+            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+            [{ 'indent': '-1'}, { 'indent': '+1' }],
+            [{ 'align': [] }],
+            ['blockquote'],
+            ['link'],
+            ['clean']
+        ]
+    }
+});
+
+// Load existing content if editing
+{% if petition and petition.description %}
+quill.root.innerHTML = {{ petition.description|tojson|safe }};
+{% endif %}
+
+// Update hidden field before form submission
+document.querySelector('form').addEventListener('submit', function(e) {
+    var descriptionField = document.getElementById('description');
+    var content = quill.root.innerHTML;
+    
+    // Check if content is empty
+    if (quill.getText().trim().length === 0) {
+        e.preventDefault();
+        alert('Please enter a description for the petition.');
+        return false;
+    }
+    
+    descriptionField.value = content;
+});
+</script>
 {% endblock %}
