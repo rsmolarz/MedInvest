@@ -125,6 +125,9 @@ class User(UserMixin, db.Model):
     password_reset_token = db.Column(db.String(100))
     password_reset_expires = db.Column(db.DateTime)
     
+    # Temporary password / invite flow
+    must_change_password = db.Column(db.Boolean, default=False)
+    
     # Social login IDs
     facebook_id = db.Column(db.String(50), unique=True, nullable=True)
     google_id = db.Column(db.String(50), unique=True, nullable=True)
@@ -587,6 +590,48 @@ class Invite(db.Model):
     def new_code() -> str:
         alphabet = string.ascii_uppercase + string.digits
         return ''.join(secrets.choice(alphabet) for _ in range(10))
+
+
+class DoctorInvite(db.Model):
+    """Admin-generated invite links for doctors with temporary passwords"""
+    __tablename__ = 'doctor_invites'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    token = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    email = db.Column(db.String(120), nullable=False)
+    first_name = db.Column(db.String(50))
+    last_name = db.Column(db.String(50))
+    specialty = db.Column(db.String(100))
+    temp_password = db.Column(db.String(20))
+    
+    status = db.Column(db.String(20), default='pending', index=True)  # pending, accepted, expired
+    created_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    accepted_by_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    accepted_at = db.Column(db.DateTime)
+    
+    created_by = db.relationship('User', foreign_keys=[created_by_id])
+    accepted_by = db.relationship('User', foreign_keys=[accepted_by_id])
+    
+    @staticmethod
+    def generate_token() -> str:
+        return secrets.token_urlsafe(32)
+    
+    @staticmethod
+    def generate_temp_password() -> str:
+        chars = string.ascii_letters + string.digits
+        return ''.join(secrets.choice(chars) for _ in range(12))
+    
+    @property
+    def is_expired(self) -> bool:
+        return datetime.utcnow() > self.expires_at
+    
+    @property
+    def invite_url(self) -> str:
+        from flask import url_for
+        return url_for('auth.accept_doctor_invite', token=self.token, _external=True)
 
 
 # Weekly Digest (retention)

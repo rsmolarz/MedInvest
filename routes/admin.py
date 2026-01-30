@@ -11,7 +11,7 @@ from models import (User, Post, Room, ExpertAMA, AMAStatus, InvestmentDeal,
                    DealStatus, Course, Event, SubscriptionTier, AdAdvertiser, 
                    AdCampaign, AdCreative, AdImpression, AdClick, MentorApplication, LTITool,
                    SiteSettings, CodeQualityIssue, CodeReviewRun, Petition, PetitionSignature,
-                   UserMedicalLicense)
+                   UserMedicalLicense, DoctorInvite)
 import json
 import hmac
 import hashlib
@@ -2095,3 +2095,108 @@ def podcast_settings():
                           podcast_info=podcast_info,
                           test_episodes=test_episodes,
                           has_api_token=has_api_token)
+
+
+# ============== Doctor Invite Management ==============
+
+@admin_bp.route('/doctor-invites')
+@login_required
+@admin_required
+def doctor_invites():
+    """Manage doctor invite links"""
+    invites = DoctorInvite.query.order_by(DoctorInvite.created_at.desc()).all()
+    return render_template('admin/doctor_invites.html', invites=invites)
+
+
+@admin_bp.route('/doctor-invites/create', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def create_doctor_invite():
+    """Create a new doctor invite link"""
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        first_name = request.form.get('first_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
+        specialty = request.form.get('specialty', '').strip()
+        expires_days = int(request.form.get('expires_days', 7))
+        
+        if not email:
+            flash('Email is required', 'error')
+            return redirect(url_for('admin.create_doctor_invite'))
+        
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            flash(f'A user with email {email} already exists', 'error')
+            return redirect(url_for('admin.create_doctor_invite'))
+        
+        existing_invite = DoctorInvite.query.filter_by(email=email, status='pending').first()
+        if existing_invite:
+            flash(f'An active invite for {email} already exists', 'warning')
+            return redirect(url_for('admin.doctor_invites'))
+        
+        invite = DoctorInvite(
+            token=DoctorInvite.generate_token(),
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            specialty=specialty,
+            temp_password=DoctorInvite.generate_temp_password(),
+            created_by_id=current_user.id,
+            expires_at=datetime.utcnow() + timedelta(days=expires_days)
+        )
+        
+        db.session.add(invite)
+        db.session.commit()
+        
+        flash(f'Invite created for {email}. Temporary password: {invite.temp_password}', 'success')
+        return redirect(url_for('admin.doctor_invite_details', invite_id=invite.id))
+    
+    return render_template('admin/create_doctor_invite.html')
+
+
+@admin_bp.route('/doctor-invites/<int:invite_id>')
+@login_required
+@admin_required
+def doctor_invite_details(invite_id):
+    """View details of a doctor invite"""
+    invite = DoctorInvite.query.get_or_404(invite_id)
+    return render_template('admin/doctor_invite_details.html', invite=invite)
+
+
+@admin_bp.route('/doctor-invites/<int:invite_id>/resend', methods=['POST'])
+@login_required
+@admin_required
+def resend_doctor_invite(invite_id):
+    """Resend/regenerate invite link"""
+    invite = DoctorInvite.query.get_or_404(invite_id)
+    
+    if invite.status == 'accepted':
+        flash('This invite has already been accepted', 'error')
+        return redirect(url_for('admin.doctor_invites'))
+    
+    invite.token = DoctorInvite.generate_token()
+    invite.temp_password = DoctorInvite.generate_temp_password()
+    invite.expires_at = datetime.utcnow() + timedelta(days=7)
+    invite.status = 'pending'
+    db.session.commit()
+    
+    flash(f'Invite regenerated. New temporary password: {invite.temp_password}', 'success')
+    return redirect(url_for('admin.doctor_invite_details', invite_id=invite.id))
+
+
+@admin_bp.route('/doctor-invites/<int:invite_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_doctor_invite(invite_id):
+    """Delete an invite"""
+    invite = DoctorInvite.query.get_or_404(invite_id)
+    
+    if invite.status == 'accepted':
+        flash('Cannot delete an accepted invite', 'error')
+        return redirect(url_for('admin.doctor_invites'))
+    
+    db.session.delete(invite)
+    db.session.commit()
+    
+    flash('Invite deleted', 'success')
+    return redirect(url_for('admin.doctor_invites'))

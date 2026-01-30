@@ -14,7 +14,7 @@ from urllib.parse import urlencode
 from werkzeug.utils import secure_filename
 import secrets
 from app import db
-from models import User, Referral, LoginSession, VerificationQueueEntry
+from models import User, Referral, LoginSession, VerificationQueueEntry, DoctorInvite
 from mailer import send_email
 
 
@@ -1771,3 +1771,92 @@ def owner_setup(token):
     logging.info(f"Owner setup completed for {current_user.email}")
     
     return redirect(url_for('main.feed'))
+
+
+# ============== Doctor Invite Acceptance ==============
+
+@auth_bp.route('/invite/<token>')
+def accept_doctor_invite(token):
+    """Accept a doctor invite and create account with temporary password"""
+    invite = DoctorInvite.query.filter_by(token=token).first()
+    
+    if not invite:
+        flash('Invalid invite link', 'error')
+        return redirect(url_for('auth.login'))
+    
+    if invite.status == 'accepted':
+        flash('This invite has already been used', 'info')
+        return redirect(url_for('auth.login'))
+    
+    if invite.is_expired:
+        invite.status = 'expired'
+        db.session.commit()
+        flash('This invite link has expired', 'error')
+        return redirect(url_for('auth.login'))
+    
+    existing_user = User.query.filter_by(email=invite.email).first()
+    if existing_user:
+        flash('An account with this email already exists. Please login.', 'info')
+        return redirect(url_for('auth.login'))
+    
+    user = User(
+        email=invite.email,
+        first_name=invite.first_name or 'Doctor',
+        last_name=invite.last_name or '',
+        specialty=invite.specialty,
+        role='physician',
+        is_verified=True,
+        verification_status='verified',
+        verified_at=datetime.utcnow(),
+        must_change_password=True
+    )
+    user.set_password(invite.temp_password)
+    
+    chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    user.referral_code = ''.join(secrets.choice(chars) for _ in range(8))
+    
+    db.session.add(user)
+    db.session.flush()  # Get user.id before assigning to invite
+    
+    invite.status = 'accepted'
+    invite.accepted_by_id = user.id
+    invite.accepted_at = datetime.utcnow()
+    
+    db.session.commit()
+    
+    login_user(user)
+    record_login_session(user.id, 'invite_link')
+    
+    flash(f'Welcome! Your temporary password is: {invite.temp_password}. Please change it now.', 'warning')
+    return redirect(url_for('main.feed'))
+
+
+@auth_bp.route('/change-password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    """Change password - required for users with temporary passwords"""
+    if request.method == 'POST':
+        current_password = request.form.get('current_password', '')
+        new_password = request.form.get('new_password', '')
+        confirm_password = request.form.get('confirm_password', '')
+        
+        if not current_user.check_password(current_password):
+            flash('Current password is incorrect', 'error')
+            return redirect(url_for('auth.change_password'))
+        
+        if len(new_password) < 8:
+            flash('New password must be at least 8 characters', 'error')
+            return redirect(url_for('auth.change_password'))
+        
+        if new_password != confirm_password:
+            flash('New passwords do not match', 'error')
+            return redirect(url_for('auth.change_password'))
+        
+        current_user.set_password(new_password)
+        current_user.must_change_password = False
+        db.session.commit()
+        
+        flash('Password changed successfully!', 'success')
+        return redirect(url_for('main.feed'))
+    
+    return render_template('auth/change_password.html')

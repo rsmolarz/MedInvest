@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Doctor Invites - Admin{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Doctor Invite Links</h2>
+        <a href="{{ url_for('admin.create_doctor_invite') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Create Invite
+        </a>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            {% if invites %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Expires</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for invite in invites %}
+                        <tr>
+                            <td>{{ invite.email }}</td>
+                            <td>{{ invite.first_name }} {{ invite.last_name }}</td>
+                            <td>
+                                {% if invite.status == 'pending' %}
+                                    {% if invite.is_expired %}
+                                        <span class="badge bg-secondary">Expired</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                    {% endif %}
+                                {% elif invite.status == 'accepted' %}
+                                    <span class="badge bg-success">Accepted</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ invite.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ invite.created_at.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ invite.expires_at.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                <a href="{{ url_for('admin.doctor_invite_details', invite_id=invite.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-envelope-open-text fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No invite links created yet</p>
+                <a href="{{ url_for('admin.create_doctor_invite') }}" class="btn btn-primary">Create First Invite</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

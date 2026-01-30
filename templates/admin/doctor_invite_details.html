@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Invite Details - Admin{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Invite Details</h4>
+                    <a href="{{ url_for('admin.doctor_invites') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i>Back
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Email</h6>
+                            <p class="fs-5">{{ invite.email }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Status</h6>
+                            <p>
+                                {% if invite.status == 'pending' %}
+                                    {% if invite.is_expired %}
+                                        <span class="badge bg-secondary fs-6">Expired</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark fs-6">Pending</span>
+                                    {% endif %}
+                                {% elif invite.status == 'accepted' %}
+                                    <span class="badge bg-success fs-6">Accepted</span>
+                                {% else %}
+                                    <span class="badge bg-secondary fs-6">{{ invite.status }}</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Name</h6>
+                            <p>{{ invite.first_name or '-' }} {{ invite.last_name or '' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Specialty</h6>
+                            <p>{{ invite.specialty or '-' }}</p>
+                        </div>
+                    </div>
+                    
+                    {% if invite.status == 'pending' and not invite.is_expired %}
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading"><i class="fas fa-link me-2"></i>Invite Link</h6>
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control" id="inviteUrl" value="{{ invite.invite_url }}" readonly>
+                            <button class="btn btn-outline-primary" type="button" onclick="copyLink()">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <hr>
+                        <h6 class="alert-heading"><i class="fas fa-key me-2"></i>Temporary Password</h6>
+                        <code class="fs-5">{{ invite.temp_password }}</code>
+                        <p class="mb-0 mt-2 small">Share this password securely with the doctor. They will be prompted to change it after logging in.</p>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Created</h6>
+                            <p>{{ invite.created_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Expires</h6>
+                            <p>{{ invite.expires_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                        </div>
+                    </div>
+                    
+                    {% if invite.status == 'accepted' %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Accepted on {{ invite.accepted_at.strftime('%B %d, %Y at %I:%M %p') }}
+                    </div>
+                    {% endif %}
+                    
+                    {% if invite.status != 'accepted' %}
+                    <div class="d-flex gap-2 mt-4">
+                        <form action="{{ url_for('admin.resend_doctor_invite', invite_id=invite.id) }}" method="POST" class="d-inline">
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-redo me-1"></i>Regenerate Link
+                            </button>
+                        </form>
+                        <form action="{{ url_for('admin.delete_doctor_invite', invite_id=invite.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this invite?')">
+                            <button type="submit" class="btn btn-outline-danger">
+                                <i class="fas fa-trash me-1"></i>Delete
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyLink() {
+    const input = document.getElementById('inviteUrl');
+    input.select();
+    document.execCommand('copy');
+    alert('Link copied to clipboard!');
+}
+</script>
+{% endblock %}
