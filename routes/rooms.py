@@ -159,39 +159,44 @@ def create_room():
 @login_required
 def view_room(slug):
     """View a specific room and its posts"""
-    room = Room.query.filter_by(slug=slug).first_or_404()
-    
-    page = request.args.get('page', 1, type=int)
-    sort = request.args.get('sort', 'new')  # new, top, hot
-    
-    query = Post.query.filter_by(room_id=room.id)
-    
-    if sort == 'top':
-        query = query.order_by((Post.upvotes - Post.downvotes).desc())
-    elif sort == 'hot':
-        # Simple hot algorithm: score / age
-        query = query.order_by(Post.upvotes.desc(), Post.created_at.desc())
-    else:
-        query = query.order_by(Post.created_at.desc())
-    
-    posts = query.paginate(page=page, per_page=20, error_out=False)
-    
-    # Get user votes
-    user_votes = {}
-    if current_user.is_authenticated:
-        post_ids = [p.id for p in posts.items]
-        votes = PostVote.query.filter(
-            PostVote.post_id.in_(post_ids),
-            PostVote.user_id == current_user.id
-        ).all()
-        user_votes = {v.post_id: v.vote_type for v in votes}
-    
-    return render_template('rooms/detail.html', 
-                         room=room, 
-                         posts=posts,
-                         user_votes=user_votes,
-                         sort=sort,
-                         render_content=render_content_with_links)
+    import logging
+    try:
+        room = Room.query.filter_by(slug=slug).first_or_404()
+        
+        page = request.args.get('page', 1, type=int)
+        sort = request.args.get('sort', 'new')  # new, top, hot
+        
+        query = Post.query.filter_by(room_id=room.id)
+        
+        if sort == 'top':
+            query = query.order_by((Post.upvotes - Post.downvotes).desc())
+        elif sort == 'hot':
+            # Simple hot algorithm: score / age
+            query = query.order_by(Post.upvotes.desc(), Post.created_at.desc())
+        else:
+            query = query.order_by(Post.created_at.desc())
+        
+        posts = query.paginate(page=page, per_page=20, error_out=False)
+        
+        # Get user votes
+        user_votes = {}
+        if current_user.is_authenticated:
+            post_ids = [p.id for p in posts.items]
+            votes = PostVote.query.filter(
+                PostVote.post_id.in_(post_ids),
+                PostVote.user_id == current_user.id
+            ).all()
+            user_votes = {v.post_id: v.vote_type for v in votes}
+        
+        return render_template('rooms/detail.html', 
+                             room=room, 
+                             posts=posts,
+                             user_votes=user_votes,
+                             sort=sort,
+                             render_content=render_content_with_links)
+    except Exception as e:
+        logging.error(f"Error in view_room for slug '{slug}': {e}", exc_info=True)
+        raise
 
 
 @rooms_bp.route('/<slug>/post', methods=['POST'])

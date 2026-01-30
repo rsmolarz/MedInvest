@@ -36,14 +36,14 @@
             <div class="card mb-3">
                 <div class="card-body">
                     <div class="d-flex justify-content-between mb-2">
-                        <strong>{{ post.display_author }}</strong>
-                        <small class="text-muted">{{ post.created_at|localtime('shortdate') }}</small>
+                        <strong>{{ post.display_author or 'Unknown' }}</strong>
+                        <small class="text-muted">{{ post.created_at|localtime('shortdate') if post.created_at else '' }}</small>
                     </div>
-                    <p>{{ render_content(post.content)|safe }}</p>
+                    <p>{{ render_content(post.content or '')|safe }}</p>
                     <div class="d-flex gap-3">
-                        <span class="text-muted"><i class="fas fa-arrow-up"></i> {{ post.upvotes }}</span>
+                        <span class="text-muted"><i class="fas fa-arrow-up"></i> {{ post.upvotes or 0 }}</span>
                         <a href="{{ url_for('rooms.view_post', post_id=post.id) }}" class="text-muted">
-                            <i class="fas fa-comment"></i> {{ post.comment_count }}
+                            <i class="fas fa-comment"></i> {{ post.comment_count or 0 }}
                         </a>
                     </div>
                 </div>
@@ -57,8 +57,8 @@
             <div class="card mb-3">
                 <div class="card-header"><h6 class="mb-0">{{ room.name }}</h6></div>
                 <div class="card-body">
-                    <p class="text-muted small">{{ room.description }}</p>
-                    <p><i class="fas fa-users me-2"></i>{{ room.member_count }} members</p>
+                    <p class="text-muted small">{{ room.description or '' }}</p>
+                    <p><i class="fas fa-users me-2"></i>{{ room.member_count or 0 }} members</p>
                 </div>
             </div>
             
