@@ -647,6 +647,75 @@ def manage_rooms():
     return render_template('admin/rooms.html', rooms=rooms)
 
 
+@admin_bp.route('/rooms/seed-territories', methods=['POST'])
+@login_required
+@admin_required
+def seed_territory_rooms():
+    """Seed all US territories and states as PAC rooms"""
+    territories = [
+        ('Puerto Rico Doctors - PAC', 'puerto-rico-doctors-pac', 'Political advocacy and healthcare policy discussions for Puerto Rico medical professionals', '🇵🇷'),
+        ('Guam Doctors - PAC', 'guam-doctors-pac', 'Political advocacy and healthcare policy discussions for Guam medical professionals', '🏝️'),
+        ('American Samoa Doctors - PAC', 'american-samoa-doctors-pac', 'Political advocacy and healthcare policy discussions for American Samoa medical professionals', '🏝️'),
+        ('Northern Mariana Islands Doctors - PAC', 'northern-mariana-islands-doctors-pac', 'Political advocacy and healthcare policy discussions for Northern Mariana Islands medical professionals', '🏝️'),
+        ('District of Columbia Doctors - PAC', 'dc-doctors-pac', 'Political advocacy and healthcare policy discussions for Washington D.C. medical professionals', '🏛️'),
+    ]
+    
+    states = [
+        ('Alabama', 'AL'), ('Alaska', 'AK'), ('Arizona', 'AZ'), ('Arkansas', 'AR'),
+        ('California', 'CA'), ('Colorado', 'CO'), ('Connecticut', 'CT'), ('Delaware', 'DE'),
+        ('Florida', 'FL'), ('Georgia', 'GA'), ('Hawaii', 'HI'), ('Idaho', 'ID'),
+        ('Illinois', 'IL'), ('Indiana', 'IN'), ('Iowa', 'IA'), ('Kansas', 'KS'),
+        ('Kentucky', 'KY'), ('Louisiana', 'LA'), ('Maine', 'ME'), ('Maryland', 'MD'),
+        ('Massachusetts', 'MA'), ('Michigan', 'MI'), ('Minnesota', 'MN'), ('Mississippi', 'MS'),
+        ('Missouri', 'MO'), ('Montana', 'MT'), ('Nebraska', 'NE'), ('Nevada', 'NV'),
+        ('New Hampshire', 'NH'), ('New Jersey', 'NJ'), ('New Mexico', 'NM'), ('New York', 'NY'),
+        ('North Carolina', 'NC'), ('North Dakota', 'ND'), ('Ohio', 'OH'), ('Oklahoma', 'OK'),
+        ('Oregon', 'OR'), ('Pennsylvania', 'PA'), ('Rhode Island', 'RI'), ('South Carolina', 'SC'),
+        ('South Dakota', 'SD'), ('Tennessee', 'TN'), ('Texas', 'TX'), ('Utah', 'UT'),
+        ('Vermont', 'VT'), ('Virginia', 'VA'), ('Washington', 'WA'), ('West Virginia', 'WV'),
+        ('Wisconsin', 'WI'), ('Wyoming', 'WY')
+    ]
+    
+    created_count = 0
+    
+    # Add territories
+    for name, slug, description, icon in territories:
+        existing = Room.query.filter_by(slug=slug).first()
+        if not existing:
+            room = Room(
+                name=name,
+                slug=slug,
+                description=description,
+                category='territory',
+                icon=icon,
+                color='#4A90A4',
+                member_count=0
+            )
+            db.session.add(room)
+            created_count += 1
+    
+    # Add states
+    for state_name, abbrev in states:
+        slug = f'{state_name.lower().replace(" ", "-")}-doctors-pac'
+        existing = Room.query.filter_by(slug=slug).first()
+        if not existing:
+            room = Room(
+                name=f'{state_name} Doctors - PAC',
+                slug=slug,
+                description=f'Political advocacy and healthcare policy discussions for {state_name} medical professionals',
+                category='state',
+                icon='🏥',
+                color='#4A90A4',
+                member_count=0
+            )
+            db.session.add(room)
+            created_count += 1
+    
+    db.session.commit()
+    flash(f'Created {created_count} new PAC rooms for states and territories!', 'success')
+    return redirect(url_for('admin.manage_rooms'))
+
+
 @admin_bp.route('/posts')
 @login_required
 @admin_required

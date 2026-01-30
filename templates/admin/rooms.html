@@ -24,6 +24,8 @@
                             <option value="Strategy">Strategy</option>
                             <option value="Specialty">Specialty</option>
                             <option value="Career Stage">Career Stage</option>
+                            <option value="state">State PAC</option>
+                            <option value="territory">Territory PAC</option>
                         </select>
                     </div>
                 </div>
@@ -36,6 +38,18 @@
                     <label class="form-check-label" for="roomPremium">Premium Only</label>
                 </div>
                 <button type="submit" class="btn btn-primary">Create Room</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">Quick Setup</h5></div>
+        <div class="card-body">
+            <p class="text-muted mb-3">Quickly create PAC rooms for all 50 US states and territories.</p>
+            <form method="POST" action="{{ url_for('admin.seed_territory_rooms') }}">
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-plus-circle me-2"></i>Create All State & Territory PAC Rooms
+                </button>
             </form>
         </div>
     </div>
