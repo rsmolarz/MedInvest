@@ -53,14 +53,18 @@
                         <h6 class="alert-heading"><i class="fas fa-link me-2"></i>Invite Link</h6>
                         <div class="input-group mb-2">
                             <input type="text" class="form-control" id="inviteUrl" value="{{ invite.invite_url }}" readonly>
-                            <button class="btn btn-outline-primary" type="button" onclick="copyLink()">
-                                <i class="fas fa-copy"></i>
-                            </button>
                         </div>
                         <hr>
                         <h6 class="alert-heading"><i class="fas fa-key me-2"></i>Temporary Password</h6>
-                        <code class="fs-5">{{ invite.temp_password }}</code>
+                        <code class="fs-5" id="tempPassword">{{ invite.temp_password }}</code>
                         <p class="mb-0 mt-2 small">Share this password securely with the doctor. They will be prompted to change it after logging in.</p>
+                        <hr>
+                        <button class="btn btn-primary" type="button" onclick="copyAll()">
+                            <i class="fas fa-copy me-2"></i>Copy Link & Password
+                        </button>
+                        <span id="copySuccess" class="text-success ms-2" style="display: none;">
+                            <i class="fas fa-check me-1"></i>Copied!
+                        </span>
                     </div>
                     {% endif %}
                     
@@ -103,11 +107,26 @@
 </div>
 
 <script>
-function copyLink() {
-    const input = document.getElementById('inviteUrl');
-    input.select();
-    document.execCommand('copy');
-    alert('Link copied to clipboard!');
+function copyAll() {
+    const link = document.getElementById('inviteUrl').value;
+    const password = document.getElementById('tempPassword').textContent;
+    const textToCopy = `MedInvest Doctor Invite\n\nLogin Link: ${link}\nTemporary Password: ${password}\n\nPlease change your password after logging in.`;
+    
+    navigator.clipboard.writeText(textToCopy).then(function() {
+        const successMsg = document.getElementById('copySuccess');
+        successMsg.style.display = 'inline';
+        setTimeout(function() {
+            successMsg.style.display = 'none';
+        }, 3000);
+    }).catch(function() {
+        const textarea = document.createElement('textarea');
+        textarea.value = textToCopy;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('Link and password copied to clipboard!');
+    });
 }
 </script>
 {% endblock %}
