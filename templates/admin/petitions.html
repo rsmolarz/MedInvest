@@ -55,10 +55,12 @@
                                 <span class="badge bg-info">Delivered</span>
                                 {% endif %}
                             </td>
-                            <td>{{ petition.signature_count }}</td>
-                            <td>{{ petition.goal_signatures }}</td>
+                            <td>{{ petition.signature_count or 0 }}</td>
+                            <td>{{ petition.goal_signatures or 100 }}</td>
                             <td style="width: 150px;">
-                                {% set progress = (petition.signature_count / petition.goal_signatures * 100) if petition.goal_signatures > 0 else 0 %}
+                                {% set sig_count = petition.signature_count or 0 %}
+                                {% set goal = petition.goal_signatures or 100 %}
+                                {% set progress = (sig_count / goal * 100) if goal > 0 else 0 %}
                                 <div class="progress" style="height: 20px;">
                                     <div class="progress-bar {% if progress >= 100 %}bg-success{% else %}bg-primary{% endif %}" 
                                          role="progressbar" 
@@ -70,7 +72,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td>{{ petition.created_at.strftime('%b %d, %Y') }}</td>
+                            <td>{{ petition.created_at.strftime('%b %d, %Y') if petition.created_at else 'N/A' }}</td>
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <a href="{{ url_for('admin.view_petition_signatures', petition_id=petition.id) }}" 
