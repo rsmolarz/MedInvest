@@ -32,6 +32,7 @@
                 <a href="?sort=top" class="btn btn-sm {{ 'btn-primary' if sort == 'top' else 'btn-outline-secondary' }}">Top</a>
             </div>
             
+            {% if posts and posts.items %}
             {% for post in posts.items %}
             <div class="card mb-3">
                 <div class="card-body">
@@ -51,6 +52,9 @@
             {% else %}
             <p class="text-muted text-center">No posts in this room yet. Be the first!</p>
             {% endfor %}
+            {% else %}
+            <p class="text-muted text-center">No posts in this room yet. Be the first!</p>
+            {% endif %}
         </div>
         
         <div class="col-lg-4">
@@ -62,13 +66,15 @@
                 </div>
             </div>
             
-            {% if room.petitions.filter_by(is_active=True, status='active').first() %}
+            {% if room.petitions is defined and room.petitions %}
+            {% set active_petitions = room.petitions.filter_by(is_active=True, status='active').all() %}
+            {% if active_petitions %}
             <div class="card mb-3 border-primary">
                 <div class="card-header bg-primary text-white">
                     <h6 class="mb-0"><i class="fas fa-file-signature me-2"></i>Active Petitions</h6>
                 </div>
                 <ul class="list-group list-group-flush">
-                    {% for petition in room.petitions.filter_by(is_active=True, status='active').all() %}
+                    {% for petition in active_petitions %}
                     <li class="list-group-item">
                         <a href="{{ url_for('rooms.view_petition', petition_id=petition.id) }}" class="text-decoration-none">
                             <strong>{{ petition.title }}</strong>
@@ -84,6 +90,7 @@
                     {% endfor %}
                 </ul>
             </div>
+            {% endif %}
             {% endif %}
         </div>
     </div>
