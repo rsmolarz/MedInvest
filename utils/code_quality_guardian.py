@@ -188,6 +188,68 @@ FILE: {file_path}
 ```
 """
 
+TEMPLATE_REVIEW_PROMPT = """You are CodeQualityGuardian, an expert Jinja2 template reviewer for a Flask web application called MedInvest.
+
+Analyze the following Jinja2 HTML template and identify RUNTIME ERRORS that could cause 500 errors:
+
+CRITICAL ISSUES TO FIND:
+1. NONE VALUE ERRORS: Division/math operations on values that could be None
+   - BAD: {{ petition.signature_count / petition.goal_signatures }}
+   - GOOD: {% set count = petition.signature_count or 0 %}{% set goal = petition.goal_signatures or 1 %}{{ count / goal }}
+
+2. UNSAFE ATTRIBUTE ACCESS: Accessing .attribute on objects that could be None  
+   - BAD: {{ post.author.full_name }}
+   - GOOD: {{ post.author.full_name if post.author else 'Unknown' }}
+
+3. MISSING DEFAULT VALUES: Displaying values that could be None without defaults
+   - BAD: {{ user.points }}
+   - GOOD: {{ user.points or 0 }}
+
+4. UNSAFE FILTER CHAINS: Filters on values that could be None
+   - BAD: {{ date|localtime }}
+   - GOOD: {{ date|localtime if date else '' }}
+
+5. LOOP OVER NONE: Iterating over relationships that could be None
+   - BAD: {% for item in object.items %}
+   - GOOD: {% for item in object.items or [] %}
+
+For each issue found, provide:
+- issue_type: bug
+- severity: critical|high|medium|low
+- line_number: approximate line number
+- title: brief title (max 100 chars)
+- description: detailed explanation of the runtime error
+- suggested_fix: the corrected Jinja2 code
+- auto_fixable: true
+- confidence: 0.0-1.0
+
+Respond in JSON format:
+{
+    "issues": [
+        {
+            "issue_type": "bug",
+            "severity": "critical",
+            "line_number": 42,
+            "function_name": null,
+            "title": "Division by None value in progress calculation",
+            "description": "petition.signature_count could be None, causing TypeError on division",
+            "code_snippet": "{{ petition.signature_count / petition.goal_signatures }}",
+            "suggested_fix": "{% set count = petition.signature_count or 0 %}{% set goal = petition.goal_signatures or 1 %}{{ (count / goal * 100)|int }}%",
+            "auto_fixable": true,
+            "confidence": 0.95
+        }
+    ],
+    "summary": "Found X runtime error risks in template"
+}
+
+Only report issues that would cause ACTUAL RUNTIME ERRORS (500 errors). Focus on None/null safety.
+
+FILE: {file_path}
+```html
+{code_content}
+```
+"""
+
 
 class CodeQualityGuardian:
     """Main code quality review engine with parallel processing and caching"""
@@ -427,10 +489,17 @@ class CodeQualityGuardian:
         genai.configure(api_key=self.api_key)
         model = genai.GenerativeModel(self.model_name)
         
-        prompt = REVIEW_PROMPT.format(
-            file_path=file_path,
-            code_content=code_content
-        )
+        # Use template-specific prompt for HTML/Jinja files
+        if file_path.endswith('.html') or file_path.endswith('.jinja2'):
+            prompt = TEMPLATE_REVIEW_PROMPT.format(
+                file_path=file_path,
+                code_content=code_content
+            )
+        else:
+            prompt = REVIEW_PROMPT.format(
+                file_path=file_path,
+                code_content=code_content
+            )
         
         response = model.generate_content(
             prompt,
