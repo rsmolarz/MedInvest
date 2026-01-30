@@ -50,14 +50,8 @@ def init_scheduler(app):
         return
     
     try:
-        from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
-        
-        database_url = os.environ.get('DATABASE_URL')
-        jobstores = {}
-        if database_url:
-            jobstores['default'] = SQLAlchemyJobStore(url=database_url)
-        
-        _scheduler = BackgroundScheduler(jobstores=jobstores)
+        # Use memory-based job store to avoid ZoneInfo pickle issues with SQLAlchemy job store
+        _scheduler = BackgroundScheduler(timezone='UTC')
         
         _scheduler.add_job(
             func=run_code_review_job,
