@@ -8,6 +8,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 class Base(DeclarativeBase):
@@ -64,3 +65,13 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Initialize the app with the extension
 db.init_app(app)
+
+# Import models to register them with SQLAlchemy metadata
+with app.app_context():
+    import models  # noqa: F401
+    
+    # Verify and create any missing database tables on startup
+    from utils.db_verify import verify_and_create_tables
+    created = verify_and_create_tables(db, app)
+    if created:
+        logger.warning(f"Created missing database tables on startup: {created}")
