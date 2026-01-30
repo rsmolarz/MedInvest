@@ -230,7 +230,7 @@
                             {% else %}
                             <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" 
                                  style="width:32px;height:32px;font-size:12px;">
-                                {{ current_user.first_name[0] }}{{ current_user.last_name[0] }}
+                                {{ (current_user.first_name or 'U')[0] }}{{ (current_user.last_name or '')[0] }}
                             </div>
                             {% endif %}
                         </a>
@@ -240,7 +240,7 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                             {% if current_user.is_premium %}<i class="fas fa-crown text-warning me-1"></i>{% endif %}
-                            {{ current_user.first_name }}
+                            {{ current_user.first_name or 'User' }}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item" href="{{ url_for('main.dashboard') }}"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
