@@ -446,7 +446,9 @@ class Post(db.Model):
     def display_author(self):
         if self.is_anonymous:
             return self.anonymous_name or "Anonymous"
-        return self.author.full_name
+        if self.author:
+            return self.author.full_name
+        return "Deleted User"
     
     def likes_count(self):
         return self.likes.count()
