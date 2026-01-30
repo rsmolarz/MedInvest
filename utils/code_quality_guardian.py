@@ -213,6 +213,21 @@ CRITICAL ISSUES TO FIND:
    - BAD: {% for item in object.items %}
    - GOOD: {% for item in object.items or [] %}
 
+6. INCORRECT JINJA2 FILTER USAGE: Using filters incorrectly causes TypeErrors
+   - BAD: {{ progress|min(100) }} (min expects iterable, not comparison)
+   - GOOD: {% set capped = progress if progress < 100 else 100 %}{{ capped }}
+   - BAD: {{ value|max(0) }} (max expects iterable, not comparison)
+   - GOOD: {% set floored = value if value > 0 else 0 %}{{ floored }}
+   - NOTE: Jinja2's min/max filters find minimum/maximum FROM an iterable, not compare two values
+
+7. UNSAFE STRING INDEXING: Accessing string index on potentially empty/None strings
+   - BAD: {{ user.first_name[0] }}
+   - GOOD: {{ (user.first_name or 'U')[0] }}
+
+8. UNSAFE METHOD CALLS: Calling methods on objects that might be None
+   - BAD: {{ object.items.filter_by(active=True).all() }}
+   - GOOD: {% if object.items %}{% for item in object.items.filter_by(active=True).all() %}...{% endfor %}{% endif %}
+
 For each issue found, provide:
 - issue_type: bug
 - severity: critical|high|medium|low
