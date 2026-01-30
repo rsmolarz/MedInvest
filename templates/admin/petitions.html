@@ -61,10 +61,11 @@
                                 {% set sig_count = petition.signature_count or 0 %}
                                 {% set goal = petition.goal_signatures or 100 %}
                                 {% set progress = (sig_count / goal * 100) if goal > 0 else 0 %}
+                                {% set capped_progress = progress if progress < 100 else 100 %}
                                 <div class="progress" style="height: 20px;">
                                     <div class="progress-bar {% if progress >= 100 %}bg-success{% else %}bg-primary{% endif %}" 
                                          role="progressbar" 
-                                         style="width: {{ progress|min(100) }}%"
+                                         style="width: {{ capped_progress }}%"
                                          aria-valuenow="{{ progress|int }}" 
                                          aria-valuemin="0" 
                                          aria-valuemax="100">
