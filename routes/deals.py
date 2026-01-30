@@ -169,7 +169,7 @@ def submit_deal():
         sponsor_name=request.form.get('sponsor_name'),
         sponsor_bio=request.form.get('sponsor_bio'),
         sponsor_contact=request.form.get('sponsor_contact'),
-        status=DealStatus.REVIEW
+        status=DealStatus.REVIEW.value
     )
     
     db.session.add(deal)
@@ -186,11 +186,11 @@ def approve_deal(deal_id):
     """Approve a deal and make it active (admin only)"""
     deal = InvestmentDeal.query.get_or_404(deal_id)
     
-    if deal.status == DealStatus.ACTIVE:
+    if deal.status == DealStatus.ACTIVE.value:
         flash('Deal is already active', 'info')
         return redirect(url_for('deals.view_deal', deal_id=deal_id))
     
-    deal.status = DealStatus.ACTIVE
+    deal.status = DealStatus.ACTIVE.value
     db.session.commit()
     
     # Auto-post to Facebook
@@ -211,15 +211,15 @@ def approve_deal(deal_id):
 @admin_required
 def admin_deals():
     """Admin view of all deals including pending"""
-    pending = InvestmentDeal.query.filter_by(status=DealStatus.REVIEW).order_by(
+    pending = InvestmentDeal.query.filter_by(status=DealStatus.REVIEW.value).order_by(
         InvestmentDeal.created_at.desc()
     ).all()
     
-    active = InvestmentDeal.query.filter_by(status=DealStatus.ACTIVE).order_by(
+    active = InvestmentDeal.query.filter_by(status=DealStatus.ACTIVE.value).order_by(
         InvestmentDeal.created_at.desc()
     ).all()
     
-    closed = InvestmentDeal.query.filter_by(status=DealStatus.CLOSED).order_by(
+    closed = InvestmentDeal.query.filter_by(status=DealStatus.CLOSED.value).order_by(
         InvestmentDeal.created_at.desc()
     ).all()
     

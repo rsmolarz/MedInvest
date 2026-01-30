@@ -471,9 +471,9 @@ def revoke_premium(user_id):
 @admin_required
 def manage_deals():
     """Deal management"""
-    pending = InvestmentDeal.query.filter_by(status=DealStatus.REVIEW)\
+    pending = InvestmentDeal.query.filter_by(status=DealStatus.REVIEW.value)\
                                   .order_by(InvestmentDeal.created_at.desc()).all()
-    active = InvestmentDeal.query.filter_by(status=DealStatus.ACTIVE)\
+    active = InvestmentDeal.query.filter_by(status=DealStatus.ACTIVE.value)\
                                  .order_by(InvestmentDeal.created_at.desc()).all()
     
     return render_template('admin/deals.html', pending=pending, active=active)
@@ -485,7 +485,7 @@ def manage_deals():
 def approve_deal(deal_id):
     """Approve a deal"""
     deal = InvestmentDeal.query.get_or_404(deal_id)
-    deal.status = DealStatus.ACTIVE
+    deal.status = DealStatus.ACTIVE.value
     db.session.commit()
     
     return jsonify({'success': True, 'message': 'Deal approved'})
@@ -497,7 +497,7 @@ def approve_deal(deal_id):
 def reject_deal(deal_id):
     """Reject a deal"""
     deal = InvestmentDeal.query.get_or_404(deal_id)
-    deal.status = DealStatus.REJECTED
+    deal.status = DealStatus.REJECTED.value
     db.session.commit()
     
     return jsonify({'success': True, 'message': 'Deal rejected'})
