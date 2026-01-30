@@ -7,5 +7,16 @@
     <h2>Something Went Wrong</h2>
     <p class="text-muted">We're working on fixing this. Please try again later.</p>
     <a href="{{ url_for('main.index') }}" class="btn btn-primary">Go Home</a>
+    
+    {% if current_user.is_authenticated and current_user.is_admin and error %}
+    <div class="mt-4 text-start">
+        <div class="card bg-dark text-light">
+            <div class="card-header">Admin Debug Info</div>
+            <div class="card-body">
+                <pre class="mb-0" style="white-space: pre-wrap; word-wrap: break-word;">{{ error }}</pre>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

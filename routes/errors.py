@@ -21,6 +21,13 @@ def forbidden_error(error):
 @errors_bp.app_errorhandler(500)
 def internal_error(error):
     """Handle 500 errors"""
+    import traceback
+    import logging
     from app import db
     db.session.rollback()
-    return render_template('errors/500.html'), 500
+    
+    # Log the full error for debugging
+    error_details = f"{type(error).__name__}: {str(error)}\n{traceback.format_exc()}"
+    logging.error(f"500 Error: {error_details}")
+    
+    return render_template('errors/500.html', error=error_details), 500

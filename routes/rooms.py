@@ -160,6 +160,7 @@ def create_room():
 def view_room(slug):
     """View a specific room and its posts"""
     import logging
+    import traceback
     try:
         room = Room.query.filter_by(slug=slug).first_or_404()
         
@@ -188,12 +189,22 @@ def view_room(slug):
             ).all()
             user_votes = {v.post_id: v.vote_type for v in votes}
         
-        return render_template('rooms/detail.html', 
-                             room=room, 
-                             posts=posts,
-                             user_votes=user_votes,
-                             sort=sort,
-                             render_content=render_content_with_links)
+        # Debug: Log room and post data before rendering
+        logging.debug(f"Rendering room '{slug}' with {len(posts.items)} posts, user: {current_user.id if current_user.is_authenticated else 'anon'}")
+        
+        try:
+            return render_template('rooms/detail.html', 
+                                 room=room, 
+                                 posts=posts,
+                                 user_votes=user_votes,
+                                 sort=sort,
+                                 render_content=render_content_with_links)
+        except Exception as template_error:
+            logging.error(f"Template error in view_room for slug '{slug}': {template_error}")
+            logging.error(f"Full traceback: {traceback.format_exc()}")
+            logging.error(f"Room data: id={room.id}, name={room.name}, member_count={room.member_count}")
+            logging.error(f"Current user: id={current_user.id}, first_name={current_user.first_name}, last_name={current_user.last_name}")
+            raise
     except Exception as e:
         logging.error(f"Error in view_room for slug '{slug}': {e}", exc_info=True)
         raise
