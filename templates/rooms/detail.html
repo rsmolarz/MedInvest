@@ -74,10 +74,12 @@
                             <strong>{{ petition.title }}</strong>
                         </a>
                         <div class="progress mt-2" style="height: 8px;">
-                            {% set progress = (petition.signature_count / petition.goal_signatures * 100) if petition.goal_signatures > 0 else 0 %}
+                            {% set sig_count = petition.signature_count or 0 %}
+                            {% set goal = petition.goal_signatures or 100 %}
+                            {% set progress = (sig_count / goal * 100) if goal > 0 else 0 %}
                             <div class="progress-bar" role="progressbar" style="width: {{ progress|min(100) }}%"></div>
                         </div>
-                        <small class="text-muted">{{ petition.signature_count }} signatures</small>
+                        <small class="text-muted">{{ petition.signature_count or 0 }} signatures</small>
                     </li>
                     {% endfor %}
                 </ul>
