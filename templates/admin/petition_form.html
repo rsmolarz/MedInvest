@@ -73,7 +73,7 @@
                     </h4>
                 </div>
                 <div class="card-body">
-                    <form method="POST">
+                    <form method="POST" id="petition-form" onsubmit="return prepareSubmit()">
                         <div class="mb-3">
                             <label for="title" class="form-label">Petition Title <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="title" name="title" 
@@ -179,19 +179,21 @@ var quill = new Quill('#editor-container', {
 quill.root.innerHTML = {{ petition.description|tojson|safe }};
 {% endif %}
 
-// Update hidden field before form submission
-document.querySelector('form').addEventListener('submit', function(e) {
+// Prepare form submission
+function prepareSubmit() {
     var descriptionField = document.getElementById('description');
     var content = quill.root.innerHTML;
     
-    // Check if content is empty
-    if (quill.getText().trim().length === 0) {
-        e.preventDefault();
+    // Check if content is empty (only whitespace or empty paragraphs)
+    var textContent = quill.getText().trim();
+    if (textContent.length === 0) {
         alert('Please enter a description for the petition.');
         return false;
     }
     
+    // Set the hidden field value
     descriptionField.value = content;
-});
+    return true;
+}
 </script>
 {% endblock %}
