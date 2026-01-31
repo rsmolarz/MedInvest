@@ -66,8 +66,6 @@
                 </div>
             </div>
             
-            {% if room.petitions is defined and room.petitions %}
-            {% set active_petitions = room.petitions.filter_by(is_active=True, status='active').all() %}
             {% if active_petitions %}
             <div class="card mb-3 border-primary">
                 <div class="card-header bg-primary text-white">
@@ -91,7 +89,6 @@
                     {% endfor %}
                 </ul>
             </div>
-            {% endif %}
             {% endif %}
         </div>
     </div>

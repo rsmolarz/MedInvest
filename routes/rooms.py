@@ -192,12 +192,20 @@ def view_room(slug):
         # Debug: Log room and post data before rendering
         logging.debug(f"Rendering room '{slug}' with {len(posts.items)} posts, user: {current_user.id if current_user.is_authenticated else 'anon'}")
         
+        # Get active petitions for this room
+        active_petitions = Petition.query.filter_by(
+            room_id=room.id, 
+            is_active=True, 
+            status='active'
+        ).order_by(Petition.created_at.desc()).all()
+        
         try:
             return render_template('rooms/detail.html', 
                                  room=room, 
                                  posts=posts,
                                  user_votes=user_votes,
                                  sort=sort,
+                                 active_petitions=active_petitions,
                                  render_content=render_content_with_links)
         except Exception as template_error:
             logging.error(f"Template error in view_room for slug '{slug}': {template_error}")
