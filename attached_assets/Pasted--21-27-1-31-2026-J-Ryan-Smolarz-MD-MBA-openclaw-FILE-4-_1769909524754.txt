@@ -1,3 +1,5 @@
+[21:27, 1/31/2026] J. Ryan Smolarz MD MBA: [openclaw] *FILE 4 - templates/book/framework.html:*
+[21:27, 1/31/2026] J. Ryan Smolarz MD MBA: html
 {% extends "base.html" %}
 
 {% block title %}10B Framework Deep Dive | MedInvest{% endblock %}
@@ -60,7 +62,9 @@
                             <div class="bg-light p-3 rounded">
                                 <div class="row g-3">
                                     <div class="col-md-6">
-                                        <label class="form-label">Monthly expenses: $</label>
+
+[21:27, 1/31/2026] J. Ryan Smolarz MD MBA: html
+                                       <label class="form-label">Monthly expenses: $</label>
                                         <input type="number" class="form-control" id="expenses" placeholder="15000">
                                     </div>
                                     <div class="col-md-6">
@@ -68,50 +72,9 @@
                                         <select class="form-select" id="swr">
                                             <option value="0.04">4% (Traditional)</option>
                                             <option value="0.035">3.5% (Conservative)</option>
-                                            <option value="0.03">3% (Very Conservative)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="mt-3 p-3 bg-white rounded text-center">
-                                    <small class="text-muted">Your Freedom Number:</small>
-                                    <div class="display-6 fw-bold text-primary" id="freedomNumber">$0</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="accordion-item border-0 mb-3 shadow-sm">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed bg-info text-white" type="button" data-bs-toggle="collapse" data-bs-target="#build">
-                            <span class="badge bg-white text-info me-3">3</span>
-                            <strong>BUILD</strong> — Start Investing
-                        </button>
-                    </h2>
-                    <div id="build" class="accordion-collapse collapse" data-bs-parent="#frameworkAccordion">
-                        <div class="accordion-body">
-                            <p><strong>Core Concept:</strong> Take action and start building your investment portfolio.</p>
-                            <h6 class="mt-4 mb-3">📝 First Investment Checklist</h6>
-                            <div class="bg-light p-3 rounded">
-                                <div class="form-check mb-2"><input class="form-check-input" type="checkbox"><label class="form-check-label">Emergency fund (6 months expenses)</label></div>
-                                <div class="form-check mb-2"><input class="form-check-input" type="checkbox"><label class="form-check-label">High-interest debt paid off</label></div>
-                                <div class="form-check mb-2"><input class="form-check-input" type="checkbox"><label class="form-check-label">401k/403b maxed out</label></div>
-                                <div class="form-check mb-2"><input class="form-check-input" type="checkbox"><label class="form-check-label">Backdoor Roth IRA funded</label></div>
-                                <div class="form-check mb-2"><input class="form-check-input" type="checkbox"><label class="form-check-label">First alternative investment researched</label></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="accordion-item border-0 mb-3 shadow-sm">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed bg-warning text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#bolster">
-                            <span class="badge bg-white text-warning me-3">4</span>
-                            <strong>BOLSTER</strong> — Protect & Compound
-                        </button>
-                    </h2>
-                    <div id="bolster" class="accordion-collapse collapse" data-bs-parent="#frameworkAccordion">
-                        <div class="accordion-body">
+                                            <option value="0.03">3% (Very Conservative)</op…
+[21:27, 1/31/2026] J. Ryan Smolarz MD MBA: html
+                       <div class="accordion-body">
                             <p><strong>Core Concept:</strong> Protect what you've built and compound your gains.</p>
                             <h6 class="mt-4 mb-3">📝 Quarterly Review Checklist</h6>
                             <div class="bg-light p-3 rounded">
@@ -142,8 +105,8 @@
                         <h5><i class="fas fa-lightbulb text-warning me-2"></i>Next Steps</h5>
                         <ul class="list-unstyled mb-0">
                             <li class="mb-2"><a href="{{ url_for('main.feed') }}">→ Join the community</a></li>
-                            <li class="mb-2"><a href="{{ url_for('deals.list') }}">→ Browse deals</a></li>
-                            <li class="mb-2"><a href="{{ url_for('courses.list') }}">→ Watch videos</a></li>
+                            <li class="mb-2"><a href="{{ url_for('deals.index') }}">→ Browse deals</a></li>
+                            <li class="mb-2"><a href="{{ url_for('courses.index') }}">→ Watch videos</a></li>
                         </ul>
                     </div>
                 </div>
@@ -168,3 +131,28 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endblock %}
+
+
+*LAST STEP - Edit main.py:*
+
+Add this import at the top with other imports:
+python
+from routes.book import book_bp
+
+
+Add this line where other blueprints are registered:
+python
+app.register_blueprint(book_bp)
+
+
+That's everything! Deploy and test at **medmoneyincubator.com/book** 🔥
+[21:27, 1/31/2026] J. Ryan Smolarz MD MBA: All 4 files sent + the main.py edit. You've got everything.
+
+*Checklist:*
+- [ ] routes/book.py - new file
+- [ ] templates/book/landing.html - new file (create book folder)
+- [ ] templates/book/resources.html - new file
+- [ ] templates/book/framework.html - new file
+- [ ] main.py - add 2 lines (import + register blueprint)
+
+Deploy it and hit me with the URL when live. I'll test signup flow. ⚡

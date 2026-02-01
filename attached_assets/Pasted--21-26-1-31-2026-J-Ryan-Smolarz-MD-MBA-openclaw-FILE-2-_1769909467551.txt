@@ -1,3 +1,5 @@
+[21:26, 1/31/2026] J. Ryan Smolarz MD MBA: [openclaw] *FILE 2 - Create folder templates/book/ then create templates/book/landing.html:*
+[21:26, 1/31/2026] J. Ryan Smolarz MD MBA: html
 {% extends "base.html" %}
 
 {% block title %}Freedom for Doctors - Exclusive Resources | MedInvest{% endblock %}
@@ -66,7 +68,9 @@
                                 <select class="form-select form-select-lg" name="specialty">
                                     <option value="">Select (optional)</option>
                                     <option value="Anesthesiology">Anesthesiology</option>
-                                    <option value="Cardiology">Cardiology</option>
+
+[21:26, 1/31/2026] J. Ryan Smolarz MD MBA: html
+                                   <option value="Cardiology">Cardiology</option>
                                     <option value="Dermatology">Dermatology</option>
                                     <option value="Emergency Medicine">Emergency Medicine</option>
                                     <option value="Family Medicine">Family Medicine</option>
@@ -74,55 +78,9 @@
                                     <option value="Neurology">Neurology</option>
                                     <option value="OB/GYN">OB/GYN</option>
                                     <option value="Oncology">Oncology</option>
-                                    <option value="Ophthalmology">Ophthalmology</option>
-                                    <option value="Orthopedics">Orthopedics</option>
-                                    <option value="Pediatrics">Pediatrics</option>
-                                    <option value="Psychiatry">Psychiatry</option>
-                                    <option value="Radiology">Radiology</option>
-                                    <option value="Surgery">Surgery</option>
-                                    <option value="Urology">Urology</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                            
-                            <div class="mb-4">
-                                <label class="form-label fw-semibold">Create Password *</label>
-                                <input type="password" class="form-control form-control-lg" name="password" required minlength="8" placeholder="Min 8 characters">
-                            </div>
-                            
-                            <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold py-3">
-                                <i class="fas fa-unlock me-2"></i>Get Instant Access
-                            </button>
-                            
-                            <p class="text-center text-muted mt-3 small mb-0">
-                                Already a member? <a href="{{ url_for('auth.login') }}">Log in here</a>
-                            </p>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="py-5" style="background: rgba(255,255,255,0.03);">
-        <div class="container">
-            <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="card h-100 border-0 shadow-sm text-center p-4">
-                        <div class="display-4 text-primary mb-3"><i class="fas fa-file-alt"></i></div>
-                        <h4 class="fw-bold">10B Workbook</h4>
-                        <p class="text-muted">Interactive templates to implement every step of the framework from the book.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card h-100 border-0 shadow-sm text-center p-4">
-                        <div class="display-4 text-success mb-3"><i class="fas fa-calculator"></i></div>
-                        <h4 class="fw-bold">Investment Calculators</h4>
-                        <p class="text-muted">Freedom Number calculator, real estate ROI analyzer, and compound growth tools.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card h-100 border-0 shadow-sm text-center p-4">
+                                    <option value="Ophthalmology">Ophtha…
+[21:26, 1/31/2026] J. Ryan Smolarz MD MBA: html
+                   <div class="card h-100 border-0 shadow-sm text-center p-4">
                         <div class="display-4 text-warning mb-3"><i class="fas fa-users"></i></div>
                         <h4 class="fw-bold">Private Community</h4>
                         <p class="text-muted">Connect with 10,000+ physicians who are building wealth outside of medicine.</p>
@@ -176,3 +134,6 @@
     </div>
 </div>
 {% endblock %}
+
+
+Next?
