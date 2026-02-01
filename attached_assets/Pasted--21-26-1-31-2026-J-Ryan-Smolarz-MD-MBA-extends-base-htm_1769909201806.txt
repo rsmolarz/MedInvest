@@ -1,0 +1,83 @@
+[21:26, 1/31/2026] J. Ryan Smolarz MD MBA: % extends "base.html" %}
+
+{% block title %}Freedom for Doctors - Exclusive Resources | MedInvest{% endblock %}
+
+{% block content %}
+<div class="min-vh-100" style="background: linear-gradient(135deg, #1e3a5f 0%, #0d1b2a 100%);">
+    
+    <div class="container py-5">
+        <div class="row align-items-center min-vh-75">
+            <div class="col-lg-6 text-white mb-5 mb-lg-0">
+                <div class="badge bg-warning text-dark mb-3 px-3 py-2">
+                    <i class="fas fa-book me-2"></i>EXCLUSIVE FOR BOOK READERS
+                </div>
+                <h1 class="display-4 fw-bold mb-4">
+                    You Read the Book.<br>
+                    <span class="text-warning">Now Join the Movement.</span>
+                </h1>
+              …
+[21:26, 1/31/2026] J. Ryan Smolarz MD MBA: html
+                                   <option value="Cardiology">Cardiology</option>
+                                    <option value="Dermatology">Dermatology</option>
+                                    <option value="Emergency Medicine">Emergency Medicine</option>
+                                    <option value="Family Medicine">Family Medicine</option>
+                                    <option value="Internal Medicine">Internal Medicine</option>
+                                    <option value="Neurology">Neurology</option>
+                                    <option value="OB/GYN">OB/GYN</option>
+                                    <option value="Oncology">Oncology</option>
+                                    <option value="Ophthalmology">Ophtha…
+[21:26, 1/31/2026] J. Ryan Smolarz MD MBA: html
+                   <div class="card h-100 border-0 shadow-sm text-center p-4">
+                        <div class="display-4 text-warning mb-3"><i class="fas fa-users"></i></div>
+                        <h4 class="fw-bold">Private Community</h4>
+                        <p class="text-muted">Connect with 10,000+ physicians who are building wealth outside of medicine.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="py-5" style="background: #f8fafc;">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-4 mb-lg-0">
+                    <h2 class="fw-bold mb-4">From Ryan Smolarz, MD, MBA</h2>
+                    <p class="lead">"I wrote Freedom for Doctors to change how physicians think about money. But a book can only take you so far. MedInvest is where the real transformation happens—where doctors actually <em>do</em> the work, share real deals, and build real wealth together."</p>
+                    <p class="fw-bold text-primary">— Author of Freedom for Doctors<br><span class="fw-normal text-muted">Host, Medicine & Money Show (26K+ subscribers)</span></p>
+                </div>
+                <div class="col-lg-5 offset-lg-1">
+                    <div class="card border-0 shadow">
+                        <div class="card-body p-4">
+                            <span class="badge bg-primary mb-3">COMMUNITY STATS</span>
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <div class="display-6 fw-bold text-primary">10K+</div>
+                                    <small class="text-muted">Physicians</small>
+                                </div>
+                                <div class="col-4">
+                                    <div class="display-6 fw-bold text-success">$2B+</div>
+                                    <small class="text-muted">Collective AUM</small>
+                                </div>
+                                <div class="col-4">
+                                    <div class="display-6 fw-bold text-warning">500+</div>
+                                    <small class="text-muted">Deals Shared</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="py-5 text-white text-center" style="background: linear-gradient(135deg, #1e3a5f 0%, #0d1b2a 100%);">
+        <div class="container">
+            <h2 class="fw-bold mb-3">Ready to Go Beyond the Book?</h2>
+            <p class="lead mb-4 opacity-75">Your exclusive resources are waiting.</p>
+            <a href="#" class="btn btn-warning btn-lg fw-bold px-5 py-3" onclick="document.querySelector('input[name=email]').focus(); window.scrollTo({top: 0, behavior: 'smooth'}); return false;">
+                <i class="fas fa-arrow-up me-2"></i>Get Started Free
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

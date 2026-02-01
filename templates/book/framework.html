@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}10B Framework - MedInvest{% endblock %}
+
+{% block extra_css %}
+<style>
+    .framework-hero {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        padding: 80px 0;
+    }
+    .framework-step {
+        position: relative;
+        padding-left: 80px;
+    }
+    .framework-step::before {
+        content: '';
+        position: absolute;
+        left: 30px;
+        top: 60px;
+        bottom: -40px;
+        width: 2px;
+        background: var(--border-color);
+    }
+    .framework-step:last-child::before {
+        display: none;
+    }
+    .step-number {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #059669, #047857);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: white;
+    }
+    .tool-card {
+        border: 2px solid var(--border-color);
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+    .tool-card:hover {
+        border-color: #059669;
+        transform: translateY(-3px);
+    }
+    .download-btn {
+        background: linear-gradient(135deg, #059669, #047857);
+        border: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="framework-hero">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8">
+                <span class="badge bg-white text-success mb-3 px-3 py-2">Exclusive Content</span>
+                <h1 class="display-5 fw-bold text-white mb-3">The 10B Framework Deep Dive</h1>
+                <p class="lead text-white opacity-90">
+                    A comprehensive guide to building lasting wealth as a medical professional. 
+                    Follow these 10 steps to achieve financial independence.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="mb-5">
+                <h2 class="fw-bold mb-4">The 10 Building Blocks to Financial Freedom</h2>
+                
+                <div class="framework-step mb-5">
+                    <div class="step-number">1</div>
+                    <div class="card">
+                        <div class="card-body p-4">
+                            <h4 class="fw-bold">Build Your Foundation</h4>
+                            <p class="text-muted mb-3">
+                                Establish an emergency fund, understand your cash flow, and create 
+                                a solid financial baseline before investing.
+                            </p>
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>3-6 months emergency fund</li>
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Track income and expenses</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Eliminate high-interest debt</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="framework-step mb-5">
+                    <div class="step-number">2</div>
+                    <div class="card">
+                        <div class="card-body p-4">
+                            <h4 class="fw-bold">Benefit from Tax Advantages</h4>
+                            <p class="text-muted mb-3">
+                                Maximize tax-advantaged accounts and understand physician-specific 
+                                tax strategies to keep more of what you earn.
+                            </p>
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Max out 401(k) and backdoor Roth</li>
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>HSA as a wealth-building tool</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Real estate tax benefits</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="framework-step mb-5">
+                    <div class="step-number">3</div>
+                    <div class="card">
+                        <div class="card-body p-4">
+                            <h4 class="fw-bold">Beat Lifestyle Inflation</h4>
+                            <p class="text-muted mb-3">
+                                As your income grows, avoid the trap of proportionally increasing 
+                                spending. Live like a resident a little longer.
+                            </p>
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Set spending guardrails</li>
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Automate savings increases</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Define "enough" for your lifestyle</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="framework-step mb-5">
+                    <div class="step-number">4</div>
+                    <div class="card">
+                        <div class="card-body p-4">
+                            <h4 class="fw-bold">Build Multiple Income Streams</h4>
+                            <p class="text-muted mb-3">
+                                Diversify your income beyond clinical work through investments, 
+                                side businesses, and passive income sources.
+                            </p>
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Rental real estate income</li>
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Dividend investing</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Medical consulting or teaching</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="framework-step mb-5">
+                    <div class="step-number">5</div>
+                    <div class="card">
+                        <div class="card-body p-4">
+                            <h4 class="fw-bold">Balance Risk and Reward</h4>
+                            <p class="text-muted mb-3">
+                                Understand your risk tolerance and create a portfolio that 
+                                aligns with your timeline and goals.
+                            </p>
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Asset allocation strategy</li>
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Rebalancing schedule</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Risk-adjusted returns focus</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center py-4">
+                    <a href="{{ url_for('book.resources') }}" class="btn btn-outline-primary btn-lg me-3">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Resources
+                    </a>
+                    <a href="{{ url_for('courses.list') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-graduation-cap me-2"></i>Take a Course
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="sticky-top" style="top: 100px;">
+                <div class="card mb-4">
+                    <div class="card-body p-4">
+                        <h5 class="fw-bold mb-3"><i class="fas fa-download me-2 text-success"></i>Downloadable Tools</h5>
+                        <div class="tool-card p-3 mb-3">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-file-excel text-success fs-4 me-3"></i>
+                                <div>
+                                    <div class="fw-semibold">Net Worth Tracker</div>
+                                    <small class="text-muted">Excel spreadsheet</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tool-card p-3 mb-3">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-calculator text-primary fs-4 me-3"></i>
+                                <div>
+                                    <div class="fw-semibold">FIRE Calculator</div>
+                                    <small class="text-muted">Interactive tool</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tool-card p-3">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-file-pdf text-danger fs-4 me-3"></i>
+                                <div>
+                                    <div class="fw-semibold">Investment Checklist</div>
+                                    <small class="text-muted">PDF guide</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card bg-success text-white">
+                    <div class="card-body p-4 text-center">
+                        <i class="fas fa-users fs-1 mb-3 opacity-75"></i>
+                        <h5 class="fw-bold">Join the Discussion</h5>
+                        <p class="opacity-90 small mb-3">
+                            Connect with other physicians implementing the 10B Framework
+                        </p>
+                        <a href="{{ url_for('rooms.list') }}" class="btn btn-light">
+                            Find Your Community
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

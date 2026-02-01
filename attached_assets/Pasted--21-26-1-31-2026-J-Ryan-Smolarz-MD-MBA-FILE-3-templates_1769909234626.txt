@@ -1,0 +1,76 @@
+[21:26, 1/31/2026] J. Ryan Smolarz MD MBA: *FILE 3 - templates/book/resources.html:*
+
+```html
+{% extends "base.html" %}
+
+{% block title %}Book Resources - Freedom for Doctors | MedInvest{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    
+    <div class="text-center mb-5">
+        <div class="badge bg-warning text-dark mb-3 px-3 py-2">
+            <i class="fas fa-book me-2"></i>FREEDOM FOR DOCTORS - BONUS CONTENT
+        </div>
+        <h1 class="display-5 fw-bold">Your Exclusive Resources</h1>
+        <p class="lead text-muted">Tools, templates, and community access to help you implement what you learned.</p>
+    </div>
+    
+    {% if not current_user.is_authenticated %}
+    <div class="alert alert-info text-center mb-5">
+        <…
+[21:26, 1/31/2026] J. Ryan Smolarz MD MBA: <div class="col-lg-6">
+            <div class="card h-100 shadow-sm {% if not current_user.is_authenticated %}opacity-75{% endif %}">
+                <div class="card-header bg-warning text-dark py-3">
+                    <h5 class="mb-0"><i class="fas fa-users me-2"></i>Private Community</h5>
+                </div>
+                <div class="card-body">
+                    <p>Join 10,000+ physician investors in our private community:</p>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Real deal discussions</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Due diligence reviews</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Expert AMAs</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Specialty-specific groups</li>
+                    </ul>
+                    {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('main.feed') }}" class="btn btn-warning"><i class="fas fa-comments me-2"></i>Enter Community</a>
+                    {% else %}
+                    <button class="btn btn-secondary" disabled><i class="fas fa-lock me-2"></i>Sign Up to Access</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="card h-100 shadow-sm {% if not current_user.is_authenticated %}opacity-75{% endif %}">
+                <div class="card-header bg-danger text-white py-3">
+                    <h5 class="mb-0"><i class="fas fa-video me-2"></i>Exclusive Video Series</h5>
+                </div>
+                <div class="card-body">
+                    <p>Deep-dive video content that expands on key book chapters:</p>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Consumer vs Investor Mindset</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Your First Syndication Deal</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Tax Strategies for Doctors</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Building Passive Income Streams</li>
+                    </ul>
+                    {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('courses.index') }}" class="btn btn-danger"><i class="fas fa-play me-2"></i>Watch Now</a>
+                    {% else %}
+                    <button class="btn btn-secondary" disabled><i class="fas fa-lock me-2"></i>Sign Up to Access</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if not current_user.is_authenticated %}
+    <div class="text-center mt-5 py-5 bg-light rounded-3">
+        <h3 class="fw-bold mb-3">Ready to Unlock Everything?</h3>
+        <p class="text-muted mb-4">Join 10,000+ physicians building wealth together.</p>
+        <a href="{{ url_for('book.landing') }}" class="btn btn-primary btn-lg px-5"><i class="fas fa-unlock me-2"></i>Get Free Access</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+```
