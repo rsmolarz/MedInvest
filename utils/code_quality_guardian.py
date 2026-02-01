@@ -809,10 +809,144 @@ class CodeQualityGuardian:
         return True
 
 
+def check_database_schema_sync():
+    """Check if SQLAlchemy models are in sync with database schema"""
+    from app import db
+    from sqlalchemy import inspect
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    issues = []
+    
+    try:
+        inspector = inspect(db.engine)
+        
+        # Get all model classes from models.py
+        from models import (
+            User, Post, PostVote, Comment, Room, RoomMembership, Notification,
+            NotificationPreference, Subscription, Payment, ExpertAMA, AMAQuestion,
+            AMARegistration, InvestmentDeal, DealInterest, Mentorship, MentorshipSession,
+            Course, CourseModule, CourseEnrollment, Event, EventSession, EventRegistration,
+            Referral, Petition, PetitionSignature, CodeQualityIssue, CodeReviewRun
+        )
+        
+        models_to_check = [
+            User, Post, PostVote, Comment, Room, RoomMembership, Notification,
+            NotificationPreference, Subscription, Payment, ExpertAMA, AMAQuestion,
+            AMARegistration, InvestmentDeal, DealInterest, Mentorship, MentorshipSession,
+            Course, CourseModule, CourseEnrollment, Event, EventSession, EventRegistration,
+            Referral, Petition, PetitionSignature, CodeQualityIssue, CodeReviewRun
+        ]
+        
+        for model in models_to_check:
+            table_name = model.__tablename__
+            
+            # Check if table exists
+            if not inspector.has_table(table_name):
+                issues.append({
+                    'issue_type': 'bug',
+                    'severity': 'critical',
+                    'file_path': 'models.py',
+                    'line_number': 1,
+                    'title': f'Missing database table: {table_name}',
+                    'description': f'The table "{table_name}" defined in model {model.__name__} does not exist in the database.',
+                    'suggested_fix': f'Run db.create_all() or add migration to create table {table_name}',
+                    'auto_fixable': True,
+                    'confidence': 1.0
+                })
+                continue
+            
+            # Get columns from database
+            db_columns = {col['name']: col for col in inspector.get_columns(table_name)}
+            
+            # Get columns from model
+            model_columns = {col.name: col for col in model.__table__.columns}
+            
+            # Find missing columns in database
+            for col_name, col in model_columns.items():
+                if col_name not in db_columns:
+                    col_type = str(col.type)
+                    default_val = col.default.arg if col.default else 'NULL'
+                    
+                    issues.append({
+                        'issue_type': 'bug',
+                        'severity': 'critical',
+                        'file_path': 'models.py',
+                        'line_number': 1,
+                        'function_name': model.__name__,
+                        'title': f'Missing column: {table_name}.{col_name}',
+                        'description': f'Column "{col_name}" ({col_type}) is defined in model {model.__name__} but missing from database table {table_name}. This will cause 500 errors when the column is accessed.',
+                        'suggested_fix': f'ALTER TABLE {table_name} ADD COLUMN {col_name} {col_type} DEFAULT {default_val};',
+                        'auto_fixable': True,
+                        'confidence': 1.0
+                    })
+        
+        if issues:
+            logger.warning(f'Database schema check found {len(issues)} issues')
+        else:
+            logger.info('Database schema check passed - all models in sync')
+            
+    except Exception as e:
+        logger.error(f'Database schema check failed: {e}')
+        issues.append({
+            'issue_type': 'bug',
+            'severity': 'high',
+            'file_path': 'models.py',
+            'line_number': 1,
+            'title': 'Database schema check failed',
+            'description': f'Could not verify database schema: {str(e)}',
+            'suggested_fix': 'Check database connection and model definitions',
+            'auto_fixable': False,
+            'confidence': 0.8
+        })
+    
+    return issues
+
+
 def run_scheduled_review():
     """Function to be called by scheduler"""
     with app_context():
         guardian = CodeQualityGuardian()
+        
+        # First check database schema sync
+        schema_issues = check_database_schema_sync()
+        
+        # Log and save any schema issues found
+        if schema_issues:
+            from app import db
+            from models import CodeQualityIssue
+            import uuid
+            
+            for issue_data in schema_issues:
+                # Check if issue already exists
+                existing = CodeQualityIssue.query.filter_by(
+                    file_path=issue_data.get('file_path'),
+                    title=issue_data.get('title'),
+                    status='open'
+                ).first()
+                
+                if existing:
+                    continue
+                
+                issue = CodeQualityIssue(
+                    issue_type=issue_data.get('issue_type', 'bug'),
+                    severity=issue_data.get('severity', 'critical'),
+                    status='open',
+                    file_path=issue_data.get('file_path'),
+                    line_number=issue_data.get('line_number'),
+                    function_name=issue_data.get('function_name'),
+                    title=issue_data.get('title'),
+                    description=issue_data.get('description'),
+                    suggested_fix=issue_data.get('suggested_fix'),
+                    ai_confidence=issue_data.get('confidence'),
+                    auto_fixable=issue_data.get('auto_fixable', False),
+                    review_run_id=str(uuid.uuid4())[:8]
+                )
+                db.session.add(issue)
+            
+            db.session.commit()
+        
+        # Then run the regular code review
         return guardian.run_review()
 
 
